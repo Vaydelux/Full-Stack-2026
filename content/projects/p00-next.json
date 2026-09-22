@@ -1,0 +1,38 @@
+{
+  "number": 6,
+  "track": "p00-next",
+  "slug": "p00-next",
+  "title": "Build the TaskFlow Web Shell",
+  "goal": "Turn the React mental model into a real Next.js App Router application with deliberate server/client boundaries.",
+  "deliverables": [
+    "App Router structure",
+    "Dashboard/tasks routes",
+    "Dynamic task route",
+    "Server-loaded data example",
+    "Small client interaction island",
+    "Loading/error/not-found states"
+  ],
+  "steps": [
+    "Create the Next.js app and inspect every generated top-level file before editing.",
+    "Build the root layout and a simple application shell.",
+    "Add `/tasks` and `/tasks/[id]` routes and navigate using `Link`.",
+    "Keep the task list page server-side and fetch server data there.",
+    "Create a small Client Component for filtering or dialog state instead of marking the whole page client-side.",
+    "Add `loading.tsx`, `error.tsx`, and `not-found.tsx` and reproduce each state deliberately.",
+    "Separate server-only and public environment variables.",
+    "Run the production build and fix every warning/error before moving on."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

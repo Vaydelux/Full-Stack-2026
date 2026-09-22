@@ -1,0 +1,1062 @@
+{
+  "number": 14,
+  "slug": "phase-14",
+  "title": "Service & Business Logic Architecture",
+  "volume": 4,
+  "readme": "FULL-STACK DEVELOPER 2026\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nThis phase continues the validated, persistent, professionally error-handled Task API from Phase 13.\nIt teaches controller/service boundaries, business invariants, Task workflow policy, cross-model membership rules, business validation, transaction reasoning, and extraction thresholds without premature Repository Pattern or Clean Architecture layers.\n\nCourse locks remain:\n- NestJS 12.0.3\n- Fastify 5.x course line\n- Prisma 7.9.1\n- Zod 4.6.5\n\nStart with 00_Phase_14_Guide.pdf or 11_Phase_14_Complete_Book.pdf.\nThe reference snapshot contains only Phase 14 changed/emphasized files and assumes Phase 13 is already complete.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "controller-vs-service-responsibilities",
+      "title": "Controller vs Service Responsibilities",
+      "summary": "Controller vs Service Responsibilities Keep HTTP translation thin while providers execute application use cases Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone HTTP request v Controller v TasksService v PrismaService Phase 14 turns CRUD-oriented service methods into explicit…",
+      "body": "Controller vs Service Responsibilities\nKeep HTTP translation thin while providers execute application use cases\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nHTTP request\n\nv\n\nController\n\nv\n\nTasksService\n\nv\n\nPrismaService\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nA controller translates HTTP; a service executes a use case\nNestJS documentation recommends that controllers handle HTTP requests and delegate more complex work to\nproviders. TaskFlow now makes that separation concrete: controllers translate transport concerns; TasksService\nowns Task use cases and rules.\n\nController owns                                                   TasksService owns\n\nroute + HTTP method                                               business workflow\n\npath/body extraction                                              domain invariants\n\nvalidation pipe invocation                                        cross-model checks\n\nstatus semantics                                                  orchestration of reads/writes\n\ndelegate to provider                                              meaningful application exceptions\n\nThin does not mean useless\nA controller still has an important responsibility: it defines the transport contract. Thin means it does not decide\nwhether DONE can return to TODO, whether an assignee belongs to a workspace, or how completedAt should\nchange.\n\n@Patch(\":id\")\nupdate(\n@Param(\"id\", { schema: taskIdSchema }) id: string,\n@Body(new StandardSchemaValidationPipe(updateTaskSchema)) input: UpdateTaskDto,\n) {\nreturn this.tasksService.update(id, input);\n}\n\nFigure 1 - Use-case ownership\n\nHTTP PATCH /tasks/:id\n\nv\n\nController validates/extracts transport data\n\nv\n\nTasksService evaluates Task rules\n\nv\n\nPrismaService persists valid state\n\nThe service is where transport-independent application meaning lives.\n\nService layer is not a pass-through layer\nIf TasksService only forwards every input directly to prisma.task.update(), it is not protecting business behavior. As\nrules appear, the service should coordinate the use case before the write.\n\nAvoid controller business logic\n\nPutting transition tables or membership queries into TasksController makes the same rules difficult to reuse from jobs, tests,\nCLI tools, or future non-HTTP entry points.\n\nThe opposite anti-pattern: god service\n\nA service can also grow too large. Do not respond by extracting arbitrary classes early. First group methods by use\ncase and keep private rule helpers local. Extract only when a rule becomes independently complex, reused, or\ndeserves its own clear responsibility.",
+      "wordCount": 330,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "nest",
+        "objectives": [
+          "Explain Controller vs Service Responsibilities in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this nest concept.",
+          "Diagnose one representative nest failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "NestJS structure becomes valuable when the request pipeline and responsibility of controllers, services, guards, pipes, and providers are explicit rather than magical.",
+        "mentalModel": [
+          "HTTP request",
+          "Fastify adapter",
+          "Nest pipeline",
+          "controller",
+          "service",
+          "response"
+        ],
+        "steps": [
+          "Restate the goal of “Controller vs Service Responsibilities” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP request → Fastify adapter → Nest pipeline → controller → service → response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Controller delegates; service owns application behavior",
+          "code": "@Controller(\"tasks\")\nexport class TasksController {\n  constructor(private readonly tasks: TasksService) {}\n\n  @Get()\n  findAll() {\n    return this.tasks.findAll();\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "God services with hundreds of unrelated lines",
+          "Change one assumption in the nest example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Nest cannot resolve dependencies",
+            "investigation": "Read the constructor index in the error, then check provider registration, module imports, and exports in that order."
+          },
+          {
+            "symptom": "Endpoint not reached",
+            "investigation": "Confirm method/path, controller registration, global prefix, and guard/pipe behavior using request logs."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Controller vs Service Responsibilities” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Controller vs Service Responsibilities solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the nest boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "business-invariants-and-rule-ownership",
+      "title": "Business Invariants and Rule Ownership",
+      "summary": "Business Invariants & Rule Ownership Separate transport validation, business rules, authorization, and database constraints Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Request shape v Application invariant v Database integrity Phase 14 turns CRUD-oriented service methods into explicit…",
+      "body": "Business Invariants & Rule Ownership\nSeparate transport validation, business rules, authorization, and database constraints\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nRequest shape\n\nv\n\nApplication invariant\n\nv\n\nDatabase integrity\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nInvariant: a rule that must remain true\nA business invariant is a statement the application should protect across valid operations. It is different from a\nTypeScript type, a request shape, and often different from a database constraint.\n\nRule                                                                  Best first owner\n\ntitle is a string <= 200 chars                                        Zod boundary\n\nprojectId references an existing row                                  PostgreSQL FK + service-friendly 404\n\nassignee belongs to Project workspace                                 TasksService\n\nDONE sets completedAt                                                 TasksService\n\nworkspaceId + userId unique                                           PostgreSQL unique constraint\n\ncaller may edit this Task                                             authorization layer later\n\nWhy some rules cannot be expressed as simple database constraints\nThe assignee rule crosses Task -> Project -> Workspace and Membership. PostgreSQL can ensure assigneeId\nreferences a real User, but the current model does not encode the stronger rule that the User must also belong to the\nTask workspace. The application service therefore checks that invariant.\n\nFigure 1 - Assignee invariant\n\nTask belongs to Project\n\nv\n\nProject belongs to Workspace\n\nv\n\nCandidate User\n\nv\n\nMembership(workspaceId,userId) must exist\n\nv\n\nOnly then assign Task\n\nA valid foreign key is necessary but not sufficient for this business rule.\n\nValidation layers complement one another\nLayer                                 Question\n\nZod                                   Is assigneeId shaped like a UUID?\n\nTasksService                          Is that User a member of this Workspace?\n\nPostgreSQL                            Does that User row actually exist?\n\nDo not make Zod query the database\n\nRequest schema validation should stay deterministic and focused on shape/format. Database-dependent business rules\nbelong in application logic, not inside the transport schema.",
+      "wordCount": 285,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Business Invariants and Rule Ownership in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Business Invariants and Rule Ownership” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Business rules duplicated in controllers and frontend",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Business Invariants and Rule Ownership” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Business Invariants and Rule Ownership solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "task-status-workflow-and-derived-state",
+      "title": "Task Status Workflow and Derived State",
+      "summary": "Task Status Workflow & Derived State Explicit transitions, completedAt consistency, and operations with business meaning Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Current Task status v Transition policy v Derived state v Persist Phase 14 turns CRUD-oriented…",
+      "body": "Task Status Workflow & Derived State\nExplicit transitions, completedAt consistency, and operations with business meaning\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nCurrent Task status\n\nv\n\nTransition policy\n\nv\n\nDerived state\n\nv\n\nPersist\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nModel Task status as a workflow, not a free-form field\nZod can prove that a status value is one of TODO, IN_PROGRESS, DONE, or CANCELED. It cannot decide whether\na specific transition is allowed from the current persisted state. That requires reading the Task and applying workflow\npolicy.\n\nconst ALLOWED_STATUS_TRANSITIONS = {\nTODO:        [IN_PROGRESS, CANCELED],\nIN_PROGRESS: [TODO, DONE, CANCELED],\nDONE:        [IN_PROGRESS],\nCANCELED:    [TODO],\n};\n\nFrom                              Allowed next states\n\nTODO                              IN_PROGRESS, CANCELED\n\nIN_PROGRESS                       TODO, DONE, CANCELED\n\nDONE                              IN_PROGRESS\n\nCANCELED                          TODO\n\nFigure 1 - Status transition reasoning\n\nRead current status\n\nv\n\nRequested status differs?\n\nv\n\nCheck transition policy\n\nv\n\nReject invalid transition with 409\n\nv\n\nApply derived side effects\n\nv\n\nPersist valid update\n\nThe update becomes an application operation, not an arbitrary column assignment.\n\nDerived state: completedAt\nWhen Task status changes to DONE, TaskFlow records completedAt. When a DONE Task is reopened, completedAt\nis cleared. That makes status and completion timestamp internally consistent.\n\nif (to === TaskStatus.DONE) return new Date();\nif (from === TaskStatus.DONE) return null;\n\nWhy not let the frontend set completedAt?\n\nThe client may request a business action such as completing a Task, but the server owns the authoritative timestamp and\ninvariant. Otherwise clients can create contradictory states such as status=TODO with completedAt populated.\n\nCRUD field update vs business operation\nPATCH remains a valid transport for this phase, but TasksService interprets status as a workflow change rather than\nblindly forwarding it. In larger domains, an explicit operation such as POST /purchase-orders/:id/approve can be\nclearer than a generic field patch because approval has business meaning and side effects.",
+      "wordCount": 309,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Task Status Workflow and Derived State in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Task Status Workflow and Derived State” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository abstraction added before there is a boundary to protect",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Task Status Workflow and Derived State” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Task Status Workflow and Derived State solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "cross-model-rules-and-workspace-membership",
+      "title": "Cross Model Rules and Workspace Membership",
+      "summary": "Cross-Model Rules & Workspace Membership Use relational context to enforce assignee membership invariants Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Task Project v Workspace v Membership v Assignment Phase 14 turns CRUD-oriented service methods into explicit application…",
+      "body": "Cross-Model Rules & Workspace\nMembership\nUse relational context to enforce assignee membership invariants\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nTask Project\n\nv\n\nWorkspace\n\nv\n\nMembership\n\nv\n\nAssignment\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nCross-model business rules require context\nAn assigneeId is not valid merely because the User exists. The Task Project determines a Workspace, and the User\nmust have a Membership in that Workspace.\n\nconst project = await prisma.project.findUnique({\nwhere: { id: input.projectId },\nselect: { id: true, workspaceId: true },\n});\n\nconst membership = await prisma.membership.findUnique({\nwhere: {\nworkspaceId_userId: {\nworkspaceId: project.workspaceId,\nuserId: input.assigneeId,\n},\n},\n});\n\nThe composite unique key becomes useful\nPhase 10 intentionally defined @@unique([workspaceId, userId]). That schema design now gives the service an\nunambiguous and efficient way to ask whether this exact membership exists.\n\nFigure 1 - Cross-model rule\n\nTask / Project context\n\nv\n\nworkspaceId\n\nv\n\ncandidate assigneeId\n\nv\n\nMembership lookup using workspaceId_userId\n\nv\n\nMembership exists -> assignment allowed\n\nv\n\nNo membership -> 409 business conflict\n\nThe service composes relational facts into an application rule.\n\nA 409 is more useful than a database crash\nASSIGNEE_NOT_WORKSPACE_MEMBER is a deliberate business conflict: the request is syntactically valid, the\nUser may exist, but the requested state conflicts with TaskFlow workspace rules.\n\nAuthentication is still later\n\nThis check does not ask whether the current caller is allowed to assign the Task. That is authorization and arrives later. Phase\n14 only proves the target assignee satisfies the Task domain invariant.",
+      "wordCount": 247,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Cross Model Rules and Workspace Membership in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Cross Model Rules and Workspace Membership matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Cross Model Rules and Workspace Membership” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "prisma",
+          "caption": "Model membership as a first-class relation",
+          "code": "model WorkspaceMember {\n  workspaceId String\n  userId      String\n  role        WorkspaceRole\n  workspace Workspace @relation(fields: [workspaceId], references: [id])\n  user      User      @relation(fields: [userId], references: [id])\n  @@id([workspaceId, userId])\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Methods named only after CRUD verbs when workflow intent matters",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Cross Model Rules and Workspace Membership” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Cross Model Rules and Workspace Membership solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "business-validation-and-time-based-policies",
+      "title": "Business Validation and Time Based Policies",
+      "summary": "Business Validation & Time-Based Policies Why semantically valid state needs more than Zod request validation Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Valid timestamp v Business clock/policy v Accept or reject Phase 14 turns CRUD-oriented service methods…",
+      "body": "Business Validation & Time-Based\nPolicies\nWhy semantically valid state needs more than Zod request validation\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nValid timestamp\n\nv\n\nBusiness clock/policy\n\nv\n\nAccept or reject\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nBusiness validation is not the same as transport validation\nPhase 12 protects the request boundary. Phase 14 protects the application state. These validations run at different\nmoments and answer different questions.\n\nQuestion                                                Layer                              Example response\n\nIs dueAt a valid ISO datetime?                          Zod                                400 BAD_REQUEST\n\nDoes this course allow a new past due date?             TasksService                       400 DUE_DATE_IN_PAST\n\nDoes projectId exist?                                   TasksService + DB                  404 PROJECT_NOT_FOUND\n\nIs assigneeId a UUID?                                   Zod                                400 BAD_REQUEST\n\nIs assignee a Workspace member?                         TasksService                       409 ASSIGNEE_NOT_WORKSPACE_M\nEMBER\n\nA policy may use current time\nA due-date-in-the-past rule depends on application meaning and the current clock. It is not just a string-format rule.\nThe service therefore parses the already validated timestamp and compares it with the current time.\n\nprivate assertDueDate(dueAt?: string | null): void {\nif (!dueAt) return;\nif (new Date(dueAt).getTime() < Date.now()) {\nthrow new DueDateInPastException();\n}\n}\n\nBe careful with clocks\nTime-based business rules eventually deserve a controllable Clock dependency in heavily tested domains. We do\nnot introduce that abstraction yet because formal unit testing and time simulation arrive later. The book calls out the\ntrade-off so the learner understands why Date.now() may later become a seam.\n\nDo not duplicate the same rule everywhere\n\nIf the frontend also warns about past dates, that improves UX, but the backend remains authoritative. Client validation is\nconvenience; server business logic protects the system.",
+      "wordCount": 273,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Business Validation and Time Based Policies in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Business Validation and Time Based Policies matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Business Validation and Time Based Policies” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "God services with hundreds of unrelated lines",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Business Validation and Time Based Policies” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Business Validation and Time Based Policies solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "prisma-transactions-and-atomic-workflows",
+      "title": "Prisma Transactions and Atomic Workflows",
+      "summary": "Prisma Transactions & Atomic Workflows Choose nested writes, transaction arrays, or interactive transactions only when a use case needs them Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Business operation v Dependent DB steps v Transaction boundary v…",
+      "body": "Prisma Transactions & Atomic Workflows\nChoose nested writes, transaction arrays, or interactive transactions only when a use case needs\nthem\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nBusiness operation\n\nv\n\nDependent DB steps\n\nv\n\nTransaction boundary\n\nv\n\nCommit or rollback\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nTransactions protect one business operation across multiple\ndatabase steps\nA transaction is appropriate when a use case must treat multiple dependent reads/writes as one unit. Prisma 7\nsupports nested writes, sequential $transaction([...]), and interactive $transaction(async tx => ...).\n\nScenario                                               Transaction?                        Reason\n\nUpdate one Task title                                  No extra transaction                One Prisma update is already atomic\n\nCreate Task row only                                   No extra transaction                Single write\n\nCreate parent + related rows                           Nested write can provide            Dependent writes\ntransactional behavior\n\nCheck membership then assign as one workflow           Interactive transaction can group   Read/check then write\nthe workflow\n\nTwo unrelated read queries for a dashboard             Usually no                          Atomicity may not be required\n\nreturn this.prisma.$transaction(async (tx) => {\nconst task = await tx.task.findUnique(...);\nconst membership = await tx.membership.findUnique(...);\n\nif (!membership) {\nthrow new AssigneeNotWorkspaceMemberException(assigneeId);\n}\n\nreturn tx.task.update({\nwhere: { id },\ndata: { assigneeId },\n});\n});\n\nKeep interactive transactions short\nDo not call slow external APIs, wait for user input, or perform long CPU work inside an interactive transaction. The\ndatabase resources remain tied to that transaction while the callback is running.\n\nTransaction does not automatically solve every concurrency problem\n\nIsolation level and retry strategy still matter for strict concurrent invariants. Phase 14 introduces transaction scope; deeper\nconcurrency control belongs later. Do not claim that wrapping arbitrary code in $transaction makes all race conditions\nimpossible.\n\nUse the transaction client inside the callback\nQueries that belong to the transaction must use tx, not the outer PrismaService. This is why the membership helper\naccepts either PrismaService or Prisma.TransactionClient in the reference snapshot.",
+      "wordCount": 313,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Prisma Transactions and Atomic Workflows in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Transactions and Atomic Workflows” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Business rules duplicated in controllers and frontend",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Transactions and Atomic Workflows” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Transactions and Atomic Workflows solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "service-orchestration-and-extraction-thresholds",
+      "title": "Service Orchestration and Extraction Thresholds",
+      "summary": "Service Orchestration & Extraction Thresholds Keep logic readable and know when complexity has earned a new abstraction Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Load context v Check rules v Derive state v Persist v Extract only…",
+      "body": "Service Orchestration & Extraction\nThresholds\nKeep logic readable and know when complexity has earned a new abstraction\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nLoad context\n\nv\n\nCheck rules\n\nv\n\nDerive state\n\nv\n\nPersist\n\nv\n\nExtract only with evidence\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nOrchestration means coordinating steps for one use case\nA service method can read context, check invariants, calculate derived state, then persist. That sequence is\napplication orchestration. It is different from merely writing raw database queries.\n\nFigure 1 - Update Task orchestration\n\nLoad current Task state\n\nv\n\nValidate due-date business policy\n\nv\n\nValidate status transition\n\nv\n\nValidate assignee membership if supplied\n\nv\n\nDerive completedAt\n\nv\n\nPersist update\n\nv\n\nReturn result\n\nThe order of operations communicates the use case clearly.\n\nKeep private helpers close until complexity earns extraction\nprivate assertStatusTransition(...)\nprivate completedAtForTransition(...)\nprivate assertDueDate(...)\nprivate assertWorkspaceMembership(...)\n\nThese helpers make the service readable without inventing TaskPolicyService, TaskDomainService,\nTaskRulesEngine, or a dozen interfaces. If they later become complex, reused, or independently testable, extraction\ncan become justified.\n\nSignal                                                      Possible next step\n\nOne private helper, used once                               Keep local\n\nSeveral pure transition rules growing together              Consider Task workflow/policy object later\n\nSame rule used by multiple services                         Consider shared provider with one clear responsibility\n\nDatabase access duplicated everywhere                       Repository pattern may eventually earn its place\n\nDifferent bounded domains changing independently            Revisit module boundaries\n\nArchitecture grows from pressure\n\nDo not predict every future abstraction. Let repeated complexity create evidence for the next design move.",
+      "wordCount": 255,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Service Orchestration and Extraction Thresholds in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Service Orchestration and Extraction Thresholds matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Service Orchestration and Extraction Thresholds” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository abstraction added before there is a boundary to protect",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Service Orchestration and Extraction Thresholds” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Service Orchestration and Extraction Thresholds solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "anti-patterns-and-architecture-theater",
+      "title": "Anti Patterns and Architecture Theater",
+      "summary": "Anti-Patterns & Architecture Theater Avoid controller business logic, blind Prisma patches, transaction-everywhere, and premature layers Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Simple architecture v Pressure appears v Add only needed structure Phase 14 turns CRUD-oriented service…",
+      "body": "Anti-Patterns & Architecture Theater\nAvoid controller business logic, blind Prisma patches, transaction-everywhere, and premature\nlayers\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nSimple architecture\n\nv\n\nPressure appears\n\nv\n\nAdd only needed structure\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nCommon business-layer anti-patterns\nThe fastest way to understand the service layer is to see what happens when responsibilities leak.\n\nAnti-pattern 1 - Controller performs database queries\n@Patch(\":id\")\nasync update(...) {\nconst task = await this.prisma.task.findUnique(...);\n// business checks here\nreturn this.prisma.task.update(...);\n}\n\nThis couples HTTP handling directly to persistence and makes the use case harder to reuse.\n\nAnti-pattern 2 - Prisma update object becomes the business model\nreturn prisma.task.update({\nwhere: { id },\ndata: input, // every valid field is treated as a legal business transition\n});\n\nRequest-shape validity does not mean every state transition is allowed.\n\nAnti-pattern 3 - Error filter decides business meaning\nPhase 13 already established that the global filter formats errors. It should not infer Task workflow rules from URLs or\nPrisma codes.\n\nAnti-pattern 4 - transaction everywhere\nWrapping every single Prisma operation in $transaction adds complexity without improving atomicity. One database\nwrite already succeeds or fails atomically.\n\nAnti-pattern 5 - Clean Architecture cosplay\nTaskController\n-> TaskUseCaseFacade\n-> TaskApplicationService\n-> TaskDomainService\n-> TaskRepositoryInterface\n-> PrismaTaskRepository\n-> TaskMapper\n-> Prisma\n\nMore layers are not automatically more professional\n\nUse layers because they isolate a real kind of change or complexity. At TaskFlow's current scale, Controller -> TasksService\n-> PrismaService is still an excellent architecture.\n\nAnti-pattern 6 - service knows HTTP framework details\nTasksService should throw meaningful application exceptions, not manipulate Fastify Reply or manually construct\ntransport responses. That keeps business behavior reusable outside HTTP.",
+      "wordCount": 274,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Anti Patterns and Architecture Theater in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Anti Patterns and Architecture Theater matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Anti Patterns and Architecture Theater” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Methods named only after CRUD verbs when workflow intent matters",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Anti Patterns and Architecture Theater” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Anti Patterns and Architecture Theater solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "enterprise-transfer-hris-payroll-procurement-inventory",
+      "title": "Enterprise Transfer HRIS Payroll Procurement Inventory",
+      "summary": "Enterprise Transfer Map the service-layer mental model to HRIS, payroll, procurement, inventory, and recruitment Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Entry point v Application service v Business workflow v Persistence Phase 14 turns CRUD-oriented service methods…",
+      "body": "Enterprise Transfer\nMap the service-layer mental model to HRIS, payroll, procurement, inventory, and recruitment\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nEntry point\n\nv\n\nApplication service\n\nv\n\nBusiness workflow\n\nv\n\nPersistence\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nHow this service architecture scales to enterprise systems\nThe same reasoning transfers to domains that are more serious than Tasks. The names change; the separation of\nresponsibilities remains useful.\n\nDomain                                 Example application-service rule\n\nHRIS Leave                             Employee cannot consume more leave than policy allows\n\nPayroll                                Payroll run cannot be finalized twice\n\nProcurement                            Purchase order cannot be approved before required approvals\n\nInventory                              Stock transfer cannot reduce source stock below allowed level\n\nRecruitment                            Applicant cannot move to hired before required screening state\n\nFigure 1 - Enterprise transfer\n\nHTTP / job / command entry point\n\nv\n\nApplication service\n\nv\n\nBusiness invariants + workflow\n\nv\n\nTransaction when operation spans dependent writes\n\nv\n\nPersistence\n\nThe service layer is valuable because domain rules survive changes in transport and UI.\n\nA service method should read like a business use case\nNames such as finalizePayrollRun(), approvePurchaseOrder(), transferStock(), and submitLeaveRequest()\ncommunicate more than generic update() when the operation has domain meaning and multiple rules.\n\nCRUD remains appropriate for simple resources\nDo not replace all CRUD methods with ceremonial verbs. A simple profile description update may remain\nupdateProfile(). A multi-step approval workflow deserves a richer use-case method. Choose based on behavior, not\nfashion.\n\nFrom Todo tutorial to software engineering\n\nThe important shift is that the database no longer defines the application. Persistent rows support the domain; application\nservices decide which state changes are meaningful and allowed.",
+      "wordCount": 273,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Enterprise Transfer HRIS Payroll Procurement Inventory in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Enterprise Transfer HRIS Payroll Procurement Inventory” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "God services with hundreds of unrelated lines",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Enterprise Transfer HRIS Payroll Procurement Inventory” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Enterprise Transfer HRIS Payroll Procurement Inventory solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Workflow rules, membership invariant, transaction reasoning, exercises, and oral exam Phase 14 - Service & Business Logic Architecture Volume 04 - Professional Backend Architecture milestone Implement v Verify state v Explain boundaries v Transfer skill Phase 14 turns CRUD-oriented service…",
+      "body": "Hands-On Lab & Phase Exit\nWorkflow rules, membership invariant, transaction reasoning, exercises, and oral exam\n\nPhase 14 - Service & Business Logic Architecture\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nImplement\n\nv\n\nVerify state\n\nv\n\nExplain boundaries\n\nv\n\nTransfer skill\n\nPhase 14 turns CRUD-oriented service methods into explicit application rules and workflows while keeping infrastructure simple.\n\nHands-on lab\nThis lab proves that TaskFlow now protects business state, not only request shape.\n\nLab A - Status workflow\n• Implement ALLOWED_STATUS_TRANSITIONS in TasksService.\n\n• Reject a transition that is not in the policy.\n\n• Set completedAt when moving into DONE.\n\n• Clear completedAt when reopening DONE.\n\n• Verify the persisted row after each operation.\n\nLab B - Workspace assignment invariant\n• Add assigneeId to write DTOs as optional/nullable UUID.\n\n• Load the Task Project workspace context.\n\n• Verify Membership(workspaceId,userId) exists before assignment.\n\n• Return ASSIGNEE_NOT_WORKSPACE_MEMBER for a syntactically valid non-member.\n\n• Verify unassigning with null succeeds.\n\nLab C - Transaction reasoning\n• Implement the explicit /tasks/:id/assignee workflow from the snapshot.\n\n• Use tx for every Prisma query inside the interactive transaction.\n\n• Explain why update-title does not need the same extra transaction.\n\n• Identify one future enterprise operation that would require several dependent writes.\n\nLab D - Smoke matrix\nScenario                                                             Expected\n\nTODO -> IN_PROGRESS                                                  Success\n\nIN_PROGRESS -> DONE                                                  Success + completedAt populated\n\nDONE -> IN_PROGRESS                                                  Success + completedAt cleared\n\nDONE -> TODO directly                                                409 TASK_STATUS_TRANSITION_NOT_ALLOWED\n\nassign Workspace member                                              Success\n\nassign non-member                                                    409 ASSIGNEE_NOT_WORKSPACE_MEMBER\n\nset new due date in past                                             400 DUE_DATE_IN_PAST\n\nset dueAt null                                                       Success; due date cleared\n\nExercise levels\nLevel                      Challenge\n\n1 - Follow                 Implement the reference rules and pass the PowerShell smoke checks.\n\n2 - Modify                 Add a rule that CANCELED Tasks cannot receive a new assignee until restored to TODO.\n\nLevel                      Challenge\n\n3 - Implement              Create a changeStatus(id,targetStatus) service method and make generic update delegate status changes\nthrough it.\n\n4 - Engineer               Design an approvePurchaseOrder() workflow with at least four invariants and identify exactly which steps must be\ntransactional. Do not write code until the responsibilities are mapped.\n\nArchitecture oral exam\n• Why does Zod not own the assignee membership rule?\n\n• Why should completedAt be server-derived?\n\n• When is a single Prisma write enough without $transaction?\n\n• Why does a controller delegate workflow decisions to a service?\n\n• What evidence would justify extracting Task transition rules into another provider?\n\n• How is a business invariant different from a database foreign key?\n\n• Why is authorization not the same as membership-validity business logic?\n\nPhase exit checklist\n• controllers remain thin and transport-focused.\n\n• TasksService protects explicit Task workflow rules.\n\n• invalid status transitions produce stable business errors.\n\n• completedAt stays consistent with DONE/reopen behavior.\n\n• Task assignees must belong to the Task workspace.\n\n• business validation is distinct from Zod shape validation.\n\n• transactions are used intentionally, not automatically.\n\n• no Repository Pattern or unnecessary architecture layers were introduced.\n\n• you can map the same service-layer reasoning to HRIS, payroll, procurement, and inventory use cases.\n\nFigure 1 - Phase 14 complete architecture\n\nHTTP request\n\nv\n\nController = transport\n\nv\n\nTasksService = use case + invariants\n\nv\n\nPrismaService / transaction when justified\n\nv\n\nPostgreSQL = durable integrity\n\nTaskFlow now has a real application-service layer instead of database-driven CRUD.\n\nNext phase\n\nPhase 15 adds Filtering, Search, Sorting & Pagination. We will design query parameters, safe dynamic Prisma filters,\npagination trade-offs, index-aware access patterns, query DTOs, metadata, and API contracts for collection endpoints.",
+      "wordCount": 524,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Business rules duplicated in controllers and frontend",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nMove orchestration and business invariants into cohesive services/policies so transport and persistence details do not become the domain model.",
+      "body": "Guided Build Lab — Phase 14: Service & Business Logic Architecture\n\nPurpose\nMove orchestration and business invariants into cohesive services/policies so transport and persistence details do not become the domain model.\n\nDeliverable\nRefactored task service with explicit policies/invariants and thin controllers.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nvalidated request -> service use case -> policy/invariant -> repository/Prisma -> result/error\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Choose one endpoint with mixed concerns and list every responsibility it currently performs.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Express one business rule with a name that describes the rule, not the framework.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Add a use-case method whose inputs/outputs make orchestration visible.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Test the rule without booting the whole web server where practical.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Review the resulting dependency direction and remove abstractions that add no clarity.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 636,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository abstraction added before there is a boundary to protect",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 14: Service & Business Logic Architecture\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nvalidated request -> service use case -> policy/invariant -> repository/Prisma -> result/error\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — God services with hundreds of unrelated lines\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Business rules duplicated in controllers and frontend\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Repository abstraction added before there is a boundary to protect\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Methods named only after CRUD verbs when workflow intent matters\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 454,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Methods named only after CRUD verbs when workflow intent matters",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 14 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Service & Business Logic Architecture\n\nMission\nRebuild the capability of Phase 14 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nMove orchestration and business invariants into cohesive services/policies so transport and persistence details do not become the domain model.\n\nRequired artifact\nRefactored task service with explicit policies/invariants and thin controllers.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can place a rule in the correct layer.\n• Can keep controllers thin.\n• Can explain orchestration vs persistence.\n• Can refactor without changing external behavior.\n\nIndependent build sequence\n1. Choose one endpoint with mixed concerns and list every responsibility it currently performs.\n2. Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator.\n3. Express one business rule with a name that describes the rule, not the framework.\n4. Add a use-case method whose inputs/outputs make orchestration visible.\n5. Test the rule without booting the whole web server where practical.\n6. Review the resulting dependency direction and remove abstractions that add no clarity.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 370,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Refactored task service with explicit policies/invariants and thin controllers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "God services with hundreds of unrelated lines",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 14 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 14: Service & Business Logic Architecture. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nRefactored task service with explicit policies/invariants and thin controllers.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 197,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "observability",
+        "objectives": [
+          "Move orchestration and business invariants into cohesive services/policies so transport and persistence details do not become the domain model.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "validated request",
+          "service use case",
+          "policy/invariant",
+          "repository/Prisma",
+          "result/error"
+        ],
+        "steps": [
+          "Choose one endpoint with mixed concerns and list every responsibility it currently performs.",
+          "Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator.",
+          "Express one business rule with a name that describes the rule, not the framework.",
+          "Add a use-case method whose inputs/outputs make orchestration visible.",
+          "Test the rule without booting the whole web server where practical.",
+          "Review the resulting dependency direction and remove abstractions that add no clarity.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can place a rule in the correct layer",
+          "Can keep controllers thin",
+          "Can explain orchestration vs persistence",
+          "Can refactor without changing external behavior"
+        ],
+        "breakIt": [
+          "God services with hundreds of unrelated lines",
+          "Business rules duplicated in controllers and frontend"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Business_Logic_Snapshot/README.txt",
+      "preview": "TaskFlow Phase 14 reference snapshot\n\nThis snapshot contains only the files changed or emphasized by Phase 14. It assumes the completed Phase 13 project already exists.\n\nCore rules demonstrated:\n- Controllers remain thin and delegate use cases to TasksService.\n- TasksService owns Task business invariants.\n- Task status changes follow an explicit transition policy.\n- completedAt is synchronized with DONE/reopen transitions.\n- A Task assignee must be a member of the Task Project's Workspace.\n- New due dates cannot be in the past (course policy for this application).\n- A transaction is used for the explicit assignment workflow because the operation reads membership context and then writes the assignment as one use case.\n- We do not introduce Repository Pattern yet; PrismaService remains the persistence boundary for this phase."
+    },
+    {
+      "path": "reference/TaskFlow_Business_Logic_Snapshot/apps/api/src/common/errors/application.exceptions.ts",
+      "preview": "import {\n  BadRequestException,\n  ConflictException,\n  NotFoundException,\n} from \"@nestjs/common\";\n\nexport class TaskNotFoundException extends NotFoundException {\n  constructor(taskId: string) {\n    super({\n      code: \"TASK_NOT_FOUND\",\n      message: `Task ${taskId} was not found.`,\n    });\n  }\n}\n\nexport class ProjectNotFoundException extends NotFoundException {\n  constructor(projectId: string) {\n    super({\n      code: \"PROJECT_NOT_FOUND\",\n      message: `Project ${projectId} was not found.`,"
+    },
+    {
+      "path": "reference/TaskFlow_Business_Logic_Snapshot/apps/api/src/tasks/tasks.controller.ts",
+      "preview": "import {\n  Body,\n  Controller,\n  Delete,\n  Get,\n  HttpCode,\n  HttpStatus,\n  Param,\n  Patch,\n  Post,\n} from \"@nestjs/common\";\nimport { StandardSchemaValidationPipe } from \"@nestjs/common\";\nimport { z } from \"zod\";\nimport { TasksService } from \"./tasks.service\";\nimport {\n  createTaskSchema,\n  taskIdSchema,\n  updateTaskSchema,\n} from \"./tasks.schemas\";\n"
+    },
+    {
+      "path": "reference/TaskFlow_Business_Logic_Snapshot/apps/api/src/tasks/tasks.schemas.ts",
+      "preview": "import { z } from \"zod\";\nimport {\n  TaskPriority,\n  TaskStatus,\n} from \"../generated/prisma/client\";\n\nconst taskTitleSchema = z.string().trim().min(1).max(200);\nconst taskDescriptionSchema = z.string().trim().max(2000).nullable();\n\nexport const taskIdSchema = z.uuid();\n\nexport const createTaskSchema = z.strictObject({\n  projectId: z.uuid(),\n  title: taskTitleSchema,\n  description: taskDescriptionSchema.optional(),\n  assigneeId: z.uuid().nullable().optional(),\n  priority: z.enum(TaskPriority).optional(),\n  dueAt: z.iso.datetime({ offset: true }).nullable().optional(),\n});\n"
+    },
+    {
+      "path": "reference/TaskFlow_Business_Logic_Snapshot/apps/api/src/tasks/tasks.service.ts",
+      "preview": "import { Injectable } from \"@nestjs/common\";\nimport {\n  Prisma,\n  TaskStatus,\n} from \"../generated/prisma/client\";\nimport { PrismaService } from \"../prisma/prisma.service\";\nimport {\n  AssigneeNotWorkspaceMemberException,\n  DueDateInPastException,\n  ProjectNotFoundException,\n  TaskNotFoundException,\n  TaskStatusTransitionException,\n} from \"../common/errors/application.exceptions\";\nimport {\n  CreateTaskDto,\n  UpdateTaskDto,\n} from \"./tasks.schemas\";\n\nconst ALLOWED_STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {\n  TODO: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELED],"
+    },
+    {
+      "path": "reference/TaskFlow_Business_Logic_Snapshot/tests/business-rules-smoke-tests.ps1",
+      "preview": "# Phase 14 business-rule smoke checks.\n# Replace placeholders with IDs from your development seed/database.\n\n$api = \"http://127.0.0.1:4000\"\n$taskId = \"<TASK_UUID>\"\n$workspaceMemberUserId = \"<MEMBER_USER_UUID>\"\n$nonMemberUserId = \"<NON_MEMBER_USER_UUID>\"\n\n# Allowed transition: TODO -> IN_PROGRESS\nInvoke-RestMethod -Method Patch `\n  -Uri \"$api/tasks/$taskId\" `\n  -ContentType \"application/json\" `\n  -Body '{\"status\":\"IN_PROGRESS\"}'\n\n# Allowed transition: IN_PROGRESS -> DONE. completedAt should be populated.\nInvoke-RestMethod -Method Patch `\n  -Uri \"$api/tasks/$taskId\" `\n  -ContentType \"application/json\" `\n  -Body '{\"status\":\"DONE\"}'\n"
+    }
+  ],
+  "exercises": [
+    "Guided: Choose one endpoint with mixed concerns and list every responsibility it currently performs.",
+    "Practice: Express one business rule with a name that describes the rule, not the framework.",
+    "Debugging: reproduce and diagnose — God services with hundreds of unrelated lines.",
+    "Independent: deliver Refactored task service with explicit policies/invariants and thin controllers.",
+    "Explain-back: Can place a rule in the correct layer and Can keep controllers thin."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Business rules belong in services or domain-focused collaborators, not duplicated across controllers and components.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Business rules belong in services or domain-focused collaborators, not duplicated across controllers and components."
+    },
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Keep orchestration separate from low-level persistence details so behavior can be tested clearly.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Keep orchestration separate from low-level persistence details so behavior can be tested clearly."
+    },
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Make rule boundaries explicit before adding abstractions such as repositories.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Make rule boundaries explicit before adding abstractions such as repositories."
+    },
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Prefer small cohesive methods that communicate intent over giant service methods that mix validation, authorization, and I/O."
+      ],
+      "answer": 3,
+      "explanation": "Prefer small cohesive methods that communicate intent over giant service methods that mix validation, authorization, and I/O."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose one endpoint with mixed concerns and list every responsibility it currently performs.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: God services with hundreds of unrelated lines."
+      ],
+      "answer": 1,
+      "explanation": "Choose one endpoint with mixed concerns and list every responsibility it currently performs."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Business rules duplicated in controllers and frontend.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Repository abstraction added before there is a boundary to protect.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Express one business rule with a name that describes the rule, not the framework."
+      ],
+      "answer": 3,
+      "explanation": "Express one business rule with a name that describes the rule, not the framework."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Methods named only after CRUD verbs when workflow intent matters.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add a use-case method whose inputs/outputs make orchestration visible.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Add a use-case method whose inputs/outputs make orchestration visible."
+    }
+  ],
+  "lessonCount": 14,
+  "wordCount": 4740
+}

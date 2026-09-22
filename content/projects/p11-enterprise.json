@@ -1,0 +1,44 @@
+{
+  "number": 17,
+  "track": "p11-enterprise",
+  "slug": "p11-enterprise",
+  "title": "Model an Enterprise Procurement Workflow",
+  "goal": "Transfer the course architecture into a business workflow with approvals, auditability, background work, and tenant boundaries.",
+  "deliverables": [
+    "procurement state model",
+    "invariants",
+    "approval authority",
+    "audit events",
+    "goods receipt/inventory movement",
+    "outbox event",
+    "background notification",
+    "tenant boundary",
+    "report read model"
+  ],
+  "steps": [
+    "Write the procurement lifecycle as explicit states/transitions before designing tables.",
+    "List invariants such as received quantity not exceeding ordered quantity.",
+    "Model requisition, approval, purchase order, goods receipt, and invoice relationships.",
+    "Define approval authority and record every decision as audit evidence.",
+    "Use effective dates where business truth is time-dependent.",
+    "Design inventory movement as an append-oriented business event instead of silently overwriting stock history.",
+    "Use a database transaction plus outbox row for one reliable integration event.",
+    "Process the outbox with a retryable background worker and make the handler idempotent.",
+    "Add tenant keys and authorization rules to every query path.",
+    "Create a reporting read model without moving core invariants into reporting code.",
+    "Explain where you deliberately did not introduce microservices or extra infrastructure yet."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "title": "Mastery Milestones",
+  "subtitle": "Closed-reference transfer projects between major sections of the course.",
+  "milestones": [
+    {
+      "number": 1,
+      "slug": "milestone-01",
+      "title": "Static TaskFlow",
+      "span": "Foundation F00–F03",
+      "goal": "Build an accessible static task manager with HTML, CSS, and plain JavaScript."
+    },
+    {
+      "number": 2,
+      "slug": "milestone-02",
+      "title": "React TaskFlow Lite",
+      "span": "Foundation F04–F11",
+      "goal": "Rebuild TaskFlow Lite with TypeScript and React while making state ownership explicit."
+    },
+    {
+      "number": 3,
+      "slug": "milestone-03",
+      "title": "Full-Stack Skeleton",
+      "span": "Phases 00–06",
+      "goal": "Connect a Next.js frontend to a NestJS/Fastify API through an explicit HTTP contract."
+    },
+    {
+      "number": 4,
+      "slug": "milestone-04",
+      "title": "Persistent TaskFlow",
+      "span": "Phases 07–15",
+      "goal": "Turn the skeleton into a database-backed task system with validated CRUD and professional query behavior."
+    },
+    {
+      "number": 5,
+      "slug": "milestone-05",
+      "title": "Secure TaskFlow",
+      "span": "Phases 16–19",
+      "goal": "Add verified identity and resource-aware authorization."
+    },
+    {
+      "number": 6,
+      "slug": "milestone-06",
+      "title": "Production Frontend",
+      "span": "Phases 20–24",
+      "goal": "Build a robust application UI with forms, server-state synchronization, and deliberate state boundaries."
+    },
+    {
+      "number": 7,
+      "slug": "milestone-07",
+      "title": "Collaborative TaskFlow",
+      "span": "Phases 25–27",
+      "goal": "Add optimistic interactions, realtime reconciliation, and secure file uploads."
+    },
+    {
+      "number": 8,
+      "slug": "milestone-08",
+      "title": "Production Engineering",
+      "span": "Phases 28–31",
+      "goal": "Prove behavior, harden trust boundaries, diagnose incidents, and optimize with measurements."
+    },
+    {
+      "number": 9,
+      "slug": "milestone-09",
+      "title": "Release TaskFlow",
+      "span": "Phases 32–35",
+      "goal": "Package, verify, and release TaskFlow through Docker, CI/CD, deployment, and architecture review."
+    },
+    {
+      "number": 10,
+      "slug": "milestone-10",
+      "title": "Enterprise Capstone",
+      "span": "Phase 36",
+      "goal": "Transfer the TaskFlow engineering model to a larger business workflow such as procurement, HRIS, payroll, or inventory."
+    }
+  ]
+}

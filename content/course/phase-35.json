@@ -1,0 +1,1224 @@
+{
+  "number": 35,
+  "slug": "phase-35",
+  "title": "Architecture Review & Refactoring",
+  "volume": 8,
+  "readme": "FULL STACK DEVELOPER 2026 - Phase 35\nArchitecture Review & Refactoring\n\nThis phase pauses feature development to review TaskFlow as one system. It includes focused books, a combined book, architecture/dependency rules, an ADR template, a prioritized refactoring backlog template, review checklists, and verification assets.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "full-system-architecture-inventory",
+      "title": "Full System Architecture Inventory",
+      "summary": "Full-System Architecture Inventory Before changing architecture, document what actually exists. Review runtime boundaries, dependency direction, ownership, and operational dependencies instead of relying on an idealized diagram from an earlier phase. - API client / - - - - Prisma / Next.js NestJS Services Repositories >…",
+      "body": "Full-System Architecture Inventory\nBefore changing architecture, document what actually exists. Review runtime boundaries, dependency direction,\nownership, and operational dependencies instead of relying on an idealized diagram from an earlier phase.\n\n-       API client /      -                          -                         -                      -         Prisma /\nNext.js                                            NestJS                    Services             Repositories\n>         Query           >                          >                         >                      >        PostgreSQL\n\nFigure 2 - Primary request path under review\n\nRuntime inventory\n• Next.js 16: authenticated application UI, Server Components, forms, URL state, TanStack Query client regions.\n\n• NestJS 12 + Fastify: HTTP boundary, authentication, authorization, application services, exception handling.\n\n• Prisma 7.9.1 + PostgreSQL: persistence and relational constraints.\n\n• Supabase: Auth, managed PostgreSQL, Storage, Realtime; not the owner of TaskFlow business rules.\n\n• GitHub Actions, Docker, deployment platforms, Sentry/telemetry: delivery and operations boundaries.\n\nReview artifact\n• Record each boundary, its public contract, dependencies, and data ownership.\n\n• Compare the current codebase with the intended architecture; the difference is useful evidence, not failure.\nArchitecture review begins with the system you actually have, not the system you remember building.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 176,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Full System Architecture Inventory in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Full System Architecture Inventory matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Full System Architecture Inventory” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Big-bang rewrite",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Full System Architecture Inventory” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Full System Architecture Inventory solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "dependency-direction-and-accidental-coupling",
+      "title": "Dependency Direction and Accidental Coupling",
+      "summary": "Dependency Direction and Accidental Coupling Dependencies should point toward the layer that owns the contract. A useful review looks for framework details leaking upward, business decisions leaking downward, and shared packages importing application-specific code. - - Persistence - Infrastructure HTTP / UI Application intent >…",
+      "body": "Dependency Direction and Accidental Coupling\nDependencies should point toward the layer that owns the contract. A useful review looks for framework details leaking\nupward, business decisions leaking downward, and shared packages importing application-specific code.\n\n-                            -       Persistence         -      Infrastructure\nHTTP / UI              Application intent\n>                            >        contract           >     implementation\n\nFigure 3 - Desired direction: outer mechanisms depend on inner contracts\n\nHealthy examples\n• TasksService depends on TaskRepository contract, not Prisma query shapes.\n\n• Controllers depend on application services, not database clients.\n\n• The web consumes API contracts, not Prisma-generated types.\n\n• packages/validators contains transport-neutral shared validation, not NestJS decorators or React components.\n\nCoupling smells\n• A UI component imports generated Prisma enums directly.\n\n• A repository throws NestJS HTTP exceptions.\n\n• A shared package imports from apps/web or apps/api.\n\n• A service accepts Fastify Request/Reply objects.\n\n• Infrastructure credentials become arguments to domain/business helpers.\n# Review question for every import\nWho owns this contract?\n\nIf A imports B:\n- Does A genuinely depend on B's responsibility?\n- Or did a convenient type/location create accidental coupling?\n\nDo not chase zero coupling. Chase intentional coupling with clear ownership.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 198,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Dependency Direction and Accidental Coupling in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Dependency Direction and Accidental Coupling matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Dependency Direction and Accidental Coupling” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Refactor with no behavioral safety net",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Dependency Direction and Accidental Coupling” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Dependency Direction and Accidental Coupling solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "controller-service-repository-responsibility-review",
+      "title": "Controller Service Repository Responsibility Review",
+      "summary": "Controller, Service, and Repository Responsibility Review Phase 24 introduced repositories only after persistence complexity earned the abstraction. Phase 35 reviews whether that boundary still helps or merely moved code into more files. Review area Healthy signal Refactor trigger Controller HTTP mapping, validated transport input Business…",
+      "body": "Controller, Service, and Repository Responsibility\nReview\nPhase 24 introduced repositories only after persistence complexity earned the abstraction. Phase 35 reviews whether\nthat boundary still helps or merely moved code into more files.\n\nReview area                       Healthy signal                                     Refactor trigger\n\nController                        HTTP mapping, validated transport input            Business rules, Prisma queries\n\nService                           Business workflow, invariants, orchestration       Fastify response objects, raw SQL\n\nRepository                        Persistence query mechanics and mappings           HTTP errors, UI behavior, role policy\n\nRepository value test\n• Does it hide meaningful persistence mechanics rather than merely rename Prisma methods?\n\n• Does it create a useful testing seam for service behavior?\n\n• Do method names express application persistence intent such as listScoped rather than generic findAll?\n\n• Can complex transaction requirements still be expressed without fighting the abstraction?\n\nService size test\n• A large service is not automatically wrong; look for multiple independent reasons to change.\n\n• Extract policy/workflow helpers only when responsibility, reuse, or testability becomes clearer.\nThe goal is not thin files. The goal is cohesive responsibilities.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 186,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Controller Service Repository Responsibility Review in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Controller Service Repository Responsibility Review matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Controller Service Repository Responsibility Review” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding layers because they look enterprise",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Controller Service Repository Responsibility Review” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Controller Service Repository Responsibility Review solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "validation-contracts-and-duplication-review",
+      "title": "Validation Contracts and Duplication Review",
+      "summary": "Validation, Contracts, and Duplication Review TaskFlow intentionally validates at more than one layer. The review distinguishes necessary repeated trust checks from accidental schema duplication that can drift. - - API transport - - Browser form Shared field rules Business rules DB constraints > > schema…",
+      "body": "Validation, Contracts, and Duplication Review\nTaskFlow intentionally validates at more than one layer. The review distinguishes necessary repeated trust checks\nfrom accidental schema duplication that can drift.\n\n-                           -       API transport         -                       -\nBrowser form             Shared field rules                                           Business rules          DB constraints\n>                           >         schema              >                       >\nFigure 4 - Different validation layers answer different questions\n\nKeep these distinctions\n• React Hook Form/Zod improves immediate user feedback.\n\n• NestJS request validation remains the security boundary even if the browser already validated.\n\n• Business validation checks context such as membership, due-date policy, or workflow state.\n\n• PostgreSQL constraints protect relational integrity regardless of application bugs.\n\nRefactor candidates\n• Repeated literal field limits that represent the same transport-neutral rule can live in packages/validators.\n\n• Do not share HTTP-only schemas if doing so leaks server concerns into the browser.\n\n• Do not derive authorization or business policy from client-side schemas.\nDuplicate validation can be correct when the layers defend different boundaries. Duplicate rules are the problem only when\nthey represent the same source of truth and can drift.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 187,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Validation Contracts and Duplication Review in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Validation Contracts and Duplication Review matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Validation Contracts and Duplication Review” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing folder count with architecture quality",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Validation Contracts and Duplication Review” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Validation Contracts and Duplication Review solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "transactions-business-rules-and-persistence-boundaries",
+      "title": "Transactions Business Rules and Persistence Boundaries",
+      "summary": "Transactions, Business Rules, and Persistence Boundaries Transactions are one of the fastest ways an otherwise clean layering model can become dishonest. Review where atomicity actually belongs and whether repositories obscure multi-model workflows. Choose Business - Identify atomic - - - transaction Execute Commit / rollback…",
+      "body": "Transactions, Business Rules, and Persistence\nBoundaries\nTransactions are one of the fastest ways an otherwise clean layering model can become dishonest. Review where\natomicity actually belongs and whether repositories obscure multi-model workflows.\n\nChoose\nBusiness           -     Identify atomic      -                            -                         -\ntransaction                   Execute              Commit / rollback\noperation                    writes\n>                          >         boundary           >                         >\nFigure 5 - Transaction boundaries follow business operations\n\nQuestions to ask\n• Which business operation must succeed or fail as one unit?\n\n• Does the current repository contract allow that transaction without exposing ORM details everywhere?\n\n• Is a single Prisma nested write sufficient, or is an interactive transaction required?\n\n• Are external side effects such as email/Storage incorrectly placed inside a database transaction?\n\nDo not force purity\n• If Task, Membership, and Audit writes must share one transaction, use an explicit persistence/application transaction design\nrather than pretending separate repositories are isolated worlds.\n\n• Do not add a UnitOfWork abstraction until repeated cross-repository transaction pressure proves it useful.\nTransaction correctness outranks diagram purity.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 177,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Transactions Business Rules and Persistence Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Transactions Business Rules and Persistence Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Big-bang rewrite",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Transactions Business Rules and Persistence Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Transactions Business Rules and Persistence Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "frontend-state-and-server-client-boundary-review",
+      "title": "Frontend State and Server Client Boundary Review",
+      "summary": "Frontend State and Server/Client Boundary Review Volumes 06 and 07 created several legitimate state owners. Phase 35 checks for accidental duplication and client-boundary growth after forms, TanStack Query, optimistic updates, and Realtime were added. Review area Healthy signal Refactor trigger Server data TanStack Query /…",
+      "body": "Frontend State and Server/Client Boundary\nReview\nVolumes 06 and 07 created several legitimate state owners. Phase 35 checks for accidental duplication and\nclient-boundary growth after forms, TanStack Query, optimistic updates, and Realtime were added.\n\nReview area                       Healthy signal                                     Refactor trigger\n\nServer data                       TanStack Query / Server Component fetch            Copied into useState\n\nURL filters                       Next.js URL/searchParams                           Hidden global store copy\n\nForm draft                        React Hook Form                                    Query cache mutated on each keystroke\n\nAuth session                      Supabase Auth                                      Homegrown duplicate auth store\n\nLocal interaction                 useState/useReducer                                Application-wide Context without need\n\nReview client boundaries\n• Can a component become a Server Component again?\n\n• Did one small event handler cause an entire page tree to become use client?\n\n• Are large libraries shipped to the browser for interactions that could be isolated or lazy-loaded?\n\n• Does Realtime invalidate authoritative server state instead of turning WebSocket payloads into a second backend?\nThe browser should own interaction state, not duplicate the backend.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 179,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Frontend State and Server Client Boundary Review in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Frontend State and Server Client Boundary Review matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Frontend State and Server Client Boundary Review” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Refactor with no behavioral safety net",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Frontend State and Server Client Boundary Review” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Frontend State and Server Client Boundary Review solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "authentication-authorization-and-security-boundary-review",
+      "title": "Authentication Authorization and Security Boundary Review",
+      "summary": "Authentication, Authorization, and Security Boundary Review Security architecture is reviewed as a chain. Each layer must still make an independent, explicit decision after later refactors and performance work. Supabase - - - Membership / - - Business JWT verification TaskFlow User Resource scope session >…",
+      "body": "Authentication, Authorization, and Security\nBoundary Review\nSecurity architecture is reviewed as a chain. Each layer must still make an independent, explicit decision after later\nrefactors and performance work.\n\nSupabase         -                         -                         -      Membership /        -                      -        Business\nJWT verification           TaskFlow User                                       Resource scope\nsession         >                         >                         >       permission         >                      >        operation\n\nFigure 6 - Identity and authorization remain separate decisions\n\nSecurity regression checks\n• No controller accepts userId from the browser as authenticated identity.\n\n• NestJS still verifies bearer tokens independently of the Next.js session.\n\n• Tenant scope is part of repository/database queries before ordinary search, sorting, or pagination.\n\n• Realtime and Storage policies do not replace NestJS business authorization.\n\n• Service-role/database credentials remain server-only and are redacted from logs.\n\nRefactoring rule\n• When moving code, preserve the security decision point. A cleaner abstraction that accidentally broadens access is not an\narchitectural improvement.\nAuthorization is behavior. Every structural refactor needs security regression coverage.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 164,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Authentication Authorization and Security Boundary Review in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Authentication Authorization and Security Boundary Review” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding layers because they look enterprise",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Authentication Authorization and Security Boundary Review” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Authentication Authorization and Security Boundary Review solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "monorepo-packages-configuration-and-boundary-review",
+      "title": "Monorepo Packages Configuration and Boundary Review",
+      "summary": "Monorepo, Packages, Configuration, and Boundary Review Monorepos make sharing easy, which also makes inappropriate sharing easy. Review package direction, duplicated configuration, environment-variable ownership, and whether the workspace structure still communicates the system clearly. Healthy package direction • apps/web and apps/api may consume packages/validators. • Shared…",
+      "body": "Monorepo, Packages, Configuration, and\nBoundary Review\nMonorepos make sharing easy, which also makes inappropriate sharing easy. Review package direction, duplicated\nconfiguration, environment-variable ownership, and whether the workspace structure still communicates the system\nclearly.\n\nHealthy package direction\n• apps/web and apps/api may consume packages/validators.\n\n• Shared packages should not import application entry points.\n\n• Infrastructure/deployment files should not become runtime application dependencies.\n\n• Version locks and environment contracts should have one documented owner.\n\nConfiguration drift checks\n• Do local, CI, Docker, staging, and production use the same variable names and meanings?\n\n• Are Prisma, Node, pnpm, and framework locks consistent across docs/workflows/images?\n\n• Do CORS origins, Supabase redirects, health paths, and public URLs agree across deployment templates?\n\n• Are deprecated example files still misleading learners or operators?\napps/web -----> packages/validators <----- apps/api\n|                                      |\n+---- no import from apps/api ---------+\n\nshared package rule:\n- reusable contract/value\n- no app entrypoint dependency\n- no hidden infrastructure secret\n\nA monorepo is not permission to make every module globally reusable.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 186,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Monorepo Packages Configuration and Boundary Review in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Monorepo Packages Configuration and Boundary Review matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Monorepo Packages Configuration and Boundary Review” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing folder count with architecture quality",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Monorepo Packages Configuration and Boundary Review” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Monorepo Packages Configuration and Boundary Review solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "testing-observability-and-operational-debt",
+      "title": "Testing Observability and Operational Debt",
+      "summary": "Testing, Observability, and Operational Debt A refactor is safest when tests and telemetry cover the seams being changed. Review whether the system can prove behavior before, during, and after restructuring. Testing seam review • Pure policies: fast unit tests. • Services: fake repositories where persistence…",
+      "body": "Testing, Observability, and Operational Debt\nA refactor is safest when tests and telemetry cover the seams being changed. Review whether the system can prove\nbehavior before, during, and after restructuring.\n\nTesting seam review\n• Pure policies: fast unit tests.\n\n• Services: fake repositories where persistence details are irrelevant.\n\n• Repositories: real PostgreSQL integration tests.\n\n• HTTP: authentication, authorization, validation, and error-contract E2E tests.\n\n• Web: component/form/query tests and a small set of Playwright critical flows.\n\nOperational debt review\n• Can requestId join client reports, logs, error monitoring, and traces?\n\n• Do readiness checks represent actual traffic readiness?\n\n• Are deployment smoke tests still aligned with current routes?\n\n• Do dashboards and alerts cover the business-critical path after refactors?\n\n• Are runbooks stale or missing ownership?\nIf a risky area has no trustworthy test or observable signal, improving that safety net may be the first refactor.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 163,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Testing Observability and Operational Debt in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Testing Observability and Operational Debt” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Big-bang rewrite",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Testing Observability and Operational Debt” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Testing Observability and Operational Debt solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "dead-abstractions-overengineering-and-simplification",
+      "title": "Dead Abstractions Overengineering and Simplification",
+      "summary": "Dead Abstractions, Overengineering, and Simplification A mature review removes complexity as aggressively as it adds structure. Every abstraction has carrying cost: naming, navigation, indirection, tests, documentation, and onboarding. - Identify - - Keep / merge / Find abstraction Measure value > consumers > > delete…",
+      "body": "Dead Abstractions, Overengineering, and\nSimplification\nA mature review removes complexity as aggressively as it adds structure. Every abstraction has carrying cost: naming,\nnavigation, indirection, tests, documentation, and onboarding.\n\n-           Identify          -                              -   Keep / merge /\nFind abstraction                                           Measure value\n>         consumers           >                              >      delete\n\nFigure 7 - Architecture can improve by removing layers\n\nCandidate smells\n• A repository method used once that exactly mirrors one Prisma call and adds no policy/query value.\n\n• A Context provider with one nearby consumer.\n\n• A mapper that copies identical fields between structurally identical objects.\n\n• A utility package created for one function and no independent ownership.\n\n• A generic interface introduced to support hypothetical future databases with no actual migration pressure.\n\nDelete carefully\n• Prove behavior with tests before simplification.\n\n• Prefer a smaller explicit design over a generic framework built inside the application.\n\n• Keep abstractions that protect valuable boundaries even when their implementation is currently simple.\nThe simplest architecture is not the one with the fewest files; it is the one with the fewest unnecessary concepts.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 186,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Dead Abstractions Overengineering and Simplification in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Dead Abstractions Overengineering and Simplification matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Dead Abstractions Overengineering and Simplification” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Refactor with no behavioral safety net",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Dead Abstractions Overengineering and Simplification” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Dead Abstractions Overengineering and Simplification solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "refactoring-strategy-adrs-and-change-safety",
+      "title": "Refactoring Strategy ADRs and Change Safety",
+      "summary": "Refactoring Strategy, ADRs, and Change Safety Architecture review produces a backlog, not a giant rewrite. Refactor one bounded pressure point at a time, record consequential decisions, and use the existing testing/deployment system to keep changes reversible. Problem - - - - - Continue / Decision…",
+      "body": "Refactoring Strategy, ADRs, and Change Safety\nArchitecture review produces a backlog, not a giant rewrite. Refactor one bounded pressure point at a time, record\nconsequential decisions, and use the existing testing/deployment system to keep changes reversible.\n\nProblem          -                         -                          -                      -                         -        Continue /\nDecision                Small change                   Tests                Observe\nevidence         >                         >                          >                      >                         >          revert\n\nFigure 8 - Safe refactoring loop\n\nPrioritization model\n• P0: correctness/security/data-loss risk.\n\n• P1: blocks frequent change or causes repeated incidents.\n\n• P2: meaningful maintainability/testing/performance debt.\n\n• P3: cosmetic consistency with little practical impact.\n\nADR discipline\n• Record context, decision, alternatives, consequences, and revisit trigger.\n\n• Use ADRs for meaningful architecture decisions, not every small refactor.\n\n• A decision can be superseded later; the historical reasoning remains useful.\n\nChange safety\n• One conceptual refactor per pull request when practical.\n\n• No opportunistic behavior change hidden inside structural cleanup.\n\n• Use feature flags or compatibility layers when migration cannot be atomic.\nRefactoring should reduce uncertainty. A giant rewrite multiplies it.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 174,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Refactoring Strategy ADRs and Change Safety in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Refactoring Strategy ADRs and Change Safety matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Refactoring Strategy ADRs and Change Safety” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding layers because they look enterprise",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Refactoring Strategy ADRs and Change Safety” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Refactoring Strategy ADRs and Change Safety solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Architecture Review Lab and Phase Exit The lab produces concrete review artifacts for TaskFlow and prepares the final phase. The learner should finish with a map, prioritized backlog, explicit dependency rules, and at least one safely completed refactor. Lab 1 - inventory • Draw…",
+      "body": "Hands-On Architecture Review Lab and Phase Exit\nThe lab produces concrete review artifacts for TaskFlow and prepares the final phase. The learner should finish with a\nmap, prioritized backlog, explicit dependency rules, and at least one safely completed refactor.\n\nLab 1 - inventory\n• Draw the current Browser -> Next.js -> NestJS -> Repository -> Prisma -> PostgreSQL path.\n\n• Add Auth, Storage, Realtime, CI/CD, and observability boundaries.\n\n• For each boundary, write owner, public contract, and dependencies.\n\nLab 2 - score pressure points\n• Choose five areas and classify: correctness risk, security risk, change frequency, test difficulty, operational pain.\n\n• Do not rank by personal dislike of folder structure.\n\nLab 3 - execute one refactor\n• Pick one P1/P2 item that can be changed safely.\n\n• Add/confirm regression coverage before change.\n\n• Refactor, run tests, smoke the relevant path, and inspect telemetry/log behavior.\n\nPhase exit\n• Architecture map matches current implementation.\n\n• Dependency rules are explicit.\n\n• Refactoring backlog is prioritized by evidence.\n\n• Dead or misleading abstraction is removed or justified.\n\n• At least one architecture decision is captured in an ADR.\nPhase 35 is complete when TaskFlow is easier to explain and change - not when every file matches a textbook pattern.\nSource basis: integrated TaskFlow architecture and engineering decisions established in Phases 00-34; this chapter is an internal\nreview/refactoring synthesis rather than a new framework feature.",
+      "wordCount": 214,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing folder count with architecture quality",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nReview and refactor TaskFlow architecture using evidence: dependency direction, duplication, tests, complexity, security, and operational boundaries.",
+      "body": "Guided Build Lab — Phase 35: Architecture Review & Refactoring\n\nPurpose\nReview and refactor TaskFlow architecture using evidence: dependency direction, duplication, tests, complexity, security, and operational boundaries.\n\nDeliverable\nArchitecture review report plus one behavior-preserving refactor backed by tests and an ADR.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nobserve architecture -> identify smell/risk -> establish tests -> small refactor -> verify behavior -> document decision\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Draw the current dependency graph from UI to database and mark places responsibilities leak across boundaries.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Find one duplication or accidental abstraction whose cost is visible in real code.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Create/strengthen tests around the behavior before moving code.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Refactor in small commits, verifying typecheck/tests after each conceptual move.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Measure whether the result reduced coupling/duplication or merely moved files.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Write a short ADR recording context, decision, alternatives, consequences, and when to revisit.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 635,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Big-bang rewrite",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 35: Architecture Review & Refactoring\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nobserve architecture -> identify smell/risk -> establish tests -> small refactor -> verify behavior -> document decision\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Big-bang rewrite\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Refactor with no behavioral safety net\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Adding layers because they look enterprise\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Confusing folder count with architecture quality\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 441,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Refactor with no behavioral safety net",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 35 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Architecture Review & Refactoring\n\nMission\nRebuild the capability of Phase 35 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nReview and refactor TaskFlow architecture using evidence: dependency direction, duplication, tests, complexity, security, and operational boundaries.\n\nRequired artifact\nArchitecture review report plus one behavior-preserving refactor backed by tests and an ADR.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can identify architectural smell with evidence.\n• Can preserve behavior while refactoring.\n• Can remove unnecessary abstraction.\n• Can document tradeoffs in an ADR.\n\nIndependent build sequence\n1. Draw the current dependency graph from UI to database and mark places responsibilities leak across boundaries.\n2. Find one duplication or accidental abstraction whose cost is visible in real code.\n3. Create/strengthen tests around the behavior before moving code.\n4. Refactor in small commits, verifying typecheck/tests after each conceptual move.\n5. Measure whether the result reduced coupling/duplication or merely moved files.\n6. Write a short ADR recording context, decision, alternatives, consequences, and when to revisit.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 365,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding layers because they look enterprise",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 35 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 35: Architecture Review & Refactoring. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nArchitecture review report plus one behavior-preserving refactor backed by tests and an ADR.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 199,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Review and refactor TaskFlow architecture using evidence: dependency direction, duplication, tests, complexity, security, and operational boundaries.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "observe architecture",
+          "identify smell/risk",
+          "establish tests",
+          "small refactor",
+          "verify behavior",
+          "document decision"
+        ],
+        "steps": [
+          "Draw the current dependency graph from UI to database and mark places responsibilities leak across boundaries.",
+          "Find one duplication or accidental abstraction whose cost is visible in real code.",
+          "Create/strengthen tests around the behavior before moving code.",
+          "Refactor in small commits, verifying typecheck/tests after each conceptual move.",
+          "Measure whether the result reduced coupling/duplication or merely moved files.",
+          "Write a short ADR recording context, decision, alternatives, consequences, and when to revisit.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can identify architectural smell with evidence",
+          "Can preserve behavior while refactoring",
+          "Can remove unnecessary abstraction",
+          "Can document tradeoffs in an ADR"
+        ],
+        "breakIt": [
+          "Big-bang rewrite",
+          "Refactor with no behavioral safety net"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/ADR_TEMPLATE.md",
+      "preview": "# ADR-XXXX: <Decision Title>\n\n## Status\nProposed | Accepted | Superseded\n\n## Context\nWhat pressure or constraint caused this decision? Include observed evidence.\n\n## Decision\nWhat are we choosing?\n\n## Alternatives Considered\n- Alternative A\n- Alternative B\n\n## Consequences\n### Positive\n- ...\n\n### Negative / Cost"
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/ARCHITECTURE_MAP.md",
+      "preview": "# TaskFlow Architecture Map - Phase 35\n\n## Primary request path\n\nBrowser -> Next.js -> authenticated API client -> NestJS/Fastify -> auth guard -> authorization -> application service -> repository -> Prisma -> PostgreSQL\n\n## Supporting infrastructure\n\n- Supabase Auth: external identity/session provider\n- Supabase Storage: attachment bytes; PostgreSQL stores attachment meaning/metadata\n- Supabase Realtime: freshness signal; HTTP/NestJS remains authoritative\n- TanStack Query: browser server-state cache\n- React Hook Form: unsaved form draft state\n- GitHub Actions + Docker + deployment platforms: delivery/operations\n- Sentry/logs/metrics/traces: observability\n\n## Dependency rules\n\n1. Controllers do not query Prisma directly.\n2. Services own business workflow and policy decisions."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/ARCHITECTURE_REVIEW_CHECKLIST.md",
+      "preview": "# Architecture Review Checklist\n\n## Backend\n- [ ] Controllers stay transport-focused.\n- [ ] Services own business workflow/invariants.\n- [ ] Repositories hide meaningful persistence mechanics.\n- [ ] Transactions match business atomicity.\n- [ ] HTTP exceptions do not leak into persistence adapters.\n\n## Frontend\n- [ ] Server state is not duplicated into local state.\n- [ ] URL state remains deep-linkable.\n- [ ] Form drafts stay in React Hook Form.\n- [ ] Client boundaries are as small as practical.\n- [ ] Auth/session state is not duplicated.\n\n## Security\n- [ ] Identity comes from verified token claims.\n- [ ] Tenant scope is enforced server-side.\n- [ ] Storage/Realtime do not replace application authorization."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/DEPENDENCY_RULES.md",
+      "preview": "# Dependency Rules\n\n## Allowed\n- apps/web -> packages/validators\n- apps/api -> packages/validators\n- TasksService -> TaskRepository contract\n- PrismaTaskRepository -> PrismaService\n\n## Avoid / reject\n- apps/web -> apps/api source imports\n- shared package -> apps/web or apps/api\n- service -> Fastify Reply/Request\n- repository -> NestJS HTTP exceptions\n- UI -> Prisma-generated model as public API contract\n\nEvery exception should be documented with a reason and revisit trigger."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/PACKAGE_BOUNDARIES.md",
+      "preview": "# Package Boundary Review\n\n## packages/validators\nEarned because both web and API consume transport-neutral field rules. It must not become a dumping ground for server-only DTO semantics or UI code.\n\n## Future package rule\nCreate a shared package only when:\n1. There are at least two real consumers or a clear independent ownership boundary.\n2. The package has a coherent responsibility.\n3. Moving code there reduces coupling rather than hiding it.\n\nDo not create generic `shared`, `common`, or `utils` packages without an explicit responsibility statement."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/README.md",
+      "preview": "# TaskFlow Architecture Review Snapshot\n\nThis package contains review artifacts rather than a replacement application architecture.\n\nUse it to:\n- document the current system,\n- identify actual pressure points,\n- prioritize debt,\n- record decisions with ADRs, and\n- verify refactors without changing observable behavior accidentally.\n\nThe default stance is incremental improvement, not rewrite."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/REFACTORING_BACKLOG.md",
+      "preview": "# Refactoring Backlog Template\n\n| Priority | Area | Evidence | Risk | Proposed change | Verification |\n|---|---|---|---|---|---|\n| P0 | Example: tenant query | Cross-workspace test missing | Security | Add scoped repository test before any query refactor | Integration + E2E |\n| P1 | Example: transaction workflow | Repeated multi-repository orchestration | Correctness | Evaluate explicit transaction boundary | Service + repository integration |\n| P2 | Example: duplicated field rules | Same title limits in web/API | Drift | Move neutral field rule to validators package | Unit + form + API validation |\n| P3 | Example: naming | Inconsistent helper names | Cosmetic | Rename when touching area | Typecheck/tests |\n\nPriority is based on system pressure, not aesthetic preference."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/SOURCES.md",
+      "preview": "# Source Basis\n\nPhase 35 is an internal synthesis of the TaskFlow architecture established throughout Phases 00-34. It intentionally introduces no new framework dependency.\n\nReview evidence should come from:\n- the current repository,\n- tests,\n- runtime telemetry,\n- deployment incidents,\n- change frequency,\n- security findings, and\n- developer/operator friction.\n\nIf framework/provider behavior materially changes in the future, verify the relevant official documentation before altering architecture decisions based on it."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/apps/api/architecture-review.example.md",
+      "preview": "# API Review Example\n\nTrace one endpoint end-to-end:\n\n`PATCH /tasks/:id/status`\n\n1. Controller: parse validated route/body and current user.\n2. Authorization: verified identity and resource scope.\n3. Service: status transition invariant and completedAt behavior.\n4. Repository: scoped Task lookup/update query.\n5. Prisma/PostgreSQL: persistence and constraints.\n6. Exception filter: stable HTTP error contract.\n7. Observability: requestId, timing, safe error classification.\n\nIf a responsibility appears in two incompatible owners, add it to the refactoring backlog."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/apps/web/state-review.example.md",
+      "preview": "# Frontend State Review Example\n\nFor `/tasks?status=DONE&page=2`:\n\n- URL state: status=DONE, page=2\n- TanStack Query: fetched page result\n- React Hook Form: only create/edit draft\n- Supabase Auth: session\n- Local React state: menu/dialog/selection only where local\n- Derived values: compute from current data; do not persist another copy\n\nReject any new store unless it solves a real state-ownership problem not already covered above."
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/scripts/architecture-audit.ps1",
+      "preview": "Write-Host \"TaskFlow Architecture Audit\"\nWrite-Host \"1. Search direct Prisma imports outside repository/infrastructure areas\"\nWrite-Host \"2. Search apps/web imports that reference apps/api\"\nWrite-Host \"3. Search repositories throwing HTTP exceptions\"\nWrite-Host \"4. Compare env variable names across local, CI, Docker, and deployment templates\"\nWrite-Host \"5. Run lint, typecheck, tests, production builds, and critical smoke tests\"\nWrite-Host \"This script is a checklist launcher, not an automatic architecture judge.\""
+    },
+    {
+      "path": "reference/TaskFlow_Architecture_Review_Snapshot/tests/architecture-refactor-test-matrix.md",
+      "preview": "# Architecture Refactor Verification Matrix\n\n| Refactor area | Minimum verification |\n|---|---|\n| Business policy extraction | Pure unit tests |\n| Service/repository boundary | Service tests + repository integration tests |\n| Tenant query restructure | Real PostgreSQL cross-workspace tests + HTTP E2E |\n| Validation sharing | Browser form tests + API validation tests |\n| Frontend state ownership | Component/query tests + critical Playwright flow |\n| Authentication/authorization changes | 401/403/404 E2E matrix |\n| Transaction changes | Integration tests with rollback/failure scenarios |\n| Deployment/config refactor | CI build + staging smoke tests |\n| Observability refactor | Synthetic error + requestId correlation check |"
+    }
+  ],
+  "exercises": [
+    "Guided: Draw the current dependency graph from UI to database and mark places responsibilities leak across boundaries.",
+    "Practice: Create/strengthen tests around the behavior before moving code.",
+    "Debugging: reproduce and diagnose — Big-bang rewrite.",
+    "Independent: deliver Architecture review report plus one behavior-preserving refactor backed by tests and an ADR.",
+    "Explain-back: Can identify architectural smell with evidence and Can preserve behavior while refactoring."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 35's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Refactoring should improve boundaries and clarity while preserving externally observable behavior.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Refactoring should improve boundaries and clarity while preserving externally observable behavior."
+    },
+    {
+      "question": "Which practice best matches Phase 35's engineering goal?",
+      "options": [
+        "Use tests and architecture checks as safety nets before moving responsibilities across modules.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Use tests and architecture checks as safety nets before moving responsibilities across modules."
+    },
+    {
+      "question": "Which practice best matches Phase 35's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Remove abstractions that no longer earn their complexity instead of only adding new layers."
+      ],
+      "answer": 3,
+      "explanation": "Remove abstractions that no longer earn their complexity instead of only adding new layers."
+    },
+    {
+      "question": "Which practice best matches Phase 35's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Document significant architectural decisions so future maintainers understand the trade-offs that shaped the system.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Document significant architectural decisions so future maintainers understand the trade-offs that shaped the system."
+    },
+    {
+      "question": "You are working through the Phase 35 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Draw the current dependency graph from UI to database and mark places responsibilities leak across boundaries.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Big-bang rewrite.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Draw the current dependency graph from UI to database and mark places responsibilities leak across boundaries."
+    },
+    {
+      "question": "You are working through the Phase 35 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Refactor with no behavioral safety net.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Find one duplication or accidental abstraction whose cost is visible in real code."
+      ],
+      "answer": 3,
+      "explanation": "Find one duplication or accidental abstraction whose cost is visible in real code."
+    },
+    {
+      "question": "You are working through the Phase 35 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Adding layers because they look enterprise.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create/strengthen tests around the behavior before moving code.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create/strengthen tests around the behavior before moving code."
+    },
+    {
+      "question": "You are working through the Phase 35 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Refactor in small commits, verifying typecheck/tests after each conceptual move.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Confusing folder count with architecture quality."
+      ],
+      "answer": 1,
+      "explanation": "Refactor in small commits, verifying typecheck/tests after each conceptual move."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3830
+}

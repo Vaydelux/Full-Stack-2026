@@ -1,0 +1,1223 @@
+{
+  "number": 18,
+  "slug": "phase-18",
+  "title": "NestJS Authentication Guards",
+  "volume": 5,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 05 - Authentication & Security\nPhase 18 - NestJS Authentication Guards\n\nThis phase closes the trust gap between the authenticated Next.js application and the separate NestJS API.\n\nPrimary implementation: @supabase/supabase-js 2.116.0 auth.getClaims(jwt) + custom NestJS 12 guard.\n\nImportant: access tokens and secret keys in examples are placeholders only. Never commit real credentials.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "from-session-to-trusted-api-identity",
+      "title": "From Session to Trusted API Identity",
+      "summary": "PHASE 18 - BOOK 01 From Session to Trusted API Identity Why a Next.js login is not enough for NestJS Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user…",
+      "body": "From Session to Trusted API\nIdentity\nWhy a Next.js login is not enough for NestJS\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nTwo separate trust boundaries\nTaskFlow has two server processes. Next.js can read its cookie-backed Supabase session, while\nNestJS receives an ordinary HTTP request. NestJS must establish trust independently.\n\nDifferent servers, different responsibilities\n\nNext.js                                                      NestJS\n\n• cookie session                                            • receives headers\n\n• refresh lifecycle                                         • no cookie knowledge assumed\n\n• Supabase SSR client                                       • must verify bearer JWT\n\n• can obtain access token                                   • creates request identity\n\nWrong architecture\nGET /tasks?userId=5c53...\n\n// Browser claims who the user is.\n// The API trusts an unverified identifier.\n\nA UUID is not proof of identity. Anyone can send someone else's UUID.\n\nCorrect architecture\nIdentity establishment\n\nNext.js gets current access token\n\nAuthorization: Bearer <JWT>\n\nNestJS extracts bearer token\n\nSupabase verification validates JWT\n\nVerified sub becomes authenticated user id\n\nAuthentication vs authorization\nQuestion                             Layer                              Typical result\n\nWho is calling?                      Auth guard                         401 when not authenticated\n\nMay this user access this resource?\nAuthorization/business layer            403 when authenticated but forbidden\n\nIs the requested workflow valid?Service/business rules                  400/409 depending on rule\n\nThe trust statement\n\nAfter verification, claims.sub may be used as the authenticated Supabase user identifier. Before\nverification, decoded JWT contents are attacker-controlled input.\n\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 267,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain From Session to Trusted API Identity in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “From Session to Trusted API Identity” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting userId from request body/query",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “From Session to Trusted API Identity” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does From Session to Trusted API Identity solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "next-js-to-nestjs-bearer-token-handoff",
+      "title": "Next.js to NestJS Bearer Token Handoff",
+      "summary": "PHASE 18 - BOOK 02 Next.js -> NestJS Bearer Token Handoff Sending the session access token without leaking it into URLs or logs Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course…",
+      "body": "Next.js -> NestJS Bearer Token\nHandoff\nSending the session access token without leaking it into URLs or logs\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nThe HTTP contract\nGET /auth/me HTTP/1.1\nHost: 127.0.0.1:4000\nAuthorization: Bearer <SUPABASE_ACCESS_TOKEN>\n\nThe access token belongs in the standard Authorization header. It should not be placed in query\nstrings, route parameters, analytics events, or logs.\n\nServer-side Next.js helper\n// apps/web/src/lib/api/authenticated-fetch.ts\nimport { createClient } from '@/lib/supabase/server'\n\nexport async function authenticatedApiFetch(\npath: string,\ninit: RequestInit = {},\n) {\nconst supabase = await createClient()\nconst { data, error } = await supabase.auth.getSession()\n\nif (error || !data.session?.access_token) {\nthrow new Error('Authenticated session required')\n}\n\nconst headers = new Headers(init.headers)\nheaders.set(\n'Authorization',\n`Bearer ${data.session.access_token}`,\n)\n\nreturn fetch(\n`${process.env.API_BASE_URL}${path}`,\n{ ...init, headers, cache: 'no-store' },\n)\n}\n\nPhase 17 taught the difference between trusting a session and merely reading cookie contents. This\nhelper is used only after the server-side auth layer has established the current session.\n\nBrowser-side calls\nA browser Client Component can also obtain the current session access token from Supabase and call\nNestJS. That path is subject to CORS because the browser is crossing origins.\nconst { data } = await supabase.auth.getSession()\n\nawait fetch('http://127.0.0.1:4000/auth/me', {\nheaders: {\nAuthorization:\n`Bearer ${data.session?.access_token}`,\n},\n})\n\nDo not do this\n/auth/me?token=eyJ...\n\nconsole.log(accessToken)\n\nlocalStorage.setItem('debug-token', accessToken)\n\nBearer tokens are credentials. Treat them like secrets during their lifetime.\n\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 303,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Next.js to NestJS Bearer Token Handoff in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Next.js to NestJS Bearer Token Handoff” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Decoding JWT without signature verification",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Next.js to NestJS Bearer Token Handoff” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Next.js to NestJS Bearer Token Handoff solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "server-side-supabase-token-verification",
+      "title": "Server Side Supabase Token Verification",
+      "summary": "PHASE 18 - BOOK 03 Server-Side Supabase Token Verification Using getClaims() in a NestJS 12-compatible service Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted only…",
+      "body": "Server-Side Supabase Token\nVerification\nUsing getClaims() in a NestJS 12-compatible service\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nWhy getClaims()\nSupabase documents auth.getClaims(jwt) as the preferred way to verify Supabase-issued JWTs. With\nasymmetric signing keys it verifies against the project JWKS and benefits from caching; with legacy\nsymmetric signing it can fall back to the Auth server.\n\nInstall in apps/api\ncd \"C:\\path\\to\\taskflow\\apps\\api\"\n\npnpm add @supabase/supabase-js@2.116.0\n\nEnvironment\n# apps/api/.env\nSUPABASE_URL=https://<project-ref>.supabase.co\nSUPABASE_PUBLISHABLE_KEY=sb_publishable_...\n\nThe publishable key is not a privileged server secret. It identifies the project/client context; the user JWT\nproves the caller identity. Do not use a Supabase secret/service-role key merely to verify ordinary user\n\naccess tokens.\n\nVerification service\n// auth/supabase-auth.service.ts\nimport { Injectable, UnauthorizedException } from '@nestjs/common'\nimport { ConfigService } from '@nestjs/config'\nimport { createClient } from '@supabase/supabase-js'\n\n@Injectable()\nexport class SupabaseAuthService {\nprivate readonly url: string\nprivate readonly client\n\nconstructor(config: ConfigService) {\nthis.url = config.getOrThrow<string>('SUPABASE_URL')\nconst key = config.getOrThrow<string>(\n'SUPABASE_PUBLISHABLE_KEY',\n)\n\nthis.client = createClient(this.url, key, {\nauth: {\npersistSession: false,\nautoRefreshToken: false,\n},\n})\n}\n\nasync verifyAccessToken(token: string) {\nconst { data, error } =\nawait this.client.auth.getClaims(token)\n\nif (error || !data?.claims?.sub) {\nthrow new UnauthorizedException(\n'Invalid or expired access token',\n)\n}\n\nconst expectedIssuer = `${this.url}/auth/v1`\nif (data.claims.iss !== expectedIssuer) {\nthrow new UnauthorizedException('Invalid token issuer')\n}\n\nreturn data.claims\n}\n}\n\nWhy extra issuer checking?\ngetClaims() performs cryptographic verification. We still keep the expected project issuer explicit in\nTaskFlow so a token from another Supabase project cannot silently become an application identity.\n\nAudience / role policy\nFor ordinary TaskFlow users, require a user access token whose audience/role corresponds to the\nauthenticated user context. The exact claims are read from the verified payload, never from an\nunverified decode.\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 355,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Server Side Supabase Token Verification in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Server Side Supabase Token Verification” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning 403 when no valid authentication exists",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server Side Supabase Token Verification” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server Side Supabase Token Verification solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "build-the-nestjs-authguard",
+      "title": "Build the NestJS AuthGuard",
+      "summary": "PHASE 18 - BOOK 04 Build the NestJS AuthGuard Turning verification into a reusable request gate Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted only…",
+      "body": "Build the NestJS AuthGuard\nTurning verification into a reusable request gate\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nGuard responsibility\n\nAuthGuard canActivate()\n\nIncoming request\n\nExtract Authorization header\n\nRequire Bearer scheme\n\nVerify Supabase JWT\n\nAttach authenticated identity\n\nAllow controller execution\n\nAuthenticated identity type\n// common/types/authenticated-user.ts\nexport type AuthenticatedUser = {\nid: string\nemail?: string\nrole?: string\nsessionId?: string\n}\n\nGuard implementation\n// auth/supabase-auth.guard.ts\nimport {\nCanActivate,\nExecutionContext,\nInjectable,\nUnauthorizedException,\n} from '@nestjs/common'\nimport type { FastifyRequest } from 'fastify'\nimport { SupabaseAuthService } from './supabase-auth.service'\n\ntype AuthenticatedRequest = FastifyRequest & {\nuser?: {\nid: string\nemail?: string\nrole?: string\nsessionId?: string\n}\n}\n\n@Injectable()\nexport class SupabaseAuthGuard implements CanActivate {\nconstructor(\nprivate readonly auth: SupabaseAuthService,\n) {}\n\nasync canActivate(\ncontext: ExecutionContext,\n): Promise<boolean> {\nconst request =\ncontext.switchToHttp()\n.getRequest<AuthenticatedRequest>()\n\nconst token = this.extractBearerToken(request)\nconst claims = await this.auth.verifyAccessToken(token)\n\nrequest.user = {\nid: claims.sub,\nemail:\ntypeof claims.email === 'string'\n? claims.email\n: undefined,\nrole:\ntypeof claims.role === 'string'\n? claims.role\n: undefined,\nsessionId:\ntypeof claims.session_id === 'string'\n? claims.session_id\n: undefined,\n}\n\nreturn true\n}\n\nprivate extractBearerToken(\nrequest: FastifyRequest,\n): string {\nconst value = request.headers.authorization\nconst [scheme, token] = value?.split(' ') ?? []\n\nif (scheme !== 'Bearer' || !token) {\nthrow new UnauthorizedException(\n'Bearer access token required',\n)\n}\n\nreturn token\n}\n}\n\nWhat the guard does not do\n• It does not decide Workspace permissions.\n\n• It does not decide Task ownership.\n\n• It does not decide whether a workflow transition is allowed.\n\n• It does not query Prisma merely to prove the JWT signature.\n\nAuthentication creates trusted identity. Authorization and business rules remain separate layers.\n\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 296,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Build the NestJS AuthGuard in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Build the NestJS AuthGuard matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Build the NestJS AuthGuard” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Logging bearer tokens during debugging",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Build the NestJS AuthGuard” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Build the NestJS AuthGuard solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "typed-identity-and-currentuser-decorator",
+      "title": "Typed Identity and CurrentUser Decorator",
+      "summary": "PHASE 18 - BOOK 05 Typed Identity and @CurrentUser() Making verified identity ergonomic without hiding trust boundaries Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted…",
+      "body": "Typed Identity and @CurrentUser()\nMaking verified identity ergonomic without hiding trust boundaries\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nAvoid controller string indexing\nControllers should not repeatedly reach into request[\"user\"]. A parameter decorator makes the\nauthenticated identity explicit and typed.\n// common/decorators/current-user.decorator.ts\nimport {\ncreateParamDecorator,\nExecutionContext,\n} from '@nestjs/common'\nimport type { FastifyRequest } from 'fastify'\nimport type { AuthenticatedUser } from '../types/authenticated-user'\n\ntype AuthenticatedRequest = FastifyRequest & {\nuser: AuthenticatedUser\n}\n\nexport const CurrentUser = createParamDecorator(\n(_data: unknown, ctx: ExecutionContext) => {\nconst request = ctx.switchToHttp()\n.getRequest<AuthenticatedRequest>()\n\nreturn request.user\n\n},\n)\n\nProtected identity route\n@UseGuards(SupabaseAuthGuard)\n@Get('me')\nme(@CurrentUser() user: AuthenticatedUser) {\nreturn { user }\n}\n\nWhat can be trusted?\nValue                             Trusted after guard? Notes\n\nuser.id from verified sub         Yes                     Primary authentication identity\n\nverified email claim              Yes, as token claim     Do not use email as immutable primary key\n\nrequest body userId               No                      Caller-controlled\n\nquery userId                      No                      Caller-controlled\n\ndecoded-but-unverified sub        No                      Attacker-controlled\n\nIdentity mapping\nPhase 19 will decide how Supabase Auth identity maps to TaskFlow database users and Workspace\nmemberships. This phase only establishes the external authenticated identity safely.\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 230,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Typed Identity and CurrentUser Decorator in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Typed Identity and CurrentUser Decorator” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting userId from request body/query",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Typed Identity and CurrentUser Decorator” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Typed Identity and CurrentUser Decorator solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "protect-routes-and-default-deny-strategy",
+      "title": "Protect Routes and Default Deny Strategy",
+      "summary": "PHASE 18 - BOOK 06 Protect Routes Deliberately Per-route, controller-wide, and auth-by-default strategies Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted only after the access…",
+      "body": "Protect Routes Deliberately\nPer-route, controller-wide, and auth-by-default strategies\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nStart explicit\n@Controller('tasks')\n@UseGuards(SupabaseAuthGuard)\nexport class TasksController {\n// every endpoint in this controller is authenticated\n}\n\nController-wide protection is easy to see and fits TaskFlow while we are still learning the boundary.\n\nPublic endpoints remain public\n@Controller('health')\nexport class HealthController {\n@Get()\ncheck() {\nreturn { status: 'ok' }\n}\n}\n\nGlobal guard later\n\nNestJS supports registering an authentication guard globally and using metadata such as @Public()\nfor anonymous routes. This can be safer when most of an API should be protected, because forgetting\na decorator no longer accidentally creates a public endpoint.\nproviders: [\n{\nprovide: APP_GUARD,\nuseClass: SupabaseAuthGuard,\n},\n]\n\nWhy we do not switch globally yet\n• We want the trust boundary visible while learning.\n\n• Phase 19 will add authorization and may influence guard composition.\n\n• Public-vs-protected route inventory should be explicit before default-deny is enabled.\n\nRecommended production direction\nFor an internal business system where almost every endpoint is private, authenticated by default with a\nsmall explicit public-route escape hatch is usually easier to audit than protecting hundreds of routes one\nby one.\n\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 239,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Protect Routes and Default Deny Strategy in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Protect Routes and Default Deny Strategy” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Decoding JWT without signature verification",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Protect Routes and Default Deny Strategy” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Protect Routes and Default Deny Strategy solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "401-error-semantics-and-client-recovery",
+      "title": "401 Error Semantics and Client Recovery",
+      "summary": "PHASE 18 - BOOK 07 401 Error Semantics Making authentication failures predictable and safe Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted only after the…",
+      "body": "401 Error Semantics\nMaking authentication failures predictable and safe\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nAuthentication failure matrix\nScenario                                 HTTP     Public meaning\n\nNo Authorization header                  401      Authentication required\n\nWrong auth scheme                        401      Bearer token required\n\nExpired token                            401      Authentication expired\n\nInvalid signature                        401      Credentials invalid\n\nWrong issuer/project                     401      Credentials invalid\n\nVerified user lacks permission           403      Authenticated but forbidden\n\nDo not leak verification internals\nA client does not need to know whether signature verification failed because of a key ID, algorithm, or\nJWK cache detail. Keep precise diagnostics in safe server logs and return a stable public 401 contract.\n\nPhase 13 integration\n\nThe guard can throw UnauthorizedException. The existing global exception filter then adds TaskFlow\nfields such as requestId, timestamp, path, and stable error code.\n{\n\"statusCode\": 401,\n\"code\": \"UNAUTHORIZED\",\n\"message\": \"Authentication required.\",\n\"requestId\": \"42\",\n\"path\": \"/tasks\",\n\"timestamp\": \"2026-09-18T...\"\n}\n\nFrontend behavior\n• 401: refresh/re-establish session or redirect to login.\n\n• 403: show an authorization/permission message; logging in again may not help.\n\n• Network failure: do not mislabel it as authentication failure.\n\n401 and 403 must remain distinct. Authentication and authorization are different security decisions.\n\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 242,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain 401 Error Semantics and Client Recovery in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "401 Error Semantics and Client Recovery matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “401 Error Semantics and Client Recovery” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning 403 when no valid authentication exists",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “401 Error Semantics and Client Recovery” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does 401 Error Semantics and Client Recovery solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "cors-authorization-headers-and-preflight",
+      "title": "CORS Authorization Headers and Preflight",
+      "summary": "PHASE 18 - BOOK 08 CORS and Authorization Headers Why browser bearer requests can trigger preflight Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted only…",
+      "body": "CORS and Authorization Headers\nWhy browser bearer requests can trigger preflight\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nBrowser path\n\nCross-origin authenticated request\n\nBrowser Client Component\n\nOPTIONS preflight when required\n\nNestJS CORS policy\n\nActual request with Authorization\n\nAuthGuard verifies token\n\nNestJS CORS configuration\napp.enableCors({\norigin: 'http://localhost:3000',\nmethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],\nallowedHeaders: [\n'Content-Type',\n'Authorization',\n],\n})\n\nImportant distinction\nCORS does not verify the access token. CORS controls whether browser JavaScript may make/read\ncross-origin requests. The AuthGuard verifies authentication.\n\nServer-to-server path\nA Next.js Server Component calling NestJS from the server is not subject to the browser's CORS\nenforcement. The bearer token still must be verified because CORS and authentication solve different\nproblems.\n\nCommon debugging sequence\n• Does Network show an OPTIONS request?\n\n• Does the preflight response allow Authorization?\n\n• Does the actual request contain Authorization: Bearer ...?\n\n• Does NestJS return 401 from the guard or was the browser blocked before the request?\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 211,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "cors",
+        "objectives": [
+          "Explain CORS Authorization Headers and Preflight in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this cors concept.",
+          "Diagnose one representative cors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CORS Authorization Headers and Preflight matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “CORS Authorization Headers and Preflight” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Inspect the browser preflight contract",
+          "code": "OPTIONS /tasks HTTP/1.1\nOrigin: http://localhost:3000\nAccess-Control-Request-Method: POST\nAccess-Control-Request-Headers: authorization,content-type\n\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:3000"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Logging bearer tokens during debugging",
+          "Change one assumption in the cors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “CORS Authorization Headers and Preflight” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does CORS Authorization Headers and Preflight solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the cors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "signing-keys-jwks-and-2026-supabase-choices",
+      "title": "Signing Keys JWKS and 2026 Supabase Choices",
+      "summary": "PHASE 18 - BOOK 09 Signing Keys, JWKS, Rotation and 2026 Supabase Choices Understanding what getClaims() is doing for you Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user…",
+      "body": "Signing Keys, JWKS, Rotation and\n2026 Supabase Choices\nUnderstanding what getClaims() is doing for you\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nModern Supabase signing keys\nSupabase now supports asymmetric signing keys and publishes trusted public keys through the\nproject JWKS endpoint. Public keys verify tokens but cannot mint new ones.\nGET https://<project-ref>.supabase.co/\nauth/v1/.well-known/jwks.json\n\nWhy getClaims() fits this course\nConcern                               getClaims() behavior\n\nAsymmetric keys                       Verifies against JWKS, with caching\n\nKey rotation                          Supabase client handles JWK lookup/cache behavior\n\nLegacy HS256                          Falls back to Auth server verification\n\nNestJS version                        Framework-independent base client call\n\nAlternative: direct jose verification\nFor projects committed to asymmetric signing keys, a backend can use a JWT library such as jose with\na remote JWKS and explicitly validate issuer, audience and expiration. Supabase documents this\npattern. We do not choose it as the primary course implementation because getClaims() also handles\nlegacy signing-key projects.\n\n@supabase/server in 2026\nSupabase now recommends @supabase/server for bearer-token backend APIs and ships a NestJS adapter.\nVersion 1.x is public beta. At the time of this phase, the package adapter table lists NestJS 10 and 11,\nwhile TaskFlow is NestJS 12. We therefore use the framework-independent verification path and can revisit\nthe adapter after its published compatibility catches up.\n\nRevocation nuance\nJWKS caching improves performance but means emergency signing-key revocation can have a cache\nwindow in external backend verifiers. Supabase documents this trade-off; incident-response plans\nshould account for it.\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 303,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Signing Keys JWKS and 2026 Supabase Choices in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Signing Keys JWKS and 2026 Supabase Choices” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting userId from request body/query",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Signing Keys JWKS and 2026 Supabase Choices” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Signing Keys JWKS and 2026 Supabase Choices solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "testing-debugging-and-observability",
+      "title": "Testing Debugging and Observability",
+      "summary": "PHASE 18 - BOOK 10 Testing and Debugging the Guard Proving the trust boundary instead of assuming it works Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID…",
+      "body": "Testing and Debugging the Guard\nProving the trust boundary instead of assuming it works\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nManual test matrix\nTest                                                   Expected\n\nGET /auth/me with no header                            401\n\nAuthorization: Basic abc                               401\n\nBearer malformed-token                                 401\n\nBearer expired token                                   401\n\nBearer valid token from wrong project                  401\n\nBearer valid current token                             200 + verified user id\n\nProtected /tasks no token                              401\n\nProtected /tasks valid token                           200\n\nPowerShell example\n$api = 'http://127.0.0.1:4000'\n$token = '<paste-current-development-access-token>'\n\nInvoke-RestMethod `\n-Uri \"$api/auth/me\" `\n-Headers @{ Authorization = \"Bearer $token\" }\n\nDo not commit access tokens into test scripts. For a durable automated suite, acquire test credentials\nthrough a dedicated test setup or inject short-lived test tokens securely.\n\nDebug by layer\nAuthentication debugging order\n\nDoes Next.js have a current session?\n\nWas Authorization header sent?\n\nDid CORS allow browser request?\n\nDid guard extract Bearer token?\n\nDid getClaims verify it?\n\nWas request.user attached?\n\nNever log\n• Raw Authorization header\n\n• Access token\n\n• Refresh token\n\n• Session cookie\n\n• Supabase secret/service role key\n\nSafe to log\nrequestId, route, HTTP method, authentication failure category, verified user ID when appropriate for\naudit policy, and timing - without credential material.\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 249,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Testing Debugging and Observability in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Testing Debugging and Observability” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Decoding JWT without signature verification",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Testing Debugging and Observability” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Testing Debugging and Observability solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "PHASE 18 - BOOK 11 Hands-On Lab and Phase Exit Implement, verify, explain, then prepare for authorization Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted…",
+      "body": "Hands-On Lab and Phase Exit\nImplement, verify, explain, then prepare for authorization\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nLevel 1 - Follow\nInstall the backend Supabase client, add API environment variables, create SupabaseAuthService,\ncreate the guard, add @CurrentUser(), and protect /auth/me.\n\nLevel 2 - Modify\nProtect TasksController at controller level. Keep /health public. Verify the no-token and valid-token\npaths.\n\nLevel 3 - Implement\nBuild an authenticated GET /auth/me response that returns only safe verified identity fields. Add a\nfrontend page that calls it from Next.js using the current access token.\n\nLevel 4 - Engineer\nDesign the production authentication policy for a payroll API containing public health checks,\nemployee endpoints, HR endpoints, and internal automation endpoints. Decide whether auth should\n\nbe global/default-deny and identify which endpoints truly need different credential types.\n\nPhase exit oral questions\n• Why is a userId query parameter not identity?\n\n• What exactly turns claims.sub into trusted identity?\n\n• Why is decode-only JWT handling unsafe?\n\n• Why does a 401 differ from a 403?\n\n• Why is CORS not authentication?\n\n• Why do we keep authorization out of AuthGuard?\n\n• When would direct JWKS verification be appropriate?\n\nExit checklist\n• Valid Supabase token reaches NestJS as a Bearer token.\n\n• Missing/malformed/expired tokens return 401.\n\n• Verified sub is attached as request user.id.\n\n• Protected Tasks routes reject anonymous callers.\n\n• Health route remains public.\n\n• No access token or secret key is committed/logged.\n\n• You can explain the difference between authentication, authorization and business rules.\n\nPhase 18 is complete when NestJS can establish a trusted caller identity independently of the browser and\nindependently of Next.js.\n\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 320,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning 403 when no valid authentication exists",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "phase-18-architecture-review",
+      "title": "Phase 18 Architecture Review",
+      "summary": "PHASE 18 - BOOK 12 Phase 18 Architecture Review From verified identity to Phase 19 authorization Phase 18 trust boundary Next.js authenticated session Authorization: Bearer <access token> NestJS authentication guard Verified Supabase identity Controller and business service Course principle: a user ID becomes trusted only…",
+      "body": "Phase 18 Architecture Review\nFrom verified identity to Phase 19 authorization\n\nPhase 18 trust boundary\n\nNext.js authenticated session\n\nAuthorization: Bearer <access token>\n\nNestJS authentication guard\n\nVerified Supabase identity\n\nController and business service\n\nCourse principle: a user ID becomes trusted only after the access token has been cryptographically\nverified by the backend.\n\nWhat we built\n\nCompleted Phase 18 architecture\n\nSupabase Auth session\n\nNext.js retrieves current access token\n\nAuthorization: Bearer token\n\nNestJS SupabaseAuthGuard\n\ngetClaims() verifies JWT\n\nrequest.user = verified identity\n\nController / Service\n\nWhat we deliberately did not build\n• Workspace permission checks\n\n• Task ownership rules\n\n• Role-based access control\n\n• Permission decorators\n\n• Database mapping from auth user to membership context\n\n• Admin/service-to-service authentication policy\n\n• RLS as the primary backend authorization system\n\nWhy those come next\nAuthentication answers who. Phase 19 will answer may this authenticated person perform this action\non this resource? That requires Workspace membership, roles, ownership, and permission reasoning -\ninformation that belongs beyond token signature verification.\n\nPhase 19 target\n\nNext: authorization\n\nVerified Supabase identity\n\nResolve TaskFlow user + membership\n\nAuthorization policy / permission check\n\nBusiness service\n\nPrisma query scoped to authorized context\n\nCourse progress\nVolume 05 now has Authentication Fundamentals, Supabase Authentication, and NestJS\nAuthentication Guards complete. The final security phase in this volume is Authorization, Ownership,\nRBAC & Permissions.\nSource note: verified against current Supabase Auth/getClaims/signing-key guidance and NestJS\nauthentication/authorization docs. Full URLs and version notes are included in SOURCE_NOTES.txt.",
+      "wordCount": 231,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Phase 18 Architecture Review in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase 18 Architecture Review matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Phase 18 Architecture Review” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Logging bearer tokens during debugging",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase 18 Architecture Review” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase 18 Architecture Review solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nMake NestJS independently verify Supabase access tokens and attach trusted identity before protected handlers run.",
+      "body": "Guided Build Lab — Phase 18: NestJS Authentication Guards\n\nPurpose\nMake NestJS independently verify Supabase access tokens and attach trusted identity before protected handlers run.\n\nDeliverable\nAuthentication guard + verification service + current-user helper + protected /auth/me and task routes.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nNext.js session -> Bearer access token -> NestJS guard -> Supabase/JWT verification -> trusted request user -> controller/service\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Extract and validate the bearer scheme in a guard with clear missing/malformed behavior.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Verify the token server-side using the supported Supabase/JWT verification path.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Normalize verified claims into an application user identity object.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Attach identity once and expose it through a typed decorator/helper rather than reparsing tokens in services.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Protect /auth/me and one task endpoint; test valid, missing, malformed, expired, and wrong-project tokens.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 644,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting userId from request body/query",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 18: NestJS Authentication Guards\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nNext.js session -> Bearer access token -> NestJS guard -> Supabase/JWT verification -> trusted request user -> controller/service\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Trusting userId from request body/query\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Decoding JWT without signature verification\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Returning 403 when no valid authentication exists\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Logging bearer tokens during debugging\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 447,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Decoding JWT without signature verification",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 18 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — NestJS Authentication Guards\n\nMission\nRebuild the capability of Phase 18 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nMake NestJS independently verify Supabase access tokens and attach trusted identity before protected handlers run.\n\nRequired artifact\nAuthentication guard + verification service + current-user helper + protected /auth/me and task routes.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain why Next.js login is not enough for the API.\n• Can trace guard execution.\n• Can distinguish 401 and 403.\n• Can prove identity is derived from verified token claims.\n\nIndependent build sequence\n1. Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.\n2. Extract and validate the bearer scheme in a guard with clear missing/malformed behavior.\n3. Verify the token server-side using the supported Supabase/JWT verification path.\n4. Normalize verified claims into an application user identity object.\n5. Attach identity once and expose it through a typed decorator/helper rather than reparsing tokens in services.\n6. Protect /auth/me and one task endpoint; test valid, missing, malformed, expired, and wrong-project tokens.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 380,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication guard + verification service + current-user helper + protected /auth/me and task routes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning 403 when no valid authentication exists",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 18 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 18: NestJS Authentication Guards. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nAuthentication guard + verification service + current-user helper + protected /auth/me and task routes.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 198,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "nest",
+        "objectives": [
+          "Make NestJS independently verify Supabase access tokens and attach trusted identity before protected handlers run.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Next.js session",
+          "Bearer access token",
+          "NestJS guard",
+          "Supabase/JWT verification",
+          "trusted request user",
+          "controller/service"
+        ],
+        "steps": [
+          "Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.",
+          "Extract and validate the bearer scheme in a guard with clear missing/malformed behavior.",
+          "Verify the token server-side using the supported Supabase/JWT verification path.",
+          "Normalize verified claims into an application user identity object.",
+          "Attach identity once and expose it through a typed decorator/helper rather than reparsing tokens in services.",
+          "Protect /auth/me and one task endpoint; test valid, missing, malformed, expired, and wrong-project tokens.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain why Next.js login is not enough for the API",
+          "Can trace guard execution",
+          "Can distinguish 401 and 403",
+          "Can prove identity is derived from verified token claims"
+        ],
+        "breakIt": [
+          "Trusting userId from request body/query",
+          "Decoding JWT without signature verification"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/PHASE_18_TEST_MATRIX.md",
+      "preview": "# Phase 18 test matrix\n\n| Scenario | Expected |\n|---|---|\n| No Authorization header | 401 |\n| Wrong scheme | 401 |\n| Malformed JWT | 401 |\n| Expired JWT | 401 |\n| Token from wrong Supabase project | 401 |\n| Valid current access token | 200 and verified identity |\n| Protected tasks without token | 401 |\n| Health endpoint | 200 without token |"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/.env.example",
+      "preview": "SUPABASE_URL=https://<project-ref>.supabase.co\nSUPABASE_PUBLISHABLE_KEY=sb_publishable_..."
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/install-auth-api.ps1",
+      "preview": "# Run from apps/api\npnpm add @supabase/supabase-js@2.116.0"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/auth/auth.controller.ts",
+      "preview": "import { Controller, Get, UseGuards } from '@nestjs/common'\nimport { CurrentUser } from '../common/decorators/current-user.decorator'\nimport type { AuthenticatedUser } from './authenticated-user'\nimport { SupabaseAuthGuard } from './supabase-auth.guard'\n\n@Controller('auth')\nexport class AuthController {\n  @UseGuards(SupabaseAuthGuard)\n  @Get('me')\n  me(@CurrentUser() user: AuthenticatedUser) {\n    return { user }\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/auth/auth.module.ts",
+      "preview": "import { Module } from '@nestjs/common'\nimport { AuthController } from './auth.controller'\nimport { SupabaseAuthGuard } from './supabase-auth.guard'\nimport { SupabaseAuthService } from './supabase-auth.service'\n\n@Module({\n  controllers: [AuthController],\n  providers: [SupabaseAuthService, SupabaseAuthGuard],\n  exports: [SupabaseAuthService, SupabaseAuthGuard],\n})\nexport class AuthModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/auth/authenticated-user.ts",
+      "preview": "export type AuthenticatedUser = {\n  id: string\n  email?: string\n  role?: string\n  sessionId?: string\n}"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/auth/supabase-auth.guard.ts",
+      "preview": "import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'\nimport type { FastifyRequest } from 'fastify'\nimport { SupabaseAuthService } from './supabase-auth.service'\nimport type { AuthenticatedUser } from './authenticated-user'\n\ntype AuthenticatedRequest = FastifyRequest & { user?: AuthenticatedUser }\n\n@Injectable()\nexport class SupabaseAuthGuard implements CanActivate {\n  constructor(private readonly auth: SupabaseAuthService) {}\n\n  async canActivate(context: ExecutionContext): Promise<boolean> {\n    const request = context.switchToHttp().getRequest<AuthenticatedRequest>()\n    const value = request.headers.authorization\n    const [scheme, token] = value?.split(' ') ?? []\n    if (scheme !== 'Bearer' || !token) {\n      throw new UnauthorizedException('Bearer access token required')\n    }\n\n    const claims = await this.auth.verifyAccessToken(token)"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/auth/supabase-auth.service.ts",
+      "preview": "import { Injectable, UnauthorizedException } from '@nestjs/common'\nimport { ConfigService } from '@nestjs/config'\nimport { createClient } from '@supabase/supabase-js'\n\n@Injectable()\nexport class SupabaseAuthService {\n  private readonly url: string\n  private readonly client\n\n  constructor(config: ConfigService) {\n    this.url = config.getOrThrow<string>('SUPABASE_URL')\n    const key = config.getOrThrow<string>('SUPABASE_PUBLISHABLE_KEY')\n\n    this.client = createClient(this.url, key, {\n      auth: {\n        persistSession: false,\n        autoRefreshToken: false,\n      },\n    })\n  }"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/common/decorators/current-user.decorator.ts",
+      "preview": "import { createParamDecorator, ExecutionContext } from '@nestjs/common'\nimport type { FastifyRequest } from 'fastify'\nimport type { AuthenticatedUser } from '../../auth/authenticated-user'\n\ntype AuthenticatedRequest = FastifyRequest & { user: AuthenticatedUser }\n\nexport const CurrentUser = createParamDecorator(\n  (_data: unknown, ctx: ExecutionContext) => {\n    return ctx.switchToHttp().getRequest<AuthenticatedRequest>().user\n  },\n)"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/tasks/tasks.controller.auth-example.ts",
+      "preview": "import { Controller, Get, UseGuards } from '@nestjs/common'\nimport { SupabaseAuthGuard } from '../auth/supabase-auth.guard'\n\n@Controller('tasks')\n@UseGuards(SupabaseAuthGuard)\nexport class TasksController {\n  @Get()\n  findAll() {\n    // Existing Phase 15 implementation remains here.\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/api/src/tasks/tasks.module.ts",
+      "preview": "import { Module } from '@nestjs/common'\nimport { AuthModule } from '../auth/auth.module'\nimport { TasksController } from './tasks.controller'\nimport { TasksService } from './tasks.service'\n\n@Module({\n  imports: [AuthModule],\n  controllers: [TasksController],\n  providers: [TasksService],\n})\nexport class TasksModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/apps/web/src/lib/api/authenticated-fetch.ts",
+      "preview": "import { createClient } from '@/lib/supabase/server'\n\nexport async function authenticatedApiFetch(path: string, init: RequestInit = {}) {\n  const supabase = await createClient()\n  const { data, error } = await supabase.auth.getSession()\n  if (error || !data.session?.access_token) {\n    throw new Error('Authenticated session required')\n  }\n  const headers = new Headers(init.headers)\n  headers.set('Authorization', `Bearer ${data.session.access_token}`)\n  return fetch(`${process.env.API_BASE_URL}${path}`, { ...init, headers, cache: 'no-store' })\n}"
+    },
+    {
+      "path": "reference/TaskFlow_NestJS_Auth_Guard_Snapshot/tests/auth-guard-smoke-tests.ps1",
+      "preview": "$api = 'http://127.0.0.1:4000'\n\nWrite-Host '1) No token -> expect 401'\ntry { Invoke-RestMethod -Uri \"$api/auth/me\" } catch { $_.Exception.Response.StatusCode.value__ }\n\nWrite-Host '2) Malformed token -> expect 401'\ntry { Invoke-RestMethod -Uri \"$api/auth/me\" -Headers @{ Authorization = 'Bearer not-a-jwt' } } catch { $_.Exception.Response.StatusCode.value__ }\n\nWrite-Host '3) Valid current development token -> expect 200'\n$token = Read-Host 'Paste a current DEVELOPMENT access token'\nInvoke-RestMethod -Uri \"$api/auth/me\" -Headers @{ Authorization = \"Bearer $token\" }"
+    }
+  ],
+  "exercises": [
+    "Guided: Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.",
+    "Practice: Verify the token server-side using the supported Supabase/JWT verification path.",
+    "Debugging: reproduce and diagnose — Trusting userId from request body/query.",
+    "Independent: deliver Authentication guard + verification service + current-user helper + protected /auth/me and task routes.",
+    "Explain-back: Can explain why Next.js login is not enough for the API and Can trace guard execution."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "NestJS guards should verify identity before protected controllers execute.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "NestJS guards should verify identity before protected controllers execute."
+    },
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Derive the authenticated user from a verified token, never from a user id supplied by the browser.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Derive the authenticated user from a verified token, never from a user id supplied by the browser."
+    },
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Attach validated identity to the request in one controlled place so downstream code can consume it consistently.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Attach validated identity to the request in one controlled place so downstream code can consume it consistently."
+    },
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Return 401 for missing or invalid authentication and reserve 403 for authenticated callers lacking permission."
+      ],
+      "answer": 3,
+      "explanation": "Return 401 for missing or invalid authentication and reserve 403 for authenticated callers lacking permission."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Trusting userId from request body/query."
+      ],
+      "answer": 1,
+      "explanation": "Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Extract and validate the bearer scheme in a guard with clear missing/malformed behavior.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Decoding JWT without signature verification.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Extract and validate the bearer scheme in a guard with clear missing/malformed behavior."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Returning 403 when no valid authentication exists.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Verify the token server-side using the supported Supabase/JWT verification path."
+      ],
+      "answer": 3,
+      "explanation": "Verify the token server-side using the supported Supabase/JWT verification path."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Logging bearer tokens during debugging.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Normalize verified claims into an application user identity object.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Normalize verified claims into an application user identity object."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4915
+}

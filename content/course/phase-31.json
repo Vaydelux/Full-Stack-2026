@@ -1,0 +1,1217 @@
+{
+  "number": 31,
+  "slug": "phase-31",
+  "title": "Performance",
+  "volume": 8,
+  "readme": "Phase 31 - Performance\n\nIncludes 13 focused PDFs, one combined book, and a TaskFlow performance reference snapshot.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "performance-budgets-and-measurement",
+      "title": "Performance Budgets and Measurement",
+      "summary": "Performance Budgets and Measurement Full Stack Developer 2026 Complete - TaskFlow A performance budget turns “fast enough” into a falsifiable statement. TaskFlow separates browser experience, API latency, database behavior, and capacity. The exact numbers below are starting engineering targets for this course, not universal guarantees.…",
+      "body": "Performance Budgets and Measurement\n\nA performance budget turns “fast enough” into a falsifiable statement. TaskFlow separates browser\nexperience, API latency, database behavior, and capacity. The exact numbers below are starting\nengineering targets for this course, not universal guarantees.\n\nBoundary                                                        TaskFlow starting budget\n\nCore Web Vitals                                                 p75 LCP <= 2.5 s, INP <= 200 ms, CLS <= 0.1\n\nGET /tasks                                                      p95 API <= 300 ms under normal target load\n\nPATCH /tasks/:id                                                p95 API <= 400 ms under normal target load\n\nError rate                                                      < 1% unexpected 5xx during benchmark\n\nDB query hot path                                               Investigate repeated queries above ~100 ms and any\nobvious N+1 pattern\n\nBundle                                                          No unexplained large client-bundle regression after\ndependency changes\n\nCore Web Vitals measure user-visible browser experience and are evaluated at the 75th percentile. They\ndo not replace backend metrics. A fast API can still produce poor LCP because the browser downloaded\ntoo much JavaScript, and a tiny JavaScript bundle cannot compensate for a two-second database query.\n\nField browser           route/renderi                             repository/Pri                             infrastructure\nAPI latency                                 PostgreSQL\nmetrics                 ng                                        sma                                        saturation\n→                   →                    →                      →                   →\n\nFigure 2. Separate performance layers\n\nProduction caution: Never benchmark development mode. Use production builds, representative data,\nwarm-up, fixed scenarios, and the same environment before comparing two changes.",
+      "wordCount": 197,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Explain Performance Budgets and Measurement in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this performance concept.",
+          "Diagnose one representative performance failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Performance Budgets and Measurement matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "baseline",
+          "measurement",
+          "bottleneck",
+          "targeted change",
+          "re-measurement"
+        ],
+        "steps": [
+          "Restate the goal of “Performance Budgets and Measurement” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: baseline → measurement → bottleneck → targeted change → re-measurement. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Baseline before optimization",
+          "code": "GET /tasks p95: 1.8 s\n  API application: 90 ms\n  database: 1.61 s\n  serialization/network: 100 ms\nNext action: inspect query plan before changing frontend code."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimizing from intuition only",
+          "Change one assumption in the performance example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Performance Budgets and Measurement” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Performance Budgets and Measurement solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the performance boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "next-js-rendering-bundles-and-core-web-vitals",
+      "title": "Next.js Rendering Bundles and Core Web Vitals",
+      "summary": "Next.js Rendering, Bundles, and Core Web Vitals Full Stack Developer 2026 Complete - TaskFlow Next.js already gives TaskFlow useful performance defaults: Server Components do not add client JavaScript, routes are code-split, and static assets can be cached. Performance work therefore starts by preserving those defaults…",
+      "body": "Next.js Rendering, Bundles, and Core Web\nVitals\n\nNext.js already gives TaskFlow useful performance defaults: Server Components do not add client\nJavaScript, routes are code-split, and static assets can be cached. Performance work therefore starts by\npreserving those defaults rather than immediately adding client-side state or heavy libraries.\n\nClient JavaScript checklist\n• Keep \"use client\" boundaries as low as practical. A client boundary pulls its imported component\nsubtree into the client bundle.\n\n• Lazy-load interaction-heavy Client Components or third-party libraries that are not needed for initial\nrender.\n\n• Use next/font to self-host/optimize fonts and next/image where image optimization is relevant.\n\n• Measure bundles after dependency changes rather than assuming tree shaking solved everything.\n\n• Avoid calling a Next.js Route Handler from a Server Component when the Server Component can call\nthe backend/data source directly; that adds another server hop.\n// next.config.performance.ts\nimport bundleAnalyzer from \"@next/bundle-analyzer\";\n\nconst withBundleAnalyzer = bundleAnalyzer({\nenabled: process.env.ANALYZE === \"true\",\n});\n\nexport default withBundleAnalyzer({});\n\n// PowerShell\n$env:ANALYZE=\"true\"\npnpm --filter web build\n\nThe first optimization question is not “what can I memoize?” It is usually “why is this code in the client\nbundle at all?”\nKey idea: LCP, INP, and CLS are field-facing outcomes. Bundle size, hydration cost, and render waterfalls\nare causes you investigate, not goals in isolation.",
+      "wordCount": 215,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Next.js Rendering Bundles and Core Web Vitals in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Next.js Rendering Bundles and Core Web Vitals” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Caching incorrect data or bypassing authorization",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Next.js Rendering Bundles and Core Web Vitals” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Next.js Rendering Bundles and Core Web Vitals solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "tanstack-query-network-and-render-efficiency",
+      "title": "TanStack Query Network and Render Efficiency",
+      "summary": "TanStack Query Network and Render Efficiency Full Stack Developer 2026 Complete - TaskFlow TanStack Query already provides structural sharing and tracked-property render optimizations. TaskFlow should tune freshness and invalidation based on how quickly each resource actually becomes stale rather than globally increasing staleTime to hide…",
+      "body": "TanStack Query Network and Render\nEfficiency\n\nTanStack Query already provides structural sharing and tracked-property render optimizations. TaskFlow\nshould tune freshness and invalidation based on how quickly each resource actually becomes stale\nrather than globally increasing staleTime to hide network activity.\n\nProblem                                            Better response\n\nEvery mount refetches immediately                  Choose a justified staleTime for that resource\n\nPolling duplicates Realtime                        Use one freshness mechanism intentionally\n\nHuge query payload                                 Reduce API projection / pagination size\n\nComponent rerenders on unused query state          Avoid object-rest destructuring that defeats tracked-property\noptimization\n\nMutation invalidates everything                    Invalidate the smallest correct query family\n\nconst taskListOptions = (query: TaskListQuery) =>\nqueryOptions({\nqueryKey: taskKeys.list(query),\nqueryFn: () => fetchTasks(query),\nstaleTime: 30_000,\nplaceholderData: keepPreviousData,\n});\n\nA cache is not free memory. Large result sets cost JSON transfer, parsing, reconciliation, and browser\nmemory even if they avoid another request. Pagination and narrow API response shapes are still primary\nperformance tools.\nProduction caution: Do not increase staleTime simply to make a network panel look quiet. That trades\nfreshness for fewer requests and must match the product requirement.",
+      "wordCount": 168,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain TanStack Query Network and Render Efficiency in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “TanStack Query Network and Render Efficiency” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes that slow writes without helping real queries",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TanStack Query Network and Render Efficiency” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TanStack Query Network and Render Efficiency solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "nestjs-fastify-api-hot-path",
+      "title": "NestJS Fastify API Hot Path",
+      "summary": "NestJS + Fastify API Hot Path Full Stack Developer 2026 Complete - TaskFlow NestJS with Fastify is already a strong baseline. Most TaskFlow API latency will usually come from database/network work, serialization volume, or repeated application operations rather than the controller decorator itself. Measure before…",
+      "body": "NestJS + Fastify API Hot Path\n\nNestJS with Fastify is already a strong baseline. Most TaskFlow API latency will usually come from\ndatabase/network work, serialization volume, or repeated application operations rather than the\ncontroller decorator itself. Measure before rewriting architecture.\n\nHTTP                                     controller/ser\nvalidation                             repository/DB        serialization       response\nparse/auth                               vice\n→                  →                    →                    →                   →\n\nFigure 3. API latency decomposition\n\nHigh-value checks\n• Measure p50/p95/p99 per normalized route.\n\n• Avoid synchronous CPU-heavy work on request paths; move report/PDF/import processing to workers\nwhen it becomes long-running.\n\n• Return only fields the client needs. Large JSON responses cost DB I/O, serialization, bandwidth, parsing,\nand memory.\n\n• Prefer native Fastify integrations on hot paths rather than generic middleware when performance\nmatters.\n\n• If you adopt Fastify response JSON schemas later, benchmark them in the real NestJS integration rather\nthan assuming the theoretical gain applies unchanged.\n\nFastify documents that response schemas can substantially improve JSON serialization throughput.\nTaskFlow does not replace the Zod/Nest response architecture merely for microbenchmarks; it first\nprofiles whether response serialization is actually a meaningful share of latency.\nKey idea: The optimization order should usually be: remove unnecessary work, reduce round\ntrips/payload, improve database plan, fix saturation, then consider lower-level framework tuning.",
+      "wordCount": 199,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "nest",
+        "objectives": [
+          "Explain NestJS Fastify API Hot Path in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this nest concept.",
+          "Diagnose one representative nest failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "NestJS structure becomes valuable when the request pipeline and responsibility of controllers, services, guards, pipes, and providers are explicit rather than magical.",
+        "mentalModel": [
+          "HTTP request",
+          "Fastify adapter",
+          "Nest pipeline",
+          "controller",
+          "service",
+          "response"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS Fastify API Hot Path” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP request → Fastify adapter → Nest pipeline → controller → service → response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Controller delegates; service owns application behavior",
+          "code": "@Controller(\"tasks\")\nexport class TasksController {\n  constructor(private readonly tasks: TasksService) {}\n\n  @Get()\n  findAll() {\n    return this.tasks.findAll();\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Benchmarking development mode and assuming production behavior",
+          "Change one assumption in the nest example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Nest cannot resolve dependencies",
+            "investigation": "Read the constructor index in the error, then check provider registration, module imports, and exports in that order."
+          },
+          {
+            "symptom": "Endpoint not reached",
+            "investigation": "Confirm method/path, controller registration, global prefix, and guard/pipe behavior using request logs."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS Fastify API Hot Path” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS Fastify API Hot Path solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the nest boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "prisma-query-shape-nplusone-and-overfetching",
+      "title": "Prisma Query Shape NPlusOne and Overfetching",
+      "summary": "Prisma Query Shape, N+1, and Overfetching Full Stack Developer 2026 Complete - TaskFlow Prisma performance depends more on query shape than on whether code lives in a repository. Repository Pattern improves organization, but it does not automatically produce efficient SQL. N assignee/project many database round…",
+      "body": "Prisma Query Shape, N+1, and\nOverfetching\n\nPrisma performance depends more on query shape than on whether code lives in a repository.\nRepository Pattern improves organization, but it does not automatically produce efficient SQL.\n\nN assignee/project       many database round\n1 Task list query                    loop over N Tasks\nqueries                  trips\n→                                  →                         →\n\nFigure 4. N+1 smell\n\n// Prefer one intentional query shape when the UI needs related data.\nconst tasks = await prisma.task.findMany({\nwhere,\nselect: {\nid: true,\ntitle: true,\nstatus: true,\npriority: true,\nassignee: {\nselect: { id: true, displayName: true },\n},\n},\ntake: query.pageSize,\n});\n\nRepository review questions\n• Does a list endpoint execute one bounded query shape or one query per row?\n\n• Are we selecting large unused columns/relations?\n\n• Are count and data queries both required for this screen?\n\n• Does authorization scoping force expensive relation traversal that deserves an index?\n\n• Is the same lookup repeated inside one request and safe to reuse?\n\nPrisma currently recommends one reusable PrismaClient per process because multiple clients create\nmultiple pools. It also explicitly calls out N+1 as a common query-performance problem.\nProduction caution: Do not hide N+1 behind Promise.all. Concurrent N+1 is still N+1 and may put even\nmore pressure on the connection pool.",
+      "wordCount": 201,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Query Shape NPlusOne and Overfetching in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Query Shape NPlusOne and Overfetching” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimizing from intuition only",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Query Shape NPlusOne and Overfetching” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Query Shape NPlusOne and Overfetching solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "postgresql-explain-indexes-and-pagination",
+      "title": "PostgreSQL EXPLAIN Indexes and Pagination",
+      "summary": "PostgreSQL EXPLAIN, Indexes, and Pagination Full Stack Developer 2026 Complete - TaskFlow Indexes are workload-specific. PostgreSQL can only choose well when statistics describe the data and the index matches real predicates/order patterns. Phase 31 teaches evidence-first index design: observe a slow query, capture its plan,…",
+      "body": "PostgreSQL EXPLAIN, Indexes, and\nPagination\n\nIndexes are workload-specific. PostgreSQL can only choose well when statistics describe the data and the\nindex matches real predicates/order patterns. Phase 31 teaches evidence-first index design: observe a\nslow query, capture its plan, change one thing, and compare.\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id, title, status, priority, \"createdAt\"\nFROM \"Task\"\nWHERE \"projectId\" = $1\nAND status = $2\nORDER BY \"createdAt\" DESC, id ASC\nLIMIT 20 OFFSET 0;\n\nPlan signal                                           Question\n\nSeq Scan                                              Is table small, predicate unselective, or useful index missing?\n\nIndex Scan / Bitmap                                   Does chosen index align with actual filter/order?\n\nRows estimate vs actual                               Are planner statistics inaccurate?\n\nBuffers                                               Is query reading far more pages than expected?\n\nSort                                                  Could ordering be supported by a useful index, or is sort\ncheap enough already?\n\nPostgreSQL 18 documents that multicolumn B-tree indexes are most effective when constraints apply to\nleading columns and recommends using multicolumn indexes sparingly. For the TaskFlow query above,\nan index such as (projectId, status, createdAt DESC, id) is a candidate to measure, not a rule to apply\nblindly.\n\nDeep pagination\nOffset pagination is excellent for page-number navigation, but very deep OFFSET values require\nPostgreSQL to walk past earlier rows. If TaskFlow evolves into an infinite activity feed, cursor/keyset\npagination becomes a better candidate.\nProduction caution: EXPLAIN ANALYZE executes the statement. Be careful with UPDATE/DELETE/INSERT\nin production; use transactions/rollback or safe replicas where appropriate.",
+      "wordCount": 234,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain PostgreSQL EXPLAIN Indexes and Pagination in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “PostgreSQL EXPLAIN Indexes and Pagination” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Caching incorrect data or bypassing authorization",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “PostgreSQL EXPLAIN Indexes and Pagination” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does PostgreSQL EXPLAIN Indexes and Pagination solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "connection-pooling-and-supabase-topology",
+      "title": "Connection Pooling and Supabase Topology",
+      "summary": "Connection Pooling and Supabase Topology Full Stack Developer 2026 Complete - TaskFlow Database connections are finite resources. TaskFlow already runs a persistent NestJS API, so the right pool strategy differs from short-lived serverless functions. Pooling must be sized to deployment topology, replica count, database limits,…",
+      "body": "Connection Pooling and Supabase\nTopology\n\nDatabase connections are finite resources. TaskFlow already runs a persistent NestJS API, so the right\npool strategy differs from short-lived serverless functions. Pooling must be sized to deployment topology,\nreplica count, database limits, and workload rather than copied from a blog post.\n\nSupavisor/PgBouncer       PostgreSQL max\nNestJS replica(s)                    application-side pool\nwhen needed               connections\n→                                 →                          →\n\nFigure 5. Connection layers\n\n• Reuse one PrismaClient / adapter per application process.\n\n• A long-running API may use a direct/session-style connection plus its application-side pool when\nnetwork/topology supports it.\n\n• Horizontally scaled/serverless workloads often need a server-side pooler to avoid connection storms.\n\n• Supabase transaction pooling uses port 6543 and has session-state/prepared-statement limitations;\nPrisma requires the pooler-compatible configuration documented for that mode.\n\n• Budget connections across all API replicas plus Auth, Storage/Realtime infrastructure, migrations,\nadmin tools, and operational headroom.\n\nSupabase currently distinguishes application-side pools from server-side poolers such as Supavisor. It\nspecifically recommends server-side transaction pooling for workloads that create many short-lived\nconnections.\nKey idea: Increasing connection count can make a database slower if it simply allows more concurrent\nwork than CPU/I/O can sustain. Measure queueing and saturation, not just connection errors.",
+      "wordCount": 193,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Connection Pooling and Supabase Topology in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Connection Pooling and Supabase Topology matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Connection Pooling and Supabase Topology” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes that slow writes without helping real queries",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Connection Pooling and Supabase Topology” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Connection Pooling and Supabase Topology solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "caching-compression-data-locality-and-background-work",
+      "title": "Caching Compression Data Locality and Background Work",
+      "summary": "Caching, Compression, Data Locality, and Background Work Full Stack Developer 2026 Complete - TaskFlow Caching is useful when it removes repeated expensive work and the invalidation model is understood. It is dangerous when it hides unclear ownership or serves stale private data across users/tenants. Layer…",
+      "body": "Caching, Compression, Data Locality, and\nBackground Work\n\nCaching is useful when it removes repeated expensive work and the invalidation model is understood. It\nis dangerous when it hides unclear ownership or serves stale private data across users/tenants.\n\nLayer                                                 Good candidates\n\nBrowser / Next.js                                     immutable assets, route output where semantics permit,\noptimized images/fonts\n\nTanStack Query                                        authenticated server state with intentional staleTime\n\nAPI/application                                       expensive repeatable public/reference reads only after\nmeasurement\n\nDatabase                                              buffer cache is automatic; optimize query/index before\ninventing app cache\n\nCDN/Storage                                           public/static content; private files require correct\nsigned-access semantics\n\nCompression and payload size\nCompression helps large textual payloads, but reducing payload size at the source is better: paginate,\nproject only required fields, avoid repeated metadata, and do not return large nested graphs the UI\nnever renders.\n\nData locality\nNetwork latency is physics. Deploy the API near PostgreSQL when possible; keep\nstorage/database/service regions intentional. A beautifully optimized query still feels slow if every\nrequest crosses continents unnecessarily.\n\nMove slow work off the request path\nPDF generation, large imports, exports, email batches, payroll/report generation, and image processing\nshould eventually become background jobs when their duration or retry needs exceed an interactive\nrequest budget. The API should enqueue, return status, and let workers perform the expensive job.",
+      "wordCount": 213,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Explain Caching Compression Data Locality and Background Work in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this performance concept.",
+          "Diagnose one representative performance failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Caching Compression Data Locality and Background Work matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "baseline",
+          "measurement",
+          "bottleneck",
+          "targeted change",
+          "re-measurement"
+        ],
+        "steps": [
+          "Restate the goal of “Caching Compression Data Locality and Background Work” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: baseline → measurement → bottleneck → targeted change → re-measurement. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Baseline before optimization",
+          "code": "GET /tasks p95: 1.8 s\n  API application: 90 ms\n  database: 1.61 s\n  serialization/network: 100 ms\nNext action: inspect query plan before changing frontend code."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Benchmarking development mode and assuming production behavior",
+          "Change one assumption in the performance example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Caching Compression Data Locality and Background Work” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Caching Compression Data Locality and Background Work solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the performance boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "load-testing-with-autocannon",
+      "title": "Load Testing with Autocannon",
+      "summary": "Load Testing with Autocannon Full Stack Developer 2026 Complete - TaskFlow Load testing answers a different question from unit/integration testing: how does the assembled system behave when many requests overlap? Phase 31 uses autocannon because it is simple, scriptable, Node-friendly, and sufficient for learning repeatable…",
+      "body": "Load Testing with Autocannon\n\nLoad testing answers a different question from unit/integration testing: how does the assembled system\nbehave when many requests overlap? Phase 31 uses autocannon because it is simple, scriptable,\nNode-friendly, and sufficient for learning repeatable HTTP load experiments.\n# PowerShell - run against a production-like local/staging build\npnpm dlx autocannon@8.0.0 `\n-c 20 `\n-d 30 `\n-m GET `\n-H \"Authorization=Bearer $env:TASKFLOW_TOKEN\" `\n\"http://localhost:3001/tasks?page=1&pageSize=20\"\n\nRecord more than requests/second\nMeasure                                                  Why\n\np50 / p95 / p99 latency                                  Tail behavior matters to users\n\nthroughput                                               How much useful work completes\n\nnon-2xx / errors                                         Fast failures are not success\n\nCPU / memory / event loop                                Find application saturation\n\nDB connections / query latency                           Find persistence saturation\n\npayload bytes                                            Understand bandwidth/serialization cost\n\nUse a warm-up run, fixed dataset, fixed concurrency/duration, production build, and consistent\nenvironment. Change one variable at a time. Keep benchmark results with commit/release information\nso comparisons are reproducible.\nProduction caution: Do not point uncontrolled load tests at production or shared environments. Obtain\nauthorization, define limits, and prefer isolated staging/performance environments.",
+      "wordCount": 178,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Load Testing with Autocannon in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Load Testing with Autocannon” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimizing from intuition only",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Load Testing with Autocannon” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Load Testing with Autocannon solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "performance-regression-testing-and-ci-budgets",
+      "title": "Performance Regression Testing and CI Budgets",
+      "summary": "Performance Regression Testing and CI Budgets Full Stack Developer 2026 Complete - TaskFlow Performance tests become useful when they can detect meaningful regressions without creating flaky gates. TaskFlow separates deterministic budgets from noisy environment-dependent benchmarks. • Bundle-size reports can be compared in CI because build…",
+      "body": "Performance Regression Testing and CI\nBudgets\n\nPerformance tests become useful when they can detect meaningful regressions without creating flaky\ngates. TaskFlow separates deterministic budgets from noisy environment-dependent benchmarks.\n\n• Bundle-size reports can be compared in CI because build artifacts are relatively deterministic.\n\n• Query-count assertions can catch accidental N+1 regressions in integration tests.\n\n• EXPLAIN plan snapshots can be reviewed, but avoid brittle exact-cost assertions across\nenvironments/data changes.\n\n• Microbenchmarks should run on controlled hardware and are poor generic cloud-CI gates.\n\n• End-to-end latency load tests belong in a stable benchmark environment; compare distributions, not\none request.\n// Example budget metadata - illustrative\n{\n\"route\": \"GET /tasks\",\n\"scenario\": \"20 concurrent users / 30s\",\n\"p95MsTarget\": 300,\n\"unexpected5xxPercentMax\": 1\n}\n\nPhase 30 observability remains the production regression detector. Synthetic benchmark results explain\ncapacity in a scenario; field telemetry tells you what real users are experiencing.\nKey idea: A performance gate should fail on a material regression you understand, not on random cloud\nnoise. Otherwise teams learn to ignore or disable it.",
+      "wordCount": 161,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Performance Regression Testing and CI Budgets in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Performance Regression Testing and CI Budgets” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Caching incorrect data or bypassing authorization",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Performance Regression Testing and CI Budgets” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Performance Regression Testing and CI Budgets solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "performance-debugging-case-studies",
+      "title": "Performance Debugging Case Studies",
+      "summary": "Performance Debugging Case Studies Full Stack Developer 2026 Complete - TaskFlow Case 1 - GET /tasks p95 jumps from 220 ms to 950 ms Trace shows 780 ms in PostgreSQL. Query logs reveal a new assignee lookup per Task row. Fix the N+1 query shape,…",
+      "body": "Performance Debugging Case Studies\n\nCase 1 - GET /tasks p95 jumps from 220 ms to 950 ms\nTrace shows 780 ms in PostgreSQL. Query logs reveal a new assignee lookup per Task row. Fix the N+1\nquery shape, rerun integration tests, EXPLAIN the new SQL, then repeat the same load scenario. Do not\nstart by memoizing React components.\n\nCase 2 - API is 90 ms but page LCP is 4.1 s\nBundle analysis reveals a large chart/editor library imported through a high-level client shell even though\nthe Tasks screen does not use it initially. Move the client boundary lower and lazy-load the feature.\nConfirm with production build and field/lab browser measurements.\n\nCase 3 - latency rises only at concurrency 100\nSingle-request traces look healthy. Under load, DB connection wait time rises and API p99 explodes.\nReview replica count, application pool size, Supabase pooler mode, Postgres max connections, query\nduration, and CPU/I/O saturation. More connections are not automatically the fix.\n\nCase 4 - pagination gets slower on\nOFFSET work grows with depth. Keep offset pagination for ordinary admin tables, but use cursor/keyset\npagination for deep sequential feeds where jumping to arbitrary page numbers is not required.\nKey idea: Performance debugging is hypothesis-driven: locate the boundary first, then optimize that\nboundary. The stack is too large for random tuning to be reliable.",
+      "wordCount": 223,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Explain Performance Debugging Case Studies in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this performance concept.",
+          "Diagnose one representative performance failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Performance Debugging Case Studies matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "baseline",
+          "measurement",
+          "bottleneck",
+          "targeted change",
+          "re-measurement"
+        ],
+        "steps": [
+          "Restate the goal of “Performance Debugging Case Studies” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: baseline → measurement → bottleneck → targeted change → re-measurement. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Baseline before optimization",
+          "code": "GET /tasks p95: 1.8 s\n  API application: 90 ms\n  database: 1.61 s\n  serialization/network: 100 ms\nNext action: inspect query plan before changing frontend code."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes that slow writes without helping real queries",
+          "Change one assumption in the performance example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Performance Debugging Case Studies” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Performance Debugging Case Studies solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the performance boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Full Stack Developer 2026 Complete - TaskFlow Lab A - Establish baseline • Run Next.js production build, inspect bundle output, and record Core Web Vitals lab measurements. • Capture p50/p95/p99 for GET /tasks and PATCH /tasks/:id under a fixed autocannon…",
+      "body": "Hands-On Lab and Phase Exit\n\nLab A - Establish baseline\n• Run Next.js production build, inspect bundle output, and record Core Web Vitals lab measurements.\n\n• Capture p50/p95/p99 for GET /tasks and PATCH /tasks/:id under a fixed autocannon scenario.\n\n• Record CPU/memory and PostgreSQL connection/query signals during the run.\n\nLab B - Database investigation\n• Use a realistic Task dataset.\n\n• Capture EXPLAIN (ANALYZE, BUFFERS) for the most common filtered/sorted Task query.\n\n• Identify one index candidate based on real predicates/order.\n\n• Apply it in a migration, ANALYZE, rerun the same plan and load test, then keep or revert based on\nevidence.\n\nLab C - Frontend investigation\n• Enable the bundle analyzer.\n\n• Find one large client dependency or unnecessarily broad client boundary.\n\n• Apply one targeted optimization and compare production build/bundle output.\n\n• Verify functionality and accessibility did not regress.\n\nPhase exit checklist\nQuestion                                                  Exit requirement\n\nDo we know our budgets?                                   Yes - documented per layer\n\nCan we reproduce benchmarks?                              Yes - scenario, dataset, build, concurrency, duration\nrecorded\n\nCan we inspect a slow SQL plan?                           Yes - EXPLAIN/ANALYZE/BUFFERS used safely\n\nCan we detect N+1?                                        Yes - query count/trace/repository review\n\nIs pooling intentional?                                   Yes - topology and connection budget documented\n\nDo we optimize after measuring?                           Yes - benchmark before/after, keep or revert\n\nKey idea: Phase 31 is complete when the learner can explain why a system is slow, prove the bottleneck\nwith evidence, change the smallest useful boundary, and demonstrate the improvement with the same\nmeasurement.",
+      "wordCount": 241,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this performance concept.",
+          "Diagnose one representative performance failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "baseline",
+          "measurement",
+          "bottleneck",
+          "targeted change",
+          "re-measurement"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: baseline → measurement → bottleneck → targeted change → re-measurement. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Baseline before optimization",
+          "code": "GET /tasks p95: 1.8 s\n  API application: 90 ms\n  database: 1.61 s\n  serialization/network: 100 ms\nNext action: inspect query plan before changing frontend code."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Benchmarking development mode and assuming production behavior",
+          "Change one assumption in the performance example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the performance boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nMeasure TaskFlow and improve bottlenecks systematically across browser, API, database, cache, and network without sacrificing correctness.",
+      "body": "Guided Build Lab — Phase 31: Performance\n\nPurpose\nMeasure TaskFlow and improve bottlenecks systematically across browser, API, database, cache, and network without sacrificing correctness.\n\nDeliverable\nBefore/after performance report with measured bottleneck, change, and regression guard.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nmeasure baseline -> locate bottleneck -> form hypothesis -> change one thing -> remeasure -> add regression guard\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Choose a user-visible flow and collect a baseline instead of optimizing globally.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Inspect network waterfalls/payloads and frontend rendering for avoidable work.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Measure API endpoint latency with enough context to separate application and database time.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Reduce N+1 or redundant requests before adding caches.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Record the before/after result and add a budget/test where a regression would matter.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 631,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimizing from intuition only",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 31: Performance\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nmeasure baseline -> locate bottleneck -> form hypothesis -> change one thing -> remeasure -> add regression guard\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Optimizing from intuition only\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Caching incorrect data or bypassing authorization\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Adding indexes that slow writes without helping real queries\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Benchmarking development mode and assuming production behavior\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 445,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this performance concept.",
+          "Diagnose one representative performance failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "baseline",
+          "measurement",
+          "bottleneck",
+          "targeted change",
+          "re-measurement"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: baseline → measurement → bottleneck → targeted change → re-measurement. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Baseline before optimization",
+          "code": "GET /tasks p95: 1.8 s\n  API application: 90 ms\n  database: 1.61 s\n  serialization/network: 100 ms\nNext action: inspect query plan before changing frontend code."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Caching incorrect data or bypassing authorization",
+          "Change one assumption in the performance example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the performance boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 31 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Performance\n\nMission\nRebuild the capability of Phase 31 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nMeasure TaskFlow and improve bottlenecks systematically across browser, API, database, cache, and network without sacrificing correctness.\n\nRequired artifact\nBefore/after performance report with measured bottleneck, change, and regression guard.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can produce a baseline.\n• Can identify bottleneck layer.\n• Can read basic query-plan evidence.\n• Can justify performance tradeoffs with measurements.\n\nIndependent build sequence\n1. Choose a user-visible flow and collect a baseline instead of optimizing globally.\n2. Inspect network waterfalls/payloads and frontend rendering for avoidable work.\n3. Measure API endpoint latency with enough context to separate application and database time.\n4. Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes.\n5. Reduce N+1 or redundant requests before adding caches.\n6. Record the before/after result and add a budget/test where a regression would matter.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 359,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this performance concept.",
+          "Diagnose one representative performance failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "baseline",
+          "measurement",
+          "bottleneck",
+          "targeted change",
+          "re-measurement"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: baseline → measurement → bottleneck → targeted change → re-measurement. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Before/after performance report with measured bottleneck, change, and regression guard.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Baseline before optimization",
+          "code": "GET /tasks p95: 1.8 s\n  API application: 90 ms\n  database: 1.61 s\n  serialization/network: 100 ms\nNext action: inspect query plan before changing frontend code."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes that slow writes without helping real queries",
+          "Change one assumption in the performance example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the performance boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 31 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 31: Performance. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nBefore/after performance report with measured bottleneck, change, and regression guard.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 195,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "performance",
+        "objectives": [
+          "Measure TaskFlow and improve bottlenecks systematically across browser, API, database, cache, and network without sacrificing correctness.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "measure baseline",
+          "locate bottleneck",
+          "form hypothesis",
+          "change one thing",
+          "remeasure",
+          "add regression guard"
+        ],
+        "steps": [
+          "Choose a user-visible flow and collect a baseline instead of optimizing globally.",
+          "Inspect network waterfalls/payloads and frontend rendering for avoidable work.",
+          "Measure API endpoint latency with enough context to separate application and database time.",
+          "Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes.",
+          "Reduce N+1 or redundant requests before adding caches.",
+          "Record the before/after result and add a budget/test where a regression would matter.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can produce a baseline",
+          "Can identify bottleneck layer",
+          "Can read basic query-plan evidence",
+          "Can justify performance tradeoffs with measurements"
+        ],
+        "breakIt": [
+          "Optimizing from intuition only",
+          "Caching incorrect data or bypassing authorization"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/BENCHMARK_RUNBOOK.md",
+      "preview": "# Benchmark runbook\n1. Build/run production mode; never compare next dev.\n2. Reset/seed representative data.\n3. Confirm test environment, commit, versions, region, and DB topology.\n4. Warm up.\n5. Run the exact same scenario (route, token role, concurrency, duration, dataset).\n6. Record p50/p95/p99, throughput, non-2xx, CPU/memory, DB latency/connections.\n7. Change one variable.\n8. Repeat.\n9. Keep change only if improvement is meaningful and correctness/security tests pass."
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/PERFORMANCE_BUDGET.md",
+      "preview": "# TaskFlow performance budget (starting targets)\n\nThese are course targets, not universal SLAs. Revisit after production field data exists.\n\n- Core Web Vitals at p75: LCP <= 2.5 s, INP <= 200 ms, CLS <= 0.1.\n- GET /tasks p95 API latency <= 300 ms under the recorded normal-load scenario.\n- PATCH /tasks/:id p95 <= 400 ms under the recorded normal-load scenario.\n- Unexpected 5xx under benchmark <= 1%.\n- Query review required for repeated hot-path queries around/above 100 ms or any N+1 pattern.\n- No unexplained client bundle regression after dependency changes."
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 31 performance snapshot\nStudy snapshot only. Performance changes must be measured before/after in the same scenario. Keep correctness, authorization, data isolation, and security tests green."
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/SOURCES.md",
+      "preview": "# Official/current references used\n- https://nextjs.org/docs/app/guides/production-checklist\n- https://nextjs.org/docs/app/guides/lazy-loading\n- https://nextjs.org/docs/app/getting-started/fonts\n- https://www.npmjs.com/package/@next/bundle-analyzer\n- https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults\n- https://tanstack.com/query/latest/docs/framework/react/guides/render-optimizations\n- https://docs.prisma.io/docs/orm/v7/more/best-practices\n- https://www.postgresql.org/docs/18/sql-explain.html\n- https://www.postgresql.org/docs/18/indexes-multicolumn.html\n- https://www.postgresql.org/docs/18/indexes-examine.html\n- https://supabase.com/docs/guides/database/connecting-to-postgres/pooling-and-limits\n- https://supabase.com/docs/guides/database/connecting-to-postgres\n- https://fastify.dev/docs/latest/Guides/Recommendations/\n- https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/\n- https://web.dev/articles/vitals\n- https://www.npmjs.com/package/autocannon"
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/VERSION_LOCK.md",
+      "preview": "# Phase 31 version lock\n- Prisma remains course-locked at 7.9.1.\n- PostgreSQL 18 documentation is used for planner/index guidance.\n- @next/bundle-analyzer 16.3.5 (optional development tool; keep aligned with your Next.js release line).\n- autocannon 8.0.0 (benchmark tool)."
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/apps/api/src/performance/performance-notes.md",
+      "preview": "# API hot-path notes\n1. Remove unnecessary I/O before micro-optimizing framework code.\n2. Keep payloads bounded and projections intentional.\n3. Move long-running reports/imports/exports to background workers when the request budget is exceeded.\n4. Do not solve DB saturation by blindly increasing connection counts."
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/apps/api/src/tasks/tasks.repository.performance-example.ts",
+      "preview": "// Example query-shape review: bounded projection + relation projection.\nconst tasks = await prisma.task.findMany({\n  where,\n  select: {\n    id: true,\n    title: true,\n    status: true,\n    priority: true,\n    createdAt: true,\n    assignee: { select: { id: true, displayName: true } },\n  },\n  orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],\n  take: pageSize,\n  skip,\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/apps/web/next.config.performance.ts",
+      "preview": "import bundleAnalyzer from '@next/bundle-analyzer';\n\nconst withBundleAnalyzer = bundleAnalyzer({\n  enabled: process.env.ANALYZE === 'true',\n});\n\nexport default withBundleAnalyzer({});"
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/apps/web/src/lib/performance/task-list-options.ts",
+      "preview": "// Example only - keep resource freshness intentional.\nexport const TASK_LIST_STALE_TIME_MS = 30_000;\n\n// Do not disable structural sharing or tracked-property behavior unless profiling proves a problem."
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/database/task-list-explain.sql",
+      "preview": "-- Run ANALYZE first when appropriate so planner statistics are current.\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id, title, status, priority, \"createdAt\"\nFROM \"Task\"\nWHERE \"projectId\" = '00000000-0000-4000-8000-000000000001'::uuid\n  AND status = 'IN_PROGRESS'\nORDER BY \"createdAt\" DESC, id ASC\nLIMIT 20 OFFSET 0;\n\n-- Candidate only. Measure before/after; do not blindly add indexes.\n-- CREATE INDEX CONCURRENTLY ... ON \"Task\" (\"projectId\", status, \"createdAt\" DESC, id);"
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/load/tasks-list.ps1",
+      "preview": "# Requires a valid bearer token in TASKFLOW_TOKEN.\n# Run against a disposable/staging environment you are authorized to load test.\npnpm dlx autocannon@8.0.0 `\n  -c 20 `\n  -d 30 `\n  -m GET `\n  -H \"Authorization=Bearer $env:TASKFLOW_TOKEN\" `\n  \"http://localhost:3001/tasks?page=1&pageSize=20\""
+    },
+    {
+      "path": "reference/TaskFlow_Performance_Snapshot/tests/performance-test-matrix.md",
+      "preview": "# Performance verification matrix\n- Compare production builds, never development mode.\n- Record commit, dataset, environment, concurrency, duration, and auth role.\n- GET /tasks benchmark captures p50/p95/p99, throughput, errors.\n- PATCH /tasks/:id benchmark uses a safe repeatable fixture/workflow.\n- Query count check catches accidental N+1 behavior.\n- EXPLAIN (ANALYZE, BUFFERS) recorded for hot Task list query.\n- Index change measured before/after and validated with correctness tests.\n- DB connection usage observed during load.\n- Bundle analyzer run after dependency/client-boundary changes.\n- Core Web Vitals lab measurement paired with field telemetry when available.\n- Security/authorization tests remain green after optimization."
+    }
+  ],
+  "exercises": [
+    "Guided: Choose a user-visible flow and collect a baseline instead of optimizing globally.",
+    "Practice: Measure API endpoint latency with enough context to separate application and database time.",
+    "Debugging: reproduce and diagnose — Optimizing from intuition only.",
+    "Independent: deliver Before/after performance report with measured bottleneck, change, and regression guard.",
+    "Explain-back: Can produce a baseline and Can identify bottleneck layer."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Measure before optimizing so work targets real bottlenecks instead of intuition.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Measure before optimizing so work targets real bottlenecks instead of intuition."
+    },
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Reduce unnecessary network requests, database queries, rendering work, and payload size before reaching for exotic caching.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Reduce unnecessary network requests, database queries, rendering work, and payload size before reaching for exotic caching."
+    },
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use indexes and query plans when database latency is the bottleneck."
+      ],
+      "answer": 3,
+      "explanation": "Use indexes and query plans when database latency is the bottleneck."
+    },
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Performance work must preserve correctness, observability, and maintainability.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Performance work must preserve correctness, observability, and maintainability."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Choose a user-visible flow and collect a baseline instead of optimizing globally.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Optimizing from intuition only.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Choose a user-visible flow and collect a baseline instead of optimizing globally."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Caching incorrect data or bypassing authorization.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inspect network waterfalls/payloads and frontend rendering for avoidable work."
+      ],
+      "answer": 3,
+      "explanation": "Inspect network waterfalls/payloads and frontend rendering for avoidable work."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Adding indexes that slow writes without helping real queries.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Measure API endpoint latency with enough context to separate application and database time.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Measure API endpoint latency with enough context to separate application and database time."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Benchmarking development mode and assuming production behavior."
+      ],
+      "answer": 1,
+      "explanation": "Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4053
+}

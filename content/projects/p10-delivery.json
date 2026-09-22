@@ -1,0 +1,45 @@
+{
+  "number": 16,
+  "track": "p10-delivery",
+  "slug": "p10-delivery",
+  "title": "Release TaskFlow",
+  "goal": "Package the API, verify it in CI, deploy API + web, and prove the production release with smoke tests and rollback notes.",
+  "deliverables": [
+    "Docker image",
+    "Compose local stack",
+    "CI workflow",
+    "least-privilege permissions",
+    "migration step",
+    "API deployment",
+    "Vercel deployment",
+    "CORS/DNS/TLS",
+    "smoke tests",
+    "rollback runbook"
+  ],
+  "steps": [
+    "Write a simple Dockerfile, build it, then improve caching and runtime size.",
+    "Run API + PostgreSQL in Compose and fix the `localhost` networking mistake intentionally.",
+    "Create a pull-request CI workflow with checkout, deterministic pnpm install, typecheck, tests, and build.",
+    "Set workflow token permissions to the minimum required.",
+    "Add concurrency/branch protection so obsolete or failing changes do not release.",
+    "Document the production migration step and compatibility requirement.",
+    "Deploy the API and verify health/readiness.",
+    "Deploy Next.js to Vercel with production API configuration.",
+    "Verify production CORS, DNS, and TLS.",
+    "Run post-deploy smoke tests and inspect logs/metrics.",
+    "Write and rehearse the rollback decision/runbook."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

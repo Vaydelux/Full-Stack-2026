@@ -1,0 +1,1210 @@
+{
+  "number": 32,
+  "slug": "phase-32",
+  "title": "Docker",
+  "volume": 8,
+  "readme": "Phase 32 - Docker\n\n13 focused PDFs + combined complete book + TaskFlow Docker reference snapshot.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "container-mental-model-images-layers-and-processes",
+      "title": "Container Mental Model Images Layers and Processes",
+      "summary": "Container Mental Model: Images, Layers, and Processes Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. The model An image is an immutable filesystem + metadata template. A container…",
+      "body": "Container Mental Model: Images,\nLayers, and Processes\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nThe model\nAn image is an immutable filesystem + metadata template. A container is a running process created\nfrom that image. Rebuilding an image should not be required just because a database row changed.\n\nImportant distinctions\nImage != container. Container filesystem != durable application storage. Docker network names !=\npublic DNS. Port exposure != publishing to the host. Build arguments != secure runtime secrets.\n\nTaskFlow mapping\nThe monorepo stays one source repository, but production emits separate deployable images for\napps/web and apps/api. Supabase remains an external managed dependency in production.",
+      "wordCount": 112,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Container Mental Model Images Layers and Processes in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Container Mental Model Images Layers and Processes” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying .env into image",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Container Mental Model Images Layers and Processes” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Container Mental Model Images Layers and Processes solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "dockerfile-multi-stage-builds-and-cache-design",
+      "title": "Dockerfile Multi Stage Builds and Cache Design",
+      "summary": "Dockerfile Design: Multi-Stage Builds and Cache Efficiency Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Why multi-stage Docker recommends multi-stage builds so compilation dependencies can be left behind…",
+      "body": "Dockerfile Design: Multi-Stage Builds\nand Cache Efficiency\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nWhy multi-stage\nDocker recommends multi-stage builds so compilation dependencies can be left behind while only\nruntime artifacts are copied into the final image.\nsource + lockfile\n|\nv\ndependency stage ---> cached pnpm store\n|\nv\nbuilder stage\n|\nv\nruntime stage: only deployable artifacts\n\nCache strategy\nCopy package manifests and lockfile before application source where practical. Dependency installation\ncan then remain cached while source changes invalidate only later layers. BuildKit cache mounts can\npreserve pnpm package downloads across builds.\n\nTaskFlow rule\nBuilder stages may contain TypeScript, Turborepo, Prisma CLI, and dev dependencies. Runtime stages\nshould contain only built output and production runtime dependencies.",
+      "wordCount": 125,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Dockerfile Multi Stage Builds and Cache Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Dockerfile Multi Stage Builds and Cache Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Running development server in production container",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Dockerfile Multi Stage Builds and Cache Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Dockerfile Multi Stage Builds and Cache Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "monorepo-pnpm-and-turborepo-build-context",
+      "title": "Monorepo pnpm and Turborepo Build Context",
+      "summary": "Monorepo, pnpm, and Turborepo Build Context Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Challenge A monorepo image build needs workspace metadata, shared packages, lockfiles, and application source…",
+      "body": "Monorepo, pnpm, and Turborepo Build\nContext\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nChallenge\nA monorepo image build needs workspace metadata, shared packages, lockfiles, and application source\nwhile still avoiding a giant context full of Git history and local node_modules.\n# .dockerignore essentials\n.git\n**/node_modules\n**/.next\n**/dist\n.env\n.env.*\n!*.env.example\n\nTaskFlow approach\nUse the monorepo root as the build context. Maintain a strict .dockerignore. Install from pnpm-lock.yaml\nwith --frozen-lockfile. Build the selected workspace and its dependency graph.\n\nPruning\nA future optimization may use turbo prune --docker to create a reduced workspace context. Phase 32\nteaches the baseline first so pruning remains understandable rather than magical.",
+      "wordCount": 118,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Monorepo pnpm and Turborepo Build Context in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Monorepo pnpm and Turborepo Build Context matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Monorepo pnpm and Turborepo Build Context” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge build context invalidating caches",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Monorepo pnpm and Turborepo Build Context” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Monorepo pnpm and Turborepo Build Context solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "next-js-standalone-production-image",
+      "title": "Next.js Standalone Production Image",
+      "summary": "Next.js Production Image with Standalone Output Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Standalone output Next.js can emit .next/standalone with traced server dependencies when output: \"standalone\" is…",
+      "body": "Next.js Production Image with\nStandalone Output\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nStandalone output\nNext.js can emit .next/standalone with traced server dependencies when output: \"standalone\" is\nenabled. This is particularly useful for Docker because the final image does not need the entire\nworkspace node_modules tree.\n// apps/web/next.config.ts\nimport path from \"node:path\";\n\nexport default {\noutput: \"standalone\",\noutputFileTracingRoot: path.join(__dirname, \"../..\"),\n};\n\nNext build\n|\nv\n.next/standalone\n+ .next/static\n+ public\n|\nv\nminimal runtime image\n\nMonorepo caveat\nIn a monorepo, outputFileTracingRoot must include shared packages outside apps/web when those files\nare required at runtime.\n\nRuntime\nCopy standalone output, public assets, and .next/static into a minimal Node runtime image. Bind\nHOSTNAME=0.0.0.0 and the expected PORT.",
+      "wordCount": 136,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Next.js Standalone Production Image in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Next.js Standalone Production Image” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Container listens only on localhost internally",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Next.js Standalone Production Image” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Next.js Standalone Production Image solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "nestjs-api-production-image",
+      "title": "NestJS API Production Image",
+      "summary": "NestJS + Fastify Production Image Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Build Compile NestJS in a builder stage and run the compiled JavaScript in the runtime…",
+      "body": "NestJS + Fastify Production Image\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nBuild\nCompile NestJS in a builder stage and run the compiled JavaScript in the runtime stage. The runtime\ndoes not need TypeScript or Nest CLI.\n# Runtime concept\nFROM node:24-bookworm-slim AS runner\nENV NODE_ENV=production\nWORKDIR /app\nCOPY --from=builder /out/api ./\nCOPY --from=builder /workspace/apps/api/dist ./dist\nUSER taskflow\nCMD [\"node\", \"dist/main.js\"]\n\nPrisma\nThe generated Prisma client and PostgreSQL adapter must be present in the runtime artifact. Migration\ntooling is deliberately separated from the API runtime process.\n\nSignals\nThe container should run Node directly as PID 1 so SIGTERM reaches the application. Phase 30 already\nenabled Nest shutdown hooks for graceful termination.",
+      "wordCount": 130,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain NestJS API Production Image in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS API Production Image” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying .env into image",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS API Production Image” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS API Production Image solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "non-root-runtime-and-image-hardening",
+      "title": "Non Root Runtime and Image Hardening",
+      "summary": "Non-Root Runtime and Image Hardening Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Least privilege Docker recommends using USER when the process can run without root privileges. TaskFlow…",
+      "body": "Non-Root Runtime and Image\nHardening\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nLeast privilege\nDocker recommends using USER when the process can run without root privileges. TaskFlow production\ncontainers create an explicit application user and run Node under that identity.\nRUN groupadd --system --gid 1001 taskflow \\\n&& useradd --system --uid 1001 --gid taskflow taskflow\n\nUSER taskflow\n\nMinimal runtime\nDo not install curl, compilers, Git, package managers, shells, or debugging tools unless the runtime\nactually needs them. Smaller images reduce transfer time and attack surface.\n\nFilesystem assumptions\nTreat the container filesystem as disposable. Upload bytes already live in Supabase Storage; durable\ndatabase state lives in PostgreSQL.",
+      "wordCount": 116,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Non Root Runtime and Image Hardening in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Non Root Runtime and Image Hardening” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Running development server in production container",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Non Root Runtime and Image Hardening” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Non Root Runtime and Image Hardening solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "environment-variables-secrets-and-build-time-config",
+      "title": "Environment Variables Secrets and Build Time Config",
+      "summary": "Environment Variables, Secrets, and Build-Time Configuration Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Three categories Build configuration determines compiled output. Runtime configuration is read when the container…",
+      "body": "Environment Variables, Secrets, and\nBuild-Time Configuration\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nThree categories\nBuild configuration determines compiled output. Runtime configuration is read when the container\nstarts. Secrets must be injected at runtime by the platform or secret manager and never baked into\nimage layers.\n\nValue                                   Where it belongs\n\nDATABASE_URL                            Runtime secret\n\nSUPABASE_SERVICE_ROLE_KEY               Runtime secret, API only\n\nSUPABASE_URL                            Runtime/public config depending consumer\n\nNEXT_PUBLIC_*                           Public browser config - never secret\n\nNODE_ENV                                Runtime/build behavior\n\nNext.js caveat\nNEXT_PUBLIC_* values may become part of browser bundles and are not secrets. Public configuration\noften needs to be known at build time, while server-only environment variables can remain runtime\nconfiguration.\n\nDocker rule\nNever COPY .env into a production image. Use .dockerignore and platform secret injection.",
+      "wordCount": 134,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Environment Variables Secrets and Build Time Config in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Environment Variables Secrets and Build Time Config” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge build context invalidating caches",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Environment Variables Secrets and Build Time Config” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Environment Variables Secrets and Build Time Config solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "healthchecks-graceful-shutdown-and-readiness",
+      "title": "Healthchecks Graceful Shutdown and Readiness",
+      "summary": "Health Checks, Graceful Shutdown, and Readiness Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Existing endpoints Phase 30 already separated /health/live and /health/ready. Docker/container health should normally probe…",
+      "body": "Health Checks, Graceful Shutdown,\nand Readiness\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nExisting endpoints\nPhase 30 already separated /health/live and /health/ready. Docker/container health should normally\nprobe liveness, while deployment routing should use readiness when supported.\n/health/live\n-> process alive\n\n/health/ready\n-> dependencies ready\n\nSIGTERM\n-> stop intake\n-> close resources\n-> exit\n\nCompose readiness\nCompose service ordering alone does not mean a dependency is ready. Docker Compose can wait on a\ndependency marked service_healthy when that dependency has a healthcheck.\n\nShutdown\nThe container runtime sends termination signals. The application stops accepting work, closes server\nresources, then exits within the orchestrator grace period.",
+      "wordCount": 115,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "observability",
+        "objectives": [
+          "Explain Healthchecks Graceful Shutdown and Readiness in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this observability concept.",
+          "Diagnose one representative observability failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Healthchecks Graceful Shutdown and Readiness matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "correlation id",
+          "structured event",
+          "metric/trace",
+          "diagnosis"
+        ],
+        "steps": [
+          "Restate the goal of “Healthchecks Graceful Shutdown and Readiness” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → correlation id → structured event → metric/trace → diagnosis. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Liveness and readiness answer different questions",
+          "code": "GET /health/live  -> process is running\nGET /health/ready -> required dependencies can serve traffic"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Container listens only on localhost internally",
+          "Change one assumption in the observability example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Healthchecks Graceful Shutdown and Readiness” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Healthchecks Graceful Shutdown and Readiness solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the observability boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "docker-compose-local-integration-environment",
+      "title": "Docker Compose Local Integration Environment",
+      "summary": "Docker Compose for Local Integration Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Purpose Compose gives the team one repeatable local integration topology. It is not automatically the…",
+      "body": "Docker Compose for Local Integration\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nPurpose\nCompose gives the team one repeatable local integration topology. It is not automatically the\nproduction deployment platform.\nservices:\ndb:\nimage: postgres:18-alpine\nhealthcheck:\ntest: [\"CMD-SHELL\", \"pg_isready -U taskflow -d taskflow\"]\n\napi:\ndepends_on:\ndb:\ncondition: service_healthy\n\nweb:\ndepends_on:\n- api\n\nTopology\nFor local integration, TaskFlow can run web + api + PostgreSQL in one Compose project. Production still\nuses managed Supabase PostgreSQL/Auth/Storage and platform-managed services.\n\nNetworking\nServices reach each other using Compose service names such as http://api:3001 and\npostgres://...@db:5432/.... Host port mappings are for the developer machine, not\ncontainer-to-container communication.",
+      "wordCount": 117,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Docker Compose Local Integration Environment in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Docker Compose Local Integration Environment” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying .env into image",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Docker Compose Local Integration Environment” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Docker Compose Local Integration Environment solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "migrations-volumes-and-stateful-service-rules",
+      "title": "Migrations Volumes and Stateful Service Rules",
+      "summary": "Migrations, Volumes, and Stateful-Service Rules Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Migrations Prisma migrate deploy belongs in an explicit migration job/release step. It should not run…",
+      "body": "Migrations, Volumes, and\nStateful-Service Rules\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nMigrations\nPrisma migrate deploy belongs in an explicit migration job/release step. It should not run independently\nin every horizontally scaled API replica.\ndeployment\n|\n+--> migration job (once)\n|          |\n|          v\n|       PostgreSQL schema\n|\n+--> API replicas\n|\n+--> Web replicas\n\nVolumes\nLocal PostgreSQL data can use a named Docker volume. Production managed PostgreSQL remains\noutside the application container.\n\nRule\nContainer replacement should be normal. If replacing an API or web container loses business data, the\narchitecture placed durable state in the wrong location.",
+      "wordCount": 101,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Migrations Volumes and Stateful Service Rules in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Migrations Volumes and Stateful Service Rules” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Running development server in production container",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Migrations Volumes and Stateful Service Rules” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Migrations Volumes and Stateful Service Rules solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "image-testing-debugging-and-common-failures",
+      "title": "Image Testing Debugging and Common Failures",
+      "summary": "Image Testing, Debugging, and Common Failures Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Verification flow Build the image, inspect size/history, run it with production-like environment variables, wait…",
+      "body": "Image Testing, Debugging, and\nCommon Failures\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nVerification flow\nBuild the image, inspect size/history, run it with production-like environment variables, wait for health,\nmake a real request, stop it, and confirm graceful termination.\ndocker build -f apps/api/Dockerfile -t taskflow-api .\ndocker run --rm -p 3001:3001 --env-file .env taskflow-api\ndocker image history taskflow-api\ndocker inspect taskflow-api\ndocker compose up --build\ndocker compose down\n\nCommon failures\nMissing shared monorepo package in standalone trace; copying local node_modules; wrong\narchitecture; localhost used from inside a container; build-time public env missing; root-owned runtime\nfiles; health check points at readiness before dependencies exist.\n\nDebugging rule\nFix the Dockerfile or application contract - do not \"solve\" production issues by manually editing a\nrunning container.",
+      "wordCount": 137,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Image Testing Debugging and Common Failures in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Image Testing Debugging and Common Failures” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge build context invalidating caches",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Image Testing Debugging and Common Failures” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Image Testing Debugging and Common Failures solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Full Stack Developer 2026 - TaskFlow Phase 32 objective: containerize the existing architecture without moving durable state, secrets, or business responsibilities into the container layer. Lab Build both images from the monorepo, start a local Compose environment, apply migrations once,…",
+      "body": "Hands-On Lab and Phase Exit\n\nPhase 32 objective: containerize the existing architecture without moving durable state, secrets, or\nbusiness responsibilities into the container layer.\n\nLab\nBuild both images from the monorepo, start a local Compose environment, apply migrations once,\nverify /health/live and /health/ready, open the Next.js application, exercise authenticated TaskFlow\nbehavior, inspect logs, then restart and rebuild containers.\n\nCheck                                   Expected\n\nImage build                             Reproducible from lockfile\n\nRuntime user                            Non-root\n\nHealth                                  Live/ready meaningful\n\nSecrets                                 Injected, not baked\n\nData                                    Survives app container replacement\n\nShutdown                                SIGTERM graceful\n\nCache                                   Source change reuses dependency layers\n\nExit criteria\nProduction images build reproducibly from the lockfile; runtime runs non-root; secrets are absent from\nimage layers; web and API become healthy; API terminates cleanly; database state survives local\ncontainer recreation; source changes rebuild only necessary layers.\n\nWhat next\nPhase 33 will take these deterministic build artifacts and automate verification/build/publish steps\nthrough GitHub Actions.",
+      "wordCount": 150,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Container listens only on localhost internally",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nContainerize the production API/web artifacts reproducibly with secure runtime configuration, small images, health checks, networking, and graceful shutdown.",
+      "body": "Guided Build Lab — Phase 32: Docker\n\nPurpose\nContainerize the production API/web artifacts reproducibly with secure runtime configuration, small images, health checks, networking, and graceful shutdown.\n\nDeliverable\nDockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nsource + lockfile -> build context -> dependency/build stages -> runtime image -> container process -> network/healthcheck -> orchestrator\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Build with frozen lockfile and inspect image layers/size.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Run the container with runtime env vars and map the service port explicitly.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Add healthcheck/readiness behavior and test startup plus graceful stop.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Create a small compose setup only for local integration needs and explain what remains externally managed.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\ndocker build -t taskflow-api:dev .\ndocker run --rm -p 4000:4000 --env-file .env taskflow-api:dev\ndocker ps\ndocker logs <container>\ndocker inspect <container>\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 702,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying .env into image",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 32: Docker\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nsource + lockfile -> build context -> dependency/build stages -> runtime image -> container process -> network/healthcheck -> orchestrator\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Copying .env into image\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Running development server in production container\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Huge build context invalidating caches\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Container listens only on localhost internally\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 441,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Running development server in production container",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 32 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Docker\n\nMission\nRebuild the capability of Phase 32 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nContainerize the production API/web artifacts reproducibly with secure runtime configuration, small images, health checks, networking, and graceful shutdown.\n\nRequired artifact\nDockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain image vs container.\n• Can build multi-stage image.\n• Can inject secrets at runtime.\n• Can diagnose ports/network/health failures.\n\nIndependent build sequence\n1. Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context.\n2. Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts.\n3. Build with frozen lockfile and inspect image layers/size.\n4. Run the container with runtime env vars and map the service port explicitly.\n5. Add healthcheck/readiness behavior and test startup plus graceful stop.\n6. Create a small compose setup only for local integration needs and explain what remains externally managed.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 368,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge build context invalidating caches",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 32 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 32: Docker. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nDockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 198,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Containerize the production API/web artifacts reproducibly with secure runtime configuration, small images, health checks, networking, and graceful shutdown.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "dependency/build stages",
+          "runtime image",
+          "container process",
+          "network/healthcheck",
+          "orchestrator"
+        ],
+        "steps": [
+          "Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context.",
+          "Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts.",
+          "Build with frozen lockfile and inspect image layers/size.",
+          "Run the container with runtime env vars and map the service port explicitly.",
+          "Add healthcheck/readiness behavior and test startup plus graceful stop.",
+          "Create a small compose setup only for local integration needs and explain what remains externally managed.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain image vs container",
+          "Can build multi-stage image",
+          "Can inject secrets at runtime",
+          "Can diagnose ports/network/health failures"
+        ],
+        "breakIt": [
+          "Copying .env into image",
+          "Running development server in production container"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/.dockerignore",
+      "preview": "# Git / editor\n.git\n.github\n.vscode\n.idea\n\n# local dependencies and outputs\n**/node_modules\n**/.next\n**/dist\n**/coverage\n**/playwright-report\n**/test-results\n\n# secrets / local config\n.env\n.env.*\n!.env.example\n\n# misc"
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/README.md",
+      "preview": "# TaskFlow Docker Snapshot\n\nThis is a teaching/reference snapshot for Phase 32. Adapt paths to the exact final repository layout before production use.\n\nProduction architecture keeps managed Supabase services external. `compose.yaml` uses local PostgreSQL only to demonstrate a repeatable local integration topology."
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/SOURCES.md",
+      "preview": "# Official sources used for Phase 32\n\n- Docker multi-stage builds: https://docs.docker.com/build/building/multi-stage/\n- Docker build best practices: https://docs.docker.com/build/building/best-practices/\n- Docker build cache: https://docs.docker.com/build/cache/optimize/\n- Docker Compose startup/readiness: https://docs.docker.com/compose/how-tos/startup-order/\n- Next.js standalone output: https://nextjs.org/docs/app/api-reference/config/next-config-js/output"
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/VERSION_LOCK.md",
+      "preview": "# Phase 32 version line\n\n- Node runtime image: Node 24 LTS line (`node:24-bookworm-slim`)\n- pnpm: 12.3.4 (course lock)\n- PostgreSQL local integration image: 18-alpine\n- Next.js: existing course lock (16.x) with `output: \"standalone\"`\n- NestJS: existing course lock (12.x)\n- Prisma: hard lock 7.9.1\n\nDocker Desktop / Engine / Compose are environment tools rather than npm dependencies. Validate current stable releases on the machine used for the course."
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/apps/api/Dockerfile",
+      "preview": "# syntax=docker/dockerfile:1.7\nFROM node:24-bookworm-slim AS base\nENV PNPM_HOME=/pnpm\nENV PATH=$PNPM_HOME:$PATH\nRUN corepack enable && corepack prepare pnpm@12.3.4 --activate\nWORKDIR /workspace\n\nFROM base AS deps\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./\nCOPY apps/api/package.json apps/api/package.json\nCOPY packages packages\nRUN --mount=type=cache,id=pnpm,target=/pnpm/store \\\n    pnpm install --frozen-lockfile\n\nFROM deps AS builder\nCOPY . .\nRUN pnpm --filter api exec prisma generate\nRUN pnpm --filter api build\nRUN pnpm --filter api deploy --prod /out/api\n"
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/apps/web/Dockerfile",
+      "preview": "# syntax=docker/dockerfile:1.7\nFROM node:24-bookworm-slim AS base\nENV PNPM_HOME=/pnpm\nENV PATH=$PNPM_HOME:$PATH\nRUN corepack enable && corepack prepare pnpm@12.3.4 --activate\nWORKDIR /workspace\n\nFROM base AS deps\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./\nCOPY apps/web/package.json apps/web/package.json\nCOPY packages packages\nRUN --mount=type=cache,id=pnpm,target=/pnpm/store \\\n    pnpm install --frozen-lockfile\n\nFROM deps AS builder\nCOPY . .\nENV NEXT_TELEMETRY_DISABLED=1\nRUN pnpm --filter web build\n\nFROM node:24-bookworm-slim AS runner"
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/apps/web/next.config.phase32.ts",
+      "preview": "import path from \"node:path\";\nimport type { NextConfig } from \"next\";\n\nconst nextConfig: NextConfig = {\n  output: \"standalone\",\n  outputFileTracingRoot: path.join(__dirname, \"../..\"),\n};\n\nexport default nextConfig;"
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/infra/compose.yaml",
+      "preview": "name: taskflow\n\nservices:\n  db:\n    image: postgres:18-alpine\n    environment:\n      POSTGRES_DB: taskflow\n      POSTGRES_USER: taskflow\n      POSTGRES_PASSWORD: taskflow_local_only\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U taskflow -d taskflow\"]\n      interval: 5s\n      timeout: 3s\n      retries: 10\n      start_period: 10s\n    volumes:\n      - taskflow-db:/var/lib/postgresql/data\n\n  api:\n    build:"
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/infra/migration-runbook.md",
+      "preview": "# Migration runbook\n\nProduction rule: run `prisma migrate deploy` once as an explicit deployment/release step before new API replicas begin serving traffic. Do not run it independently in every replica startup command.\n\nLocal example from the repository root:\n\n```powershell\npnpm --filter api exec prisma migrate deploy\n```\n\nFor a fully containerized local workflow, build a dedicated migration target/job that includes Prisma CLI and the schema, waits for PostgreSQL readiness, runs once, and exits successfully."
+    },
+    {
+      "path": "reference/TaskFlow_Docker_Snapshot/tests/docker-test-matrix.md",
+      "preview": "# Phase 32 verification matrix\n\n- [ ] `docker build` succeeds for web with the committed lockfile.\n- [ ] `docker build` succeeds for api with the committed lockfile.\n- [ ] Runtime processes run as non-root users.\n- [ ] Production images do not contain `.env`, `.git`, local `node_modules`, or source test output.\n- [ ] Web container serves the production Next.js build on port 3000.\n- [ ] API container serves `/health/live` on port 3001.\n- [ ] API readiness fails when PostgreSQL is unavailable and recovers when PostgreSQL is ready.\n- [ ] `docker compose up` uses `db` service DNS instead of localhost for API database access.\n- [ ] Database state survives recreation of the db container when the named volume remains.\n- [ ] SIGTERM produces a graceful NestJS shutdown.\n- [ ] Rebuilding after a source-only change reuses dependency-install cache.\n- [ ] Secrets are injected at runtime and not visible in image history."
+    }
+  ],
+  "exercises": [
+    "Guided: Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context.",
+    "Practice: Build with frozen lockfile and inspect image layers/size.",
+    "Debugging: reproduce and diagnose — Copying .env into image.",
+    "Independent: deliver Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.",
+    "Explain-back: Can explain image vs container and Can build multi-stage image."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "A Dockerfile should produce a repeatable image from declared inputs rather than depend on a developer machine.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "A Dockerfile should produce a repeatable image from declared inputs rather than depend on a developer machine."
+    },
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use multi-stage builds to keep runtime images smaller and separate build-time tools from production dependencies."
+      ],
+      "answer": 3,
+      "explanation": "Use multi-stage builds to keep runtime images smaller and separate build-time tools from production dependencies."
+    },
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Do not bake secrets into images; inject runtime configuration through the deployment environment.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Do not bake secrets into images; inject runtime configuration through the deployment environment."
+    },
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Health checks and graceful shutdown help orchestrators know when a container is ready and when it should be replaced.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Health checks and graceful shutdown help orchestrators know when a container is ready and when it should be replaced."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Copying .env into image.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context."
+      ],
+      "answer": 3,
+      "explanation": "Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Running development server in production container.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Build with frozen lockfile and inspect image layers/size.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Huge build context invalidating caches."
+      ],
+      "answer": 1,
+      "explanation": "Build with frozen lockfile and inspect image layers/size."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Run the container with runtime env vars and map the service port explicitly.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Container listens only on localhost internally.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Run the container with runtime env vars and map the service port explicitly."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3200
+}

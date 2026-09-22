@@ -1,0 +1,1268 @@
+{
+  "number": 20,
+  "slug": "phase-20",
+  "title": "Production Application UI",
+  "volume": 6,
+  "readme": "FULL-STACK DEVELOPER 2026 - PHASE 20\n\nPhase: Production Application UI\nVolume: 06 - Professional Frontend\n\nThis package contains 13 focused lesson PDFs, one combined complete book, and a reference TaskFlow UI snapshot.\n\nCourse architecture lock:\n- Next.js 16.3.3\n- React 19.3.0\n- NestJS 12.0.3\n- Prisma 7.9.1\n- Supabase auth stack from Phase 17\n\nPhase 20 intentionally introduces no UI framework. Styling uses normal CSS + CSS Modules.\nNext phases: React Hook Form + Zod, TanStack Query, professional frontend state architecture.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "production-ui-architecture-and-composition",
+      "title": "Production UI Architecture and Composition",
+      "summary": "Production UI Architecture & Composition Define responsibilities for layouts, pages, features and interactive islands Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Route v Protected layout v Page composition v Feature components v Small client islands Phase 20 turns the…",
+      "body": "Production UI Architecture & Composition\nDefine responsibilities for layouts, pages, features and interactive islands\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nRoute\n\nv\n\nProtected layout\n\nv\n\nPage composition\n\nv\n\nFeature components\n\nv\n\nSmall client islands\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nA production UI is an architecture, not a collection of cards\nA polished interface starts with responsibility boundaries. The page owns route-level composition. The shell owns\npersistent navigation and workspace context. Feature components own domain presentation. Small client islands own\nlocal interaction. The API remains the source of truth for server state and authorization.\n\nLayer                                  Responsibility\n\nRoot layout                            Fonts, global styles, top-level metadata\n\nProtected (app) layout                 Session gate + application shell\n\nPage                                   Route-specific data and composition\n\nFeature component                      Task/project/workspace presentation\n\nClient island                          Menu toggle, disclosure, local interaction\n\nNestJS API                             Authoritative data, rules, authorization\n\nFigure 1 - UI composition\n\nRoute request\n\nv\n\nProtected layout verifies session\n\nv\n\nPage fetches authorized API data\n\nv\n\nServer Components render structure\n\nv\n\nClient islands hydrate where needed\n\nv\n\nBrowser interaction\n\nThe client bundle stays smaller when static/data-rendering components remain on the server.\n\nDo not make the whole shell a Client Component\n\nNext.js pages and layouts are Server Components by default. Add `use client` only at the boundary that actually needs state,\nevent handlers, effects, or browser APIs.\n\nWhat not to optimize yet\n• No design-system package just to get a button component.\n\n• No global state store for navigation that URL/layout state already solves.\n\n• No client-side fetching library yet - TanStack Query is Phase 22.\n\n• No drag-and-drop board yet - responsive, keyboard-friendly CRUD surfaces come first.",
+      "wordCount": 278,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Production UI Architecture and Composition in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Production UI Architecture and Composition” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Only styling the success state",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Production UI Architecture and Composition” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Production UI Architecture and Composition solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "protected-route-groups-and-app-layout",
+      "title": "Protected Route Groups and App Layout",
+      "summary": "Protected Route Groups & App Layout Organize authenticated application routes without changing public URLs Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone (app) route group v Session verification v AppShell v Route content Phase 20 turns the secure full-stack foundation…",
+      "body": "Protected Route Groups & App Layout\nOrganize authenticated application routes without changing public URLs\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\n(app) route group\n\nv\n\nSession verification\n\nv\n\nAppShell\n\nv\n\nRoute content\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nRoute groups let us organize without changing URLs\nThe App Router can group authenticated application routes under `(app)` while keeping clean URLs such as `/tasks`\nand `/projects`. The protected layout becomes the natural place to verify the Supabase session and render the shared\nshell.\n\nsrc/app/\n■■■ layout.tsx\n■■■ signin/\n■■■ auth/\n■■■ (app)/\n■■■ layout.tsx\n■■■ dashboard/page.tsx\n■■■ projects/page.tsx\n■■■ tasks/\n■    ■■■ page.tsx\n■    ■■■ loading.tsx\n■    ■■■ error.tsx\n■    ■■■ not-found.tsx\n■■■ account/page.tsx\n\nProtected layout\nexport default async function AppLayout({ children }) {\nconst supabase = await createClient()\nconst { data, error } = await supabase.auth.getClaims()\n\nif (error || !data?.claims?.sub) redirect('/signin')\n\nreturn <AppShell user={...}>{children}</AppShell>\n}\n\nRoute protection here improves UX, but API authorization still wins\n\nA user could call NestJS without rendering this layout. Phase 18/19 guards and authorization remain mandatory.\n\nShared layout should remain stable\nThe shell should survive navigation so users keep orientation. Route content changes inside `` while navigation and\naccount context stay visually consistent.",
+      "wordCount": 210,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Protected Route Groups and App Layout in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Protected Route Groups and App Layout” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global client component wrapping the whole app",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Protected Route Groups and App Layout” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Protected Route Groups and App Layout solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "app-shell-navigation-and-workspace-context",
+      "title": "App Shell Navigation and Workspace Context",
+      "summary": "App Shell, Navigation & Workspace Context Create persistent orientation with semantic landmarks and accessible navigation Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Sidebar/mobile nav v Header/workspace context v Main route content Phase 20 turns the secure full-stack foundation into…",
+      "body": "App Shell, Navigation & Workspace\nContext\nCreate persistent orientation with semantic landmarks and accessible navigation\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nSidebar/mobile nav\n\nv\n\nHeader/workspace context\n\nv\n\nMain route content\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nApplication shell: persistent orientation\nThe shell has three jobs: primary navigation, current workspace/account context, and a predictable place for route\ncontent. It should not become a giant stateful component that owns every feature.\n\nFigure 1 - Shell layout\n\nSidebar / mobile navigation\n\nv\n\nHeader / workspace + account\n\nv\n\nMain content region\n\nv\n\nRoute page\n\nPersistent navigation surrounds changing route content.\n\nSemantic landmarks\n• `` for the desktop sidebar where appropriate.\n\n• `` for route links.\n\n• `` for account/workspace context.\n\n• `` for route content.\n\n• Skip link for keyboard users to bypass repeated navigation.\n\nNavigation target size\nTaskFlow gives primary navigation and buttons at least a comfortable 44px interaction height, exceeding WCAG 2.2\nminimum target-size requirements and improving touch usability.\n\nShell decision                                  Reason\n\nSticky desktop sidebar                          Navigation stays available during long pages\n\nContained main width                            Very wide screens do not produce unreadably stretched content\n\nResponsive collapse                             Mobile does not inherit a 260px permanent sidebar\n\nText labels                                     Icons alone are ambiguous and harder to learn\n\nVisible focus                                   Keyboard users can track position\n\nSticky UI can hide focus\n\nWCAG 2.2 adds Focus Not Obscured. Test keyboard navigation around sticky headers/footers so the focused element remains\nvisible.",
+      "wordCount": 244,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain App Shell Navigation and Workspace Context in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "App Shell Navigation and Workspace Context matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “App Shell Navigation and Workspace Context” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clickable divs without keyboard semantics",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “App Shell Navigation and Workspace Context” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does App Shell Navigation and Workspace Context solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "task-table-and-domain-presentation",
+      "title": "Task Table and Domain Presentation",
+      "summary": "Task Table & Domain Presentation Present operational data with semantic, responsive and scannable UI Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Authorized task data v Semantic table v Status/priority/assignee v Responsive table region Phase 20 turns the secure full-stack…",
+      "body": "Task Table & Domain Presentation\nPresent operational data with semantic, responsive and scannable UI\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nAuthorized task data\n\nv\n\nSemantic table\n\nv\n\nStatus/priority/assignee\n\nv\n\nResponsive table region\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nA data table should be a table when the data is tabular\nTasks are naturally compared across columns: status, priority, assignee, due date. A semantic HTML table provides\nrelationships that div-based card grids must recreate manually for assistive technology.\n\n<table>\n<caption>Tasks visible in your current workspace scope</caption>\n<thead>\n<tr>\n<th scope=\"col\">Task</th>\n<th scope=\"col\">Status</th>\n<th scope=\"col\">Priority</th>\n<th scope=\"col\">Assignee</th>\n<th scope=\"col\">Due</th>\n</tr>\n</thead>\n<tbody>...</tbody>\n</table>\n\nResponsive strategy for real tables\nDo not collapse important business data into unreadable 320px cells. Keep a minimum table width and place it inside a\nlabeled horizontal-scroll region. For mobile-first task workflows, a later alternate card/list view can be added\nintentionally rather than by CSS accident.\n\nFigure 1 - Table responsiveness\n\nDesktop: full table visible\n\nv\n\nTablet: compressed but readable\n\nv\n\nMobile: contained horizontal scroll\n\nv\n\nFuture: optional purpose-built list view\n\nHorizontal scroll is acceptable when the content is genuinely tabular and the region is discoverable and keyboard reachable.\n\nStatus and priority communicate with text + color\nA green pill labeled “Done” is better than a green dot with no accessible text. Color reinforces meaning but never\ncarries it alone.\n\nDo not turn every row into one giant click target\n\nKeep the task title as a clear link and keep future row actions as real buttons. This preserves keyboard semantics and avoids\nnested interactive controls.",
+      "wordCount": 293,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Task Table and Domain Presentation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Task Table and Domain Presentation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Task Table and Domain Presentation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mobile layout treated as desktop squeezed smaller",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Task Table and Domain Presentation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Task Table and Domain Presentation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "visual-system-css-modules-and-design-tokens",
+      "title": "Visual System CSS Modules and Design Tokens",
+      "summary": "Visual System, CSS Modules & Design Tokens Build consistent styling without premature design-system dependencies Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Global tokens v CSS Modules v Reusable visual patterns Phase 20 turns the secure full-stack foundation into a…",
+      "body": "Visual System, CSS Modules & Design\nTokens\nBuild consistent styling without premature design-system dependencies\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nGlobal tokens\n\nv\n\nCSS Modules\n\nv\n\nReusable visual patterns\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nA small visual system prevents random CSS\nPhase 20 introduces design tokens through CSS custom properties: surfaces, text, borders, brand colors, spacing,\nradii, and shadows. The goal is consistency, not creating a full design-system package before we need one.\n\n:root {\n--surface-canvas: #f5f7fb;\n--surface-panel: #ffffff;\n--text-primary: #172033;\n--text-secondary: #627086;\n--border-subtle: #dbe2ea;\n--brand: #166b72;\n--radius-md: 12px;\n--space-4: 16px;\n--space-6: 24px;\n}\n\nGlobal CSS vs CSS Modules\n• Global CSS: reset, root variables, document-level body styles, shared focus behavior.\n\n• CSS Modules: shell, table, badges, page header, empty state, feature components.\n\n• Avoid global feature selectors that accidentally leak styles between routes.\n\nToken group                   Examples                               Purpose\n\nSurface                       canvas, panel, muted                   Layer hierarchy\n\nText                          primary, secondary                     Reading hierarchy\n\nSemantic                      danger, warning, success               Meaning, always paired with text/icons\n\nSpace                         4, 8, 12, 16, 24, 32                   Consistent rhythm\n\nRadius                        sm, md, lg                             Consistent component shape\n\nDo not chase visual uniqueness at the cost of usability\n\nA production business UI should feel predictable. Consistency, readable density, and clear hierarchy matter more than\ndecorative novelty.",
+      "wordCount": 217,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Visual System CSS Modules and Design Tokens in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Visual System CSS Modules and Design Tokens” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Only styling the success state",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Visual System CSS Modules and Design Tokens” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Visual System CSS Modules and Design Tokens solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "loading-empty-error-and-notfound-states",
+      "title": "Loading Empty Error and NotFound States",
+      "summary": "Loading, Empty, Error & Not-Found States Design explicit states for every route outcome Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Request begins v Loading v Success/empty/error/not-found v Recovery Phase 20 turns the secure full-stack foundation into a coherent, accessible…",
+      "body": "Loading, Empty, Error & Not-Found States\nDesign explicit states for every route outcome\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nRequest begins\n\nv\n\nLoading\n\nv\n\nSuccess/empty/error/not-found\n\nv\n\nRecovery\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nA production page has more than a success state\nEvery route that depends on network/data conditions needs deliberate loading, empty, error, unauthorized, forbidden,\nand not-found experiences. “Nothing rendered” is not an acceptable state.\n\nState                                What the UI should communicate\n\nLoading                              Work is in progress; preserve surrounding shell\n\nEmpty                                Request succeeded; no matching data\n\nError                                Request failed; recovery action if possible\n\nNot found                            Resource unavailable / inaccessible\n\nUnauthorized                         Authentication required; usually redirect/sign-in\n\nForbidden                            Caller is authenticated but cannot perform action\n\nNext.js route state files\ntasks/\n■■■ page.tsx\n■■■ loading.tsx\n■■■ error.tsx          // Client Component; gets reset()\n■■■ not-found.tsx\n\nError boundary behavior\nNext.js `error.tsx` wraps a route segment in an error boundary and must be a Client Component. Its `reset()` callback\ncan retry rendering the segment, making it appropriate for recoverable route failures.\n\nEmpty is not error\n\nA 200 response with zero matching tasks is a successful state. Give users context and a next step, such as clearing filters or\ncreating a task.\n\nSkeletons later, semantics now\nPhase 20 may use simple text/loading placeholders. Skeleton polish can be added when it mirrors the final layout.\nAvoid fake progress indicators that provide no information.",
+      "wordCount": 249,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Loading Empty Error and NotFound States in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Loading Empty Error and NotFound States matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Loading Empty Error and NotFound States” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global client component wrapping the whole app",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Loading Empty Error and NotFound States” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Loading Empty Error and NotFound States solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "accessibility-keyboard-and-focus-architecture",
+      "title": "Accessibility Keyboard and Focus Architecture",
+      "summary": "Accessibility, Keyboard & Focus Architecture Build WCAG 2.2 thinking into component behavior and semantics Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Semantic structure v Keyboard operation v Visible focus v Readable states v Usable targets Phase 20 turns the…",
+      "body": "Accessibility, Keyboard & Focus\nArchitecture\nBuild WCAG 2.2 thinking into component behavior and semantics\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nSemantic structure\n\nv\n\nKeyboard operation\n\nv\n\nVisible focus\n\nv\n\nReadable states\n\nv\n\nUsable targets\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nAccessibility is component architecture\nTaskFlow targets WCAG 2.2 AA thinking from the beginning. The goal is not a “compliance page” at the end; keyboard\nbehavior, focus, labels, semantics, target size, reflow, and error communication influence how components are\ndesigned.\n\nConcern                             TaskFlow pattern\n\nKeyboard                            Every action is a link/button/form control, not clickable divs\n\nFocus                               Visible `:focus-visible`; no sticky UI fully hides focus\n\nBypass                              Skip link to `#main-content`\n\nTarget size                         Primary controls designed around >=44px comfort; never crowd tiny targets\n\nState                               Status uses text + color\n\nTables                              caption, th, scope, labeled scroll region\n\nZoom/reflow                         Test at narrow widths and 200% zoom\n\nWhy 24px and 44px both appear in accessibility discussions\nWCAG 2.2 AA introduces a 24x24 CSS pixel minimum target-size criterion with exceptions. A 44x44 target is the\nstronger enhanced target and remains a practical design goal for primary controls, especially touch interfaces.\n\nFigure 1 - Keyboard path\n\nSkip link\n\nv\n\nPrimary navigation\n\nv\n\nPage heading/actions\n\nv\n\nFilters/table links\n\nv\n\nPagination/actions\n\nv\n\nAccount controls\n\nFocus order should follow the visual and semantic reading order.\n\nFocus must stay visible\n\nDo not remove outlines without replacing them. WCAG 2.2 requires keyboard focus to be visible and adds requirements around\nfocus not being obscured by authored content.",
+      "wordCount": 268,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Accessibility Keyboard and Focus Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Accessibility Keyboard and Focus Architecture matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Accessibility Keyboard and Focus Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clickable divs without keyboard semantics",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Accessibility Keyboard and Focus Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Accessibility Keyboard and Focus Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "responsive-and-adaptive-ui-design",
+      "title": "Responsive and Adaptive UI Design",
+      "summary": "Responsive & Adaptive UI Design Adapt the application shell and domain surfaces across real viewport pressure points Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Wide shell v Collapsed shell v Stacked actions v Contained mobile overflow Phase 20 turns…",
+      "body": "Responsive & Adaptive UI Design\nAdapt the application shell and domain surfaces across real viewport pressure points\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nWide shell\n\nv\n\nCollapsed shell\n\nv\n\nStacked actions\n\nv\n\nContained mobile overflow\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nResponsive design is not “desktop, then shrink everything”\nTaskFlow uses layout changes at pressure points rather than device-name breakpoints. The shell collapses when the\nsidebar and content can no longer coexist comfortably; page actions stack when horizontal space becomes\nconstrained.\n\nWidth / condition                         Expected behavior\n\nWide desktop                              260px sidebar + centered content area\n\nLaptop/tablet landscape                   Same shell with tighter padding\n\n<= 900px                                  Desktop sidebar removed; mobile navigation available\n\n<= 640px                                  Page header stacks; primary action becomes full width\n\nNarrow mobile                             Table remains inside contained horizontal-scroll region\n\nUse modern viewport units carefully\nThe shell uses `100dvh` so mobile browser chrome changes are handled better than a hard `100vh` assumption. But\ncontent should still be allowed to grow; avoid locking pages to viewport height when they contain long data.\n\nResponsive test matrix\n• 320px narrow mobile\n\n• 390px common mobile\n\n• 768px tablet portrait\n\n• 900px shell breakpoint\n\n• 1024px laptop/tablet landscape\n\n• 1366px common desktop\n\n• 1920px wide desktop\n\nHorizontal overflow belongs to the component, not the whole page\n\nIf a table needs horizontal scrolling, contain it in the table region. A page-level scrollbar often indicates a broken layout\nconstraint.",
+      "wordCount": 239,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Responsive and Adaptive UI Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Responsive and Adaptive UI Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mobile layout treated as desktop squeezed smaller",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Responsive and Adaptive UI Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Responsive and Adaptive UI Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "server-and-client-component-composition",
+      "title": "Server and Client Component Composition",
+      "summary": "Server & Client Component Composition Keep Server Components as the default and hydrate only interaction islands Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Server page/layout v Server-rendered UI v Client interaction island Phase 20 turns the secure full-stack foundation…",
+      "body": "Server & Client Component Composition\nKeep Server Components as the default and hydrate only interaction islands\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nServer page/layout\n\nv\n\nServer-rendered UI\n\nv\n\nClient interaction island\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nServer Components remain the default\nNext.js App Router pages and layouts are Server Components by default. They are ideal for protected page\ncomposition and initial API fetching. Client Components enter only where browser state, event handlers, lifecycle\nhooks, or browser APIs are needed.\n\nFeature                               Server or Client?         Why\n\nApp protected layout                  Server                    Session gate + shell composition\n\nTasks page initial list               Server                    Fetch close to server/API boundary\n\nSidebar static links                  Server                    No local interaction required\n\nMobile menu toggle                    Client                    Local open/close state + click events\n\nFuture dialog                         Client                    Focus management + interaction\n\nStatusBadge                           Server-compatible         Pure presentation\n\nFigure 1 - Client island pattern\n\nServer layout/page\n\nv\n\nMostly server-rendered UI\n\nv\n\nSmall `use client` component\n\nv\n\nHydrate only interactive island\n\nOnce a module is marked `use client`, its imported subtree becomes part of the client bundle boundary.\n\nSerializable props\nProps crossing from Server Components into Client Components must be serializable. Do not pass server-only\nfunctions, database clients, or secrets into a client island.\n\nClient Component is not “bad”\n\nInteractive UI needs client JavaScript. The goal is not zero Client Components; it is deliberate boundaries so the browser\nreceives only what interaction needs.",
+      "wordCount": 246,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Server and Client Component Composition in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Server and Client Component Composition matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Server and Client Component Composition” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Only styling the success state",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server and Client Component Composition” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server and Client Component Composition solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "permission-aware-ui-without-client-side-trust",
+      "title": "Permission Aware UI without Client Side Trust",
+      "summary": "Permission-Aware UI Without Client-Side Trust Improve UX with capabilities while keeping authorization authoritative on the API Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Known capabilities v Conditional UI v User action v NestJS re-authorization Phase 20 turns the secure…",
+      "body": "Permission-Aware UI Without Client-Side\nTrust\nImprove UX with capabilities while keeping authorization authoritative on the API\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nKnown capabilities\n\nv\n\nConditional UI\n\nv\n\nUser action\n\nv\n\nNestJS re-authorization\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nPermission-aware UI improves clarity but never replaces backend\nauthorization\nPhase 19 owns the security decision. Phase 20 can use known permissions to hide or disable impossible actions,\nreducing user frustration, but callers can still construct HTTP requests manually.\n\nFigure 1 - UI permission flow\n\nVerified session\n\nv\n\nFetch current-user/workspace capabilities\n\nv\n\nRender actions user can plausibly perform\n\nv\n\nUser triggers operation\n\nv\n\nNestJS re-authorizes resource/action\n\nv\n\nAllow or 403\n\nThe browser optimizes experience; the API enforces security.\n\nUI pattern                                       Use when\n\nHide action                                      Action is irrelevant/inappropriate for current capability\n\nDisable + explanation                            User benefits from knowing the action exists but why unavailable\n\nShow then handle 403                             Capability may change or resource rule is only known server-side\n\nNever render secret data                         Unauthorized sensitive content should never be fetched into the browser\n\nAvoid role-name conditionals everywhere\nInstead of `if role === ADMIN` in dozens of components, prefer capability-oriented data such as `canCreateTask`,\n`canManageMembers`, or a normalized permission set supplied by a trusted server path.\n\nNo “security by hidden button”\n\nDevTools can alter DOM and requests. Phase 18/19 API guards remain the enforcement point for every protected mutation and\nresource lookup.",
+      "wordCount": 247,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Permission Aware UI without Client Side Trust in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Permission Aware UI without Client Side Trust” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global client component wrapping the whole app",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Permission Aware UI without Client Side Trust” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Permission Aware UI without Client Side Trust solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "build-the-taskflow-production-ui",
+      "title": "Build the TaskFlow Production UI",
+      "summary": "Build the TaskFlow Production UI Assemble the protected shell, real Task data and polished route states Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Authenticated layout v Authorized API request v Task page v Production UI Phase 20 turns the…",
+      "body": "Build the TaskFlow Production UI\nAssemble the protected shell, real Task data and polished route states\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nAuthenticated layout\n\nv\n\nAuthorized API request\n\nv\n\nTask page\n\nv\n\nProduction UI\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nBuild the first coherent TaskFlow product surface\nThis book brings the pieces together into a route that feels like a real internal SaaS product: protected shell, page\nhierarchy, server-fetched authorized data, accessible table, status presentation, empty/loading/error states, and\nresponsive behavior.\n\nTarget route tree\n(app)/\n■■■ layout.tsx\n■■■ dashboard/page.tsx\n■■■ projects/page.tsx\n■■■ tasks/\n■■■ page.tsx\n■■■ loading.tsx\n■■■ error.tsx\n■■■ not-found.tsx\n\ncomponents/\n■■■ app-shell/\n■■■ mobile/\n■■■ tasks/\n■■■ ui/\n\nPage composition\nFigure 1 - `/tasks` rendering\n\nProtected layout verifies Supabase session\n\nv\n\nServer page obtains authenticated access token\n\nv\n\nNext.js calls NestJS `/tasks`\n\nv\n\nNestJS applies auth + authorization + query filters\n\nv\n\nServer page renders TaskTable or EmptyState\n\nv\n\nBrowser receives accessible HTML\n\nThis is the payoff of the earlier backend phases: the UI can remain comparatively simple because the server contracts are strong.\n\nThe page header\n• Eyebrow/context label.\n\n• One clear h1.\n\n• Short purpose/description.\n\n• Primary action positioned consistently.\n\nThe task list\n• Task title is the row link.\n\n• Status is readable text plus color.\n\n• Priority is visible without opening the record.\n\n• Assignee and due date help scanning.\n\n• No unauthorized task rows are fetched into the page.\n\nDo not make Phase 20 a dashboard-chart showcase\n\nCharts should answer a real operational question. We will add analytics when the domain has meaningful metrics rather than\ndecorating the home page with arbitrary graphs.",
+      "wordCount": 278,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Build the TaskFlow Production UI in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Build the TaskFlow Production UI” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clickable divs without keyboard semantics",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Build the TaskFlow Production UI” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Build the TaskFlow Production UI solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Verify the product surface across keyboard, responsive, error and authorization scenarios Phase 20 - Production Application UI Volume 06 - Professional Frontend Architecture milestone Build v Verify v Stress states v Accessibility review v Phase exit Phase 20 turns the…",
+      "body": "Hands-On Lab & Phase Exit\nVerify the product surface across keyboard, responsive, error and authorization scenarios\n\nPhase 20 - Production Application UI\nVolume 06 - Professional Frontend\n\nArchitecture milestone\n\nBuild\n\nv\n\nVerify\n\nv\n\nStress states\n\nv\n\nAccessibility review\n\nv\n\nPhase exit\n\nPhase 20 turns the secure full-stack foundation into a coherent, accessible application interface without moving business authority into the\nbrowser.\n\nHands-on lab: ship a usable application shell\nThe exit standard is not “looks nice on my monitor.” The shell must remain understandable across navigation, keyboard\ninput, narrow screens, empty data, API failure, and different authorization contexts.\n\nLab A - Route architecture\n• Create `(app)/layout.tsx` and keep auth routes outside it.\n\n• Add the skip link and `main` target.\n\n• Build desktop Sidebar + Header without making the whole layout a Client Component.\n\n• Add the mobile navigation as a small client island.\n\nLab B - Tasks surface\n• Fetch authorized tasks server-side.\n\n• Render page header + primary action.\n\n• Build semantic TaskTable with caption and scope attributes.\n\n• Add readable status badges.\n\n• Add EmptyState when no results exist.\n\nLab C - Route states\n• Create loading.tsx.\n\n• Create error.tsx with reset button.\n\n• Create not-found.tsx.\n\n• Verify errors do not remove the surrounding app shell unexpectedly.\n\nLab D - Accessibility and responsiveness\n• Keyboard through the entire route without mouse.\n\n• Verify visible focus and skip link.\n\n• Test at 320, 390, 768, 900, 1024, 1366, 1920 widths.\n\n• Test 200% browser zoom.\n\n• Verify the task table scrolls inside its region, not the whole page.\n\n• Verify status meaning remains clear without color.\n\nLevel 4 - Engineer\nDesign an HRIS employee-directory screen using the same shell rules. Include page hierarchy, searchable/filterable\nemployee collection, role-aware actions, empty/error/loading states, mobile behavior, and accessibility notes. Do not\nwrite code until you can explain which parts should remain Server Components and which interactions genuinely need\nClient Components.\n\nPhase exit checklist\n• Protected application routes share a stable shell.\n\n• Server Components remain the default.\n\n• Client components are small interaction islands.\n\n• Primary navigation is semantic and keyboard reachable.\n\n• The page has a visible heading hierarchy and useful states.\n\n• Task data is displayed semantically and responsively.\n\n• Focus is visible and not hidden by sticky UI.\n\n• UI permission logic never replaces NestJS authorization.\n\n• No unnecessary UI framework was introduced.",
+      "wordCount": 363,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mobile layout treated as desktop squeezed smaller",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild a production application shell and reusable UI states instead of isolated demo components.",
+      "body": "Guided Build Lab — Phase 20: Production Application UI\n\nPurpose\nBuild a production application shell and reusable UI states instead of isolated demo components.\n\nDeliverable\nTaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nroute/layout -> server data boundary -> page composition -> client interaction islands -> responsive/accessibility states\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Design the application shell first: sidebar/topbar/main content/mobile navigation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Compose Server and Client Components so interactive islands remain small.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Test keyboard focus, labels, landmarks, reduced-motion expectations, and narrow widths.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Exercise all non-happy states by forcing no data, slow data, error, and forbidden responses.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 639,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Only styling the success state",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 20: Production Application UI\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nroute/layout -> server data boundary -> page composition -> client interaction islands -> responsive/accessibility states\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Only styling the success state\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Global client component wrapping the whole app\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Clickable divs without keyboard semantics\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Mobile layout treated as desktop squeezed smaller\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 445,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global client component wrapping the whole app",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 20 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Production Application UI\n\nMission\nRebuild the capability of Phase 20 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild a production application shell and reusable UI states instead of isolated demo components.\n\nRequired artifact\nTaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can compose a shell from reusable patterns.\n• Can model all UI states.\n• Can choose server/client boundaries.\n• Can verify basic accessibility and responsive behavior.\n\nIndependent build sequence\n1. Design the application shell first: sidebar/topbar/main content/mobile navigation.\n2. Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state.\n3. Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.\n4. Compose Server and Client Components so interactive islands remain small.\n5. Test keyboard focus, labels, landmarks, reduced-motion expectations, and narrow widths.\n6. Exercise all non-happy states by forcing no data, slow data, error, and forbidden responses.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 372,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clickable divs without keyboard semantics",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 20 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 20: Production Application UI. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nTaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 202,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Build a production application shell and reusable UI states instead of isolated demo components.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "route/layout",
+          "server data boundary",
+          "page composition",
+          "client interaction islands",
+          "responsive/accessibility states"
+        ],
+        "steps": [
+          "Design the application shell first: sidebar/topbar/main content/mobile navigation.",
+          "Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state.",
+          "Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.",
+          "Compose Server and Client Components so interactive islands remain small.",
+          "Test keyboard focus, labels, landmarks, reduced-motion expectations, and narrow widths.",
+          "Exercise all non-happy states by forcing no data, slow data, error, and forbidden responses.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can compose a shell from reusable patterns",
+          "Can model all UI states",
+          "Can choose server/client boundaries",
+          "Can verify basic accessibility and responsive behavior"
+        ],
+        "breakIt": [
+          "Only styling the success state",
+          "Global client component wrapping the whole app"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/ACCESSIBILITY_CHECKLIST.md",
+      "preview": "# Phase 20 accessibility checklist\n\n- Semantic landmarks: header, nav, main, aside where appropriate.\n- One meaningful page h1.\n- Skip link reaches main content.\n- All interactive controls work by keyboard.\n- Focus indicator remains visible and not obscured.\n- Target size aims for at least 44px for primary controls and never relies on tiny adjacent click targets.\n- Tables use table/th/scope semantics when data is truly tabular.\n- Horizontal-scroll table region is keyboard focusable and labeled.\n- Color never carries task state alone; text labels accompany status colors.\n- Empty, loading, error, and not-found states provide text, not only visuals.\n- Reduced-motion preferences should be respected if animation is added later."
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/RESPONSIVE_TEST_MATRIX.md",
+      "preview": "# Responsive verification matrix\n\nTest at minimum:\n- 320px narrow mobile\n- 390px common mobile\n- 768px tablet portrait\n- 900px shell breakpoint\n- 1024px laptop/tablet landscape\n- 1366px common desktop\n- 1920px wide desktop\n\nVerify:\n- no horizontal page overflow,\n- task table uses contained horizontal scroll when needed,\n- focus is not hidden under sticky UI,\n- action buttons remain reachable,\n- navigation remains understandable,\n- text remains readable at 200% zoom,\n- touch targets are not crowded."
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/SOURCE_NOTES.txt",
+      "preview": "Official references used for Phase 20 verification (September 18, 2026):\n\nNext.js - Server and Client Components\nhttps://nextjs.org/docs/app/getting-started/server-and-client-components\n\nNext.js - App Router / Project Structure / File Conventions\nhttps://nextjs.org/docs/app\nhttps://nextjs.org/docs/app/getting-started/project-structure\nhttps://nextjs.org/docs/app/api-reference/file-conventions\n\nNext.js - error.js\nhttps://nextjs.org/docs/app/api-reference/file-conventions/error\n\nNext.js - not-found.js\nhttps://nextjs.org/docs/app/api-reference/file-conventions/not-found\n\nNext.js - CSS styling\nhttps://nextjs.org/learn/dashboard-app/css-styling\n\nWCAG 2.2"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/UI_ARCHITECTURE.md",
+      "preview": "# Phase 20 UI architecture\n\nThe production UI uses the App Router with a protected `(app)` route group.\n\nServer Components own:\n- authenticated layout checks,\n- initial page data fetching,\n- metadata and route composition,\n- permission-derived server rendering.\n\nClient Components are kept as islands for:\n- mobile menu toggle,\n- local disclosure controls,\n- browser-only interactions.\n\nThe UI does not become the security boundary. Hidden controls improve experience, but NestJS Phase 19 authorization remains authoritative."
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/(app)/layout.tsx",
+      "preview": "import type { ReactNode } from 'react'\nimport { redirect } from 'next/navigation'\nimport { createClient } from '@/lib/supabase/server'\nimport { AppShell } from '@/components/app-shell/app-shell'\n\nexport default async function AppLayout({ children }: { children: ReactNode }) {\n  const supabase = await createClient()\n  const { data, error } = await supabase.auth.getClaims()\n\n  if (error || !data?.claims?.sub) redirect('/signin')\n\n  return (\n    <>\n      <a className=\"skipLink\" href=\"#main-content\">Skip to main content</a>\n      <AppShell\n        user={{\n          id: data.claims.sub,\n          email: typeof data.claims.email === 'string' ? data.claims.email : undefined,\n        }}\n      >"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/(app)/tasks/error.tsx",
+      "preview": "'use client'\n\nexport default function TasksError({ reset }: { reset: () => void }) {\n  return (\n    <section role=\"alert\">\n      <h2>We could not load tasks</h2>\n      <p>The request failed. Try again, or contact support if the problem continues.</p>\n      <button type=\"button\" onClick={() => reset()}>Try again</button>\n    </section>\n  )\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/(app)/tasks/loading.tsx",
+      "preview": "export default function LoadingTasks() {\n  return (\n    <section aria-busy=\"true\" aria-live=\"polite\">\n      <p>Loading tasks...</p>\n    </section>\n  )\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/(app)/tasks/not-found.tsx",
+      "preview": "import Link from 'next/link'\n\nexport default function TaskNotFound() {\n  return (\n    <section>\n      <h1>Task not found</h1>\n      <p>The task may not exist or may not be available in your current workspace scope.</p>\n      <Link href=\"/tasks\">Back to tasks</Link>\n    </section>\n  )\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/(app)/tasks/page.tsx",
+      "preview": "import { getAuthenticatedAccessToken } from '@/lib/auth/get-authenticated-access-token'\nimport { fetchTasks } from '@/lib/api/tasks'\nimport { TaskTable } from '@/components/tasks/task-table'\nimport { EmptyState } from '@/components/ui/empty-state'\nimport styles from './tasks.module.css'\n\nexport default async function TasksPage({\n  searchParams,\n}: {\n  searchParams: Promise<Record<string, string | string[] | undefined>>\n}) {\n  const params = await searchParams\n  const token = await getAuthenticatedAccessToken()\n  const result = await fetchTasks({ params, token })\n\n  return (\n    <section aria-labelledby=\"tasks-heading\">\n      <div className={styles.pageHeader}>\n        <div>\n          <p className={styles.eyebrow}>Work management</p>"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/(app)/tasks/tasks.module.css",
+      "preview": ".pageHeader {\n  display: flex;\n  justify-content: space-between;\n  align-items: flex-start;\n  gap: 20px;\n  margin-bottom: 20px;\n}\n.pageHeader h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; }\n.eyebrow { margin: 0 0 4px; color: var(--brand); font-weight: 700; }\n.description { margin: 8px 0 0; color: var(--text-secondary); }\n.primaryAction {\n  display: inline-flex;\n  min-height: 44px;\n  align-items: center;\n  padding: 0 16px;\n  background: var(--brand);\n  color: white;\n  border-radius: 10px;\n  text-decoration: none;\n  font-weight: 700;"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/app/globals.css",
+      "preview": ":root {\n  --surface-canvas: #f5f7fb;\n  --surface-panel: #ffffff;\n  --surface-muted: #eef2f7;\n  --text-primary: #172033;\n  --text-secondary: #627086;\n  --border-subtle: #dbe2ea;\n  --brand: #166b72;\n  --brand-strong: #0e5359;\n  --danger: #b42318;\n  --warning: #a15c00;\n  --success: #137333;\n\n  --radius-sm: 8px;\n  --radius-md: 12px;\n  --radius-lg: 16px;\n\n  --space-1: 4px;\n  --space-2: 8px;\n  --space-3: 12px;"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/app-shell/app-header.module.css",
+      "preview": ".header {\n  min-height: 64px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 16px;\n  padding: 0 24px;\n  background: var(--surface-panel);\n  border-bottom: 1px solid var(--border-subtle);\n}\n.muted { margin-left: 8px; color: var(--text-secondary); }\n.header a { color: var(--brand-strong); }\n@media (max-width: 900px) { .header { padding: 0 16px; } }"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/app-shell/app-header.tsx",
+      "preview": "import Link from 'next/link'\nimport styles from './app-header.module.css'\n\nexport function AppHeader({ user }: { user: { email?: string } }) {\n  return (\n    <header className={styles.header}>\n      <div>\n        <strong>Workspace</strong>\n        <span className={styles.muted}>Acme Operations</span>\n      </div>\n      <nav aria-label=\"Account navigation\">\n        <Link href=\"/account\">{user.email ?? 'Account'}</Link>\n      </nav>\n    </header>\n  )\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/app-shell/app-shell.module.css",
+      "preview": ".shell {\n  min-height: 100dvh;\n  display: grid;\n  grid-template-columns: 260px minmax(0, 1fr);\n}\n.contentColumn { min-width: 0; }\n.main {\n  width: min(1440px, 100%);\n  margin: 0 auto;\n  padding: 24px;\n}\n\n@media (max-width: 900px) {\n  .shell { grid-template-columns: 1fr; }\n  .main { padding: 16px; }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/app-shell/app-shell.tsx",
+      "preview": "import type { ReactNode } from 'react'\nimport { Sidebar } from './sidebar'\nimport { AppHeader } from './app-header'\nimport styles from './app-shell.module.css'\n\ntype AppShellProps = {\n  user: { id: string; email?: string }\n  children: ReactNode\n}\n\nexport function AppShell({ user, children }: AppShellProps) {\n  return (\n    <div className={styles.shell}>\n      <Sidebar />\n      <div className={styles.contentColumn}>\n        <AppHeader user={user} />\n        <main id=\"main-content\" className={styles.main} tabIndex={-1}>\n          {children}\n        </main>\n      </div>"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/app-shell/sidebar.module.css",
+      "preview": ".sidebar {\n  position: sticky;\n  top: 0;\n  height: 100dvh;\n  border-right: 1px solid var(--border-subtle);\n  background: var(--surface-panel);\n  padding: 20px 16px;\n}\n.brand { font-weight: 800; font-size: 20px; margin-bottom: 24px; }\n.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }\n.list a {\n  display: block;\n  min-height: 44px;\n  padding: 10px 12px;\n  border-radius: 10px;\n  color: var(--text-primary);\n  text-decoration: none;\n}\n.list a:hover { background: var(--surface-muted); }\n@media (max-width: 900px) { .sidebar { display: none; } }"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/app-shell/sidebar.tsx",
+      "preview": "import Link from 'next/link'\nimport styles from './sidebar.module.css'\n\nconst nav = [\n  { href: '/dashboard', label: 'Dashboard' },\n  { href: '/projects', label: 'Projects' },\n  { href: '/tasks', label: 'Tasks' },\n]\n\nexport function Sidebar() {\n  return (\n    <aside className={styles.sidebar} aria-label=\"Primary navigation\">\n      <div className={styles.brand}>TaskFlow</div>\n      <nav>\n        <ul className={styles.list}>\n          {nav.map((item) => (\n            <li key={item.href}>\n              <Link href={item.href}>{item.label}</Link>\n            </li>\n          ))}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/mobile/mobile-nav.module.css",
+      "preview": ".wrapper { display: none; }\n@media (max-width: 900px) {\n  .wrapper { display: block; }\n  .wrapper button { min-height: 44px; min-width: 44px; }\n  .wrapper nav { display: grid; gap: 8px; padding: 12px 0; }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/mobile/mobile-nav.tsx",
+      "preview": "'use client'\n\nimport { useState } from 'react'\nimport Link from 'next/link'\nimport styles from './mobile-nav.module.css'\n\nexport function MobileNav() {\n  const [open, setOpen] = useState(false)\n\n  return (\n    <div className={styles.wrapper}>\n      <button\n        type=\"button\"\n        aria-expanded={open}\n        aria-controls=\"mobile-navigation\"\n        onClick={() => setOpen((value) => !value)}\n      >\n        Menu\n      </button>\n"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/tasks/status-badge.module.css",
+      "preview": ".badge { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }\n.TODO { background: #eef2f7; color: #344054; }\n.IN_PROGRESS { background: #e8f3ff; color: #175cd3; }\n.DONE { background: #e9f7ee; color: #137333; }\n.CANCELED { background: #fcecec; color: #b42318; }"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/tasks/status-badge.tsx",
+      "preview": "import styles from './status-badge.module.css'\n\nconst label = {\n  TODO: 'To do',\n  IN_PROGRESS: 'In progress',\n  DONE: 'Done',\n  CANCELED: 'Canceled',\n} as const\n\nexport function StatusBadge({ status }: { status: keyof typeof label }) {\n  return <span className={`${styles.badge} ${styles[status]}`}>{label[status]}</span>\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/tasks/task-table.module.css",
+      "preview": ".tableRegion {\n  overflow-x: auto;\n  border: 1px solid var(--border-subtle);\n  border-radius: var(--radius-md);\n  background: var(--surface-panel);\n  box-shadow: var(--shadow-panel);\n}\n.table { width: 100%; border-collapse: collapse; min-width: 780px; }\n.table th, .table td { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); text-align: left; }\n.table thead th { color: var(--text-secondary); font-size: 13px; }\n.table tbody th { font-weight: 650; }\n.table tbody tr:hover { background: #fafbfd; }\n.table a { color: var(--brand-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; }\n.srOnly {\n  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;\n  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/tasks/task-table.tsx",
+      "preview": "import Link from 'next/link'\nimport { StatusBadge } from './status-badge'\nimport styles from './task-table.module.css'\n\ntype TaskRow = {\n  id: string\n  title: string\n  status: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELED'\n  priority: 'LOW' | 'MEDIUM' | 'HIGH'\n  assignee?: { displayName?: string | null; email: string } | null\n  dueAt?: string | null\n}\n\nexport function TaskTable({ tasks }: { tasks: TaskRow[] }) {\n  return (\n    <div className={styles.tableRegion} tabIndex={0} aria-label=\"Tasks table, scroll horizontally on small screens\">\n      <table className={styles.table}>\n        <caption className={styles.srOnly}>Tasks visible in your current authorized workspace scope</caption>\n        <thead>\n          <tr>"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/ui/empty-state.module.css",
+      "preview": ".empty {\n  padding: 48px 24px;\n  text-align: center;\n  background: var(--surface-panel);\n  border: 1px dashed var(--border-subtle);\n  border-radius: var(--radius-md);\n}\n.empty h2 { margin: 0 0 8px; font-size: 20px; }\n.empty p { margin: 0; color: var(--text-secondary); }"
+    },
+    {
+      "path": "reference/TaskFlow_Production_UI_Snapshot/apps/web/src/components/ui/empty-state.tsx",
+      "preview": "import styles from './empty-state.module.css'\n\nexport function EmptyState({ title, description }: { title: string; description: string }) {\n  return (\n    <section className={styles.empty} aria-labelledby=\"empty-state-title\">\n      <h2 id=\"empty-state-title\">{title}</h2>\n      <p>{description}</p>\n    </section>\n  )\n}"
+    }
+  ],
+  "exercises": [
+    "Guided: Design the application shell first: sidebar/topbar/main content/mobile navigation.",
+    "Practice: Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.",
+    "Debugging: reproduce and diagnose — Only styling the success state.",
+    "Independent: deliver TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.",
+    "Explain-back: Can compose a shell from reusable patterns and Can model all UI states."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Build production UI from reusable layout and interaction patterns, not a collection of one-off pages.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Build production UI from reusable layout and interaction patterns, not a collection of one-off pages."
+    },
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Represent loading, empty, error, success, and permission states explicitly."
+      ],
+      "answer": 3,
+      "explanation": "Represent loading, empty, error, success, and permission states explicitly."
+    },
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Accessibility and responsive behavior are requirements of the component, not a final polishing step.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Accessibility and responsive behavior are requirements of the component, not a final polishing step."
+    },
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Keep UI composition separate from server-state ownership so components remain understandable.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Keep UI composition separate from server-state ownership so components remain understandable."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Only styling the success state.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Design the application shell first: sidebar/topbar/main content/mobile navigation."
+      ],
+      "answer": 3,
+      "explanation": "Design the application shell first: sidebar/topbar/main content/mobile navigation."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Global client component wrapping the whole app.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Clickable divs without keyboard semantics."
+      ],
+      "answer": 1,
+      "explanation": "Build workspace/board/task navigation with active state derived from routing rather than duplicated local state."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Compose Server and Client Components so interactive islands remain small.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Mobile layout treated as desktop squeezed smaller.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Compose Server and Client Components so interactive islands remain small."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4790
+}

@@ -1,0 +1,994 @@
+{
+  "number": 7,
+  "slug": "phase-07",
+  "title": "PostgreSQL Fundamentals",
+  "volume": 3,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 03 - Database Engineering\nPhase 07 - PostgreSQL Fundamentals for Application Developers\n\nThis package contains 10 focused PDFs, one combined Phase 07 book, and executable SQL practice files.\n\nCourse boundaries:\n- PostgreSQL 18.6 is the current stable documentation reference as of September 2026.\n- PostgreSQL 19 is still a development/beta line, so the course does not target it.\n- No Supabase project is created yet; that is Phase 08.\n- No Prisma is used yet; that is Phase 09.\n- The practice schema is not the final TaskFlow production schema; final relational design is Phase 10.\n\nPrimary official references:\n- PostgreSQL 18.6 Documentation\n- PostgreSQL Tutorial\n- Data Definition / Constraints\n- Data Types\n- Indexes\n- Transactions\n- psql\n\nNext: Phase 08 - Supabase PostgreSQL.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "relational-database-mental-model",
+      "title": "Relational Database Mental Model",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 Relational Database Mental Model VOLUME 03 - DATABASE ENGINEERING Relational Database Mental Model Durable state, tables, rows, schemas and invariants Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic database commands durable relational…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                Relational Database Mental Model\n\nVOLUME 03 - DATABASE ENGINEERING\n\nRelational Database Mental Model\nDurable state, tables, rows, schemas and invariants\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 1 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                      Relational Database Mental Model\n\nA database is durable application state\nOur in-memory Todo array is useful for teaching HTTP, but it is not durable application state. A relational database gives the\napplication a separate system whose job is to store facts, enforce rules around those facts, answer queries and coordinate\nconcurrent changes.\n\nRelationships are data rules, not drawing decorations.\n\nprojects                                       tasks                                   comments\n\nid PK                                       id PK                                      id PK\nname                                    project_id FK                               task_id FK\n\none project                                  many tasks                              many comments\n\nRelational database\n\ntables + constraints + relationships + transactions\n\nFigure - A relational schema stores facts in tables and uses keys/constraints to preserve valid relationships.\n\nDatabase, schema, table, row and column\ntasks table\n\nid                             title                            completed              project_id\n\n1                 Learn SQL                                   false                   10\n\n2                 Design API                                  true                    10\n\n3                 Add persistence                             false                   11\n\ncolumn = attribute/type/rule      row = one stored record\n\nFigure - Tables organize typed columns; each row stores one record that must satisfy table constraints.\n\nTerm                         Practical meaning\n\nDatabase                     A PostgreSQL database that contains application schemas and objects.\n\nSchema                       A namespace that groups database objects. PostgreSQL commonly starts with the public schema.\n\nTable                        A relation used to store records with a defined set of columns and constraints.\n\nColumn                       A named attribute with a data type and possibly rules/defaults.\n\nRow                          One stored record satisfying the table definition.\n\nConstraint                   A database-enforced rule that prevents invalid states.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                 Relational Database Mental Model\n\nThe database should protect invariants\nAn invariant is a condition that must remain true for valid persistent data. For example, a task title may be required; an email\nmay need to be unique; a task may reference only an existing project. Application code can validate these conditions, but\ndurable database constraints provide a final line of defense when multiple clients, scripts, background jobs or future services\nwrite to the same database.\n\nIncoming row\ncandidate data\n\nType checks\nis the value compatible?\n\nNOT NULL / CHECK\ndoes the value satisfy local rules?\n\nUNIQUE / PRIMARY KEY\ndoes identity remain valid?\n\nFOREIGN KEY\ndoes the referenced row exist?\n\nAccepted row\ndatabase invariant preserved\n\nFigure - Database constraints reject invalid states before they become persistent application data.\n\nRows are not objects\nA TypeScript object and a database row can describe the same business concept, but they are not the same thing. Objects live in\nprocess memory and can contain methods, derived values or temporary state. Database rows are persisted values governed by\ndatabase types and constraints. Prisma later maps between these worlds; understanding the difference makes ORM behavior\nless surprising.\n\nSet-oriented thinking\nSQL is designed to describe sets of rows. Instead of looping through every task in JavaScript to find incomplete items, a query\nasks the database for the set matching a condition. This becomes increasingly important as data grows beyond what can be\nloaded into application memory safely.\nThink in sets\n\nSELECT id, title\nFROM tasks\nWHERE completed = false\nORDER BY created_at DESC;\n\nREAL-WORLD NOTE\n\nIn an HRIS, Payroll, Inventory or Procurement system, the same mental model applies: tables persist facts, constraints protect\nvalid relationships, and application services orchestrate workflows around that durable state.",
+      "wordCount": 581,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Relational Database Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Relational Database Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating IDs as the only integrity mechanism",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Relational Database Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Relational Database Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "data-types-null-and-constraints",
+      "title": "Data Types NULL and Constraints",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 Data Types, NULL and Constraints VOLUME 03 - DATABASE ENGINEERING Data Types, NULL and Constraints How PostgreSQL represents values and rejects invalid persistent states Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                               Data Types, NULL and Constraints\n\nVOLUME 03 - DATABASE ENGINEERING\n\nData Types, NULL and Constraints\nHow PostgreSQL represents values and rejects invalid persistent states\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 2 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                          Data Types, NULL and Constraints\n\nData types are part of the contract\nChoosing a column type tells PostgreSQL what values can be represented and what operations make sense. Good types reduce\nambiguity and make invalid states harder to store.\n\nApplication value               Useful PostgreSQL type             Why\n\nTask title / description        text                               Variable-length text without an arbitrary storage limit.\n\nCompleted flag                  boolean                            Represents true/false directly.\n\nPriority number                 smallint / integer                 Numeric ordering; pair with CHECK for allowed range.\n\nMoney                           numeric(p,s)                       Exact decimal arithmetic when a monetary amount is\ntruly needed.\n\nCreated timestamp               timestamptz                        Timestamp with time-zone semantics normalized by\nPostgreSQL.\n\nIdentifier                      bigint identity or uuid            Choice depends on system boundaries and identity\nstrategy.\n\nStructured flexible metadata    jsonb                              Useful when structure is genuinely variable; not a\nsubstitute for normal columns.\n\nPrefer modern identity columns for generated numeric IDs\nGenerated identity example\n\nCREATE TABLE practice_tasks (\nid bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\ntitle text NOT NULL\n);\n\nPostgreSQL supports identity columns as the SQL-standard way to generate values. The course uses them for fundamentals.\nLater, TaskFlow may use UUIDs where that better matches authentication or distributed identity requirements.\n\nNULL means missing/unknown, not empty\nNULL is not the same as an empty string, zero or false. Comparisons involving NULL require special reasoning. Use IS NULL\nand IS NOT NULL, not = NULL.\nCorrect NULL check\n\nSELECT id, title\nFROM tasks\nWHERE due_at IS NULL;\n\nThree-valued logic\n\nSQL conditions can evaluate to TRUE, FALSE or UNKNOWN. A comparison such as due_at = NULL does not mean what\nJavaScript developers often expect.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                    Data Types, NULL and Constraints\n\nConstraints encode durable rules\nIncoming row\ncandidate data\n\nType checks\nis the value compatible?\n\nNOT NULL / CHECK\ndoes the value satisfy local rules?\n\nUNIQUE / PRIMARY KEY\ndoes identity remain valid?\n\nFOREIGN KEY\ndoes the referenced row exist?\n\nAccepted row\ndatabase invariant preserved\n\nFigure - Database constraints reject invalid states before they become persistent application data.\n\nConstraint                         Protects\n\nNOT NULL                           A required value cannot be absent.\n\nCHECK                              A value or combination of values must satisfy an expression.\n\nUNIQUE                             No two rows may share the constrained value combination.\n\nPRIMARY KEY                        The table has one chosen unique non-null row identity.\n\nFOREIGN KEY                        A relationship must point to a valid referenced row (unless nullable by design).\n\nA small constraint-rich table\n\nCREATE TABLE practice_tasks (\nid bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\ntitle text NOT NULL,\ncompleted boolean NOT NULL DEFAULT false,\npriority smallint NOT NULL DEFAULT 2,\ndue_at timestamptz,\nCONSTRAINT practice_tasks_priority_check\nCHECK (priority BETWEEN 1 AND 3)\n);\n\nDefaults are convenience, constraints are rules\nA default supplies a value when an INSERT omits that column. It does not make arbitrary incoming values valid. A CHECK or\nother constraint is what rejects invalid persisted values. Keep those responsibilities separate.\n\nDo not use JSON for everything\nPostgreSQL has excellent jsonb support, but a flexible JSON document is not automatically the best model for strongly related\nbusiness data. If the application routinely filters, joins or constrains a field, a normal typed column is usually easier to validate,\nquery and index. JSON is useful when the domain is genuinely document-like or extensible.",
+      "wordCount": 593,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Data Types NULL and Constraints in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Data Types NULL and Constraints” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Missing composite uniqueness on membership-like tables",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Data Types NULL and Constraints” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Data Types NULL and Constraints solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "keys-relationships-and-joins",
+      "title": "Keys Relationships and Joins",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 Keys, Relationships and Joins VOLUME 03 - DATABASE ENGINEERING Keys, Relationships and Joins Identity, referential integrity and relational reads Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic database commands durable relational state…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                    Keys, Relationships and Joins\n\nVOLUME 03 - DATABASE ENGINEERING\n\nKeys, Relationships and Joins\nIdentity, referential integrity and relational reads\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 3 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                             Keys, Relationships and Joins\n\nPrimary keys answer: which row?\nA primary key identifies each row uniquely and cannot be NULL. PostgreSQL automatically creates a unique B-tree index for\nthe primary-key columns. The key is both a data-integrity rule and an efficient lookup path.\nPrimary key\n\nCREATE TABLE projects (\nid bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\nname text NOT NULL\n);\n\nForeign keys answer: does this relationship exist?\nA foreign key requires values in the referencing column to match a key in another table. This prevents a task from claiming to\nbelong to a project that does not exist.\nForeign key\n\nCREATE TABLE tasks (\nid bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\nproject_id bigint NOT NULL REFERENCES projects(id),\ntitle text NOT NULL\n);\n\nRelationships are data rules, not drawing decorations.\n\nprojects                                      tasks                                     comments\n\nid PK                                       id PK                                         id PK\nname                                    project_id FK                                  task_id FK\n\none project                                 many tasks                                many comments\n\nRelational database\n\ntables + constraints + relationships + transactions\n\nFigure - A relational schema stores facts in tables and uses keys/constraints to preserve valid relationships.\n\nForeign-key actions are domain decisions\nAction                              Meaning                                    Typical question\n\nNO ACTION / RESTRICT                Prevent parent change/delete when          Should a project be deletable while tasks still exist?\ndependent rows would be invalid.\n\nCASCADE                             Propagate parent delete/update to          Are child rows meaningless without the parent?\nrelated rows.\n\nSET NULL                            Remove the relationship while              Can a task exist without a project?\npreserving the child row.\n\nDo not cargo-cult CASCADE\n\nCascade behavior can be correct, but it can also turn one delete into a large irreversible data change. Choose referential actions\nfrom business meaning, not convenience.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                Keys, Relationships and Joins\n\nOne-to-many and many-to-many\nA project has many tasks when tasks.project_id references projects.id. A many-to-many relationship usually becomes an\nexplicit join table containing two foreign keys, often with a composite primary key or unique constraint.\nMany-to-many join table\n\nCREATE TABLE task_labels (\ntask_id bigint NOT NULL REFERENCES tasks(id),\nlabel_id bigint NOT NULL REFERENCES labels(id),\nPRIMARY KEY (task_id, label_id)\n);\n\nJOIN reads related facts\nInner join\n\nSELECT\nt.id,\nt.title,\np.name AS project_name\nFROM tasks AS t\nJOIN projects AS p ON p.id = t.project_id\nORDER BY t.id;\n\nThe join condition states how rows relate. An INNER JOIN returns rows that have matches on both sides. A LEFT JOIN keeps\nrows from the left side even when no right-side match exists. Choosing a join is therefore part of the question being asked, not\nmerely SQL syntax.\n\nQuestion                                                     Useful join\n\nShow tasks only when their project exists                    INNER JOIN\n\nShow every project, including projects with zero tasks       LEFT JOIN from projects to tasks\n\nShow every task and optional assignee details                LEFT JOIN when assignee is nullable\n\nForeign keys and indexes are different responsibilities\nThe referenced primary/unique key is indexed, but PostgreSQL does not automatically create an index on the referencing\nforeign-key column. If the application frequently joins, filters, updates or deletes through that foreign key, an index on the\nreferencing column is often useful. We justify it from query patterns rather than from habit.",
+      "wordCount": 582,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Keys Relationships and Joins in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Keys Relationships and Joins” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "N+1 query patterns hidden by application loops",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Keys Relationships and Joins” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Keys Relationships and Joins solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "sql-crud-filtering-and-aggregates",
+      "title": "SQL CRUD Filtering and Aggregates",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 SQL CRUD, Filtering and Aggregates VOLUME 03 - DATABASE ENGINEERING SQL CRUD, Filtering and Aggregates Read and change rows with deliberate query semantics Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic database…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                            SQL CRUD, Filtering and Aggregates\n\nVOLUME 03 - DATABASE ENGINEERING\n\nSQL CRUD, Filtering and Aggregates\nRead and change rows with deliberate query semantics\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 4 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                SQL CRUD, Filtering and Aggregates\n\nCRUD in SQL is explicit data manipulation\nOur HTTP API uses GET, POST, PATCH and DELETE. The database has a different language. SQL commands describe data\nretrieval and changes. Prisma later translates typed method calls into SQL concepts like these.\n\nINSERT - create persistent rows\nINSERT with RETURNING\n\nINSERT INTO projects (name)\nVALUES ('Full Stack Course')\nRETURNING id, name;\n\nRETURNING lets PostgreSQL return the inserted or modified rows without a second SELECT. This is useful for generated\nIDs and server-side defaults.\n\nSELECT - ask a question\nFiltered and ordered query\n\nSELECT id, title, completed\nFROM tasks\nWHERE project_id = 10\nAND completed = false\nORDER BY created_at DESC\nLIMIT 20;\n\nFROM / JOIN\nwhich rows and relationships participate?\n\nWHERE\nwhich rows survive filtering?\n\nGROUP BY\nwhich rows become groups?\n\nHAVING\nwhich groups survive?\n\nSELECT\nwhich expressions are returned?\n\nORDER BY / LIMIT\nhow is the final result shaped?\n\nFigure - A useful conceptual order for reasoning about SELECT queries. SQL syntax is written in a different order, but this mental pipeline\nhelps debugging.\n\nUPDATE - change selected rows\nTargeted update\n\nUPDATE tasks\nSET completed = true,\ncompleted_at = now()\nWHERE id = 42\nRETURNING id, completed, completed_at;\n\nDELETE - remove selected rows\nTargeted delete\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                   SQL CRUD, Filtering and Aggregates\n\nDELETE FROM tasks\nWHERE id = 42\nRETURNING id;\n\nDANGEROUS DIFFERENCE\n\nUPDATE tasks SET completed = true; affects every row. DELETE FROM tasks; deletes every row. The absence of WHERE\nis valid SQL, which is why query review and transactions matter.\n\nFiltering operators you will use constantly\nPattern                             Example\n\nEquality                            status = 'OPEN'\n\nRange                               priority >= 2\n\nSet membership                      status IN ('OPEN', 'BLOCKED')\n\nPattern matching                    title ILIKE '%postgres%'\n\nNull test                           due_at IS NULL\n\nDate/time comparison                created_at >= now() - interval '7 days'\n\nAggregates answer questions across rows\nAggregate query\n\nSELECT\nproject_id,\ncount(*) AS open_task_count\nFROM tasks\nWHERE completed = false\nGROUP BY project_id\nHAVING count(*) >= 5\nORDER BY open_task_count DESC;\n\nWHERE filters rows before grouping. GROUP BY creates groups. HAVING filters groups after aggregation. This distinction\nbecomes important for dashboards and reports.\n\nSelect only what the caller needs\nDuring learning it is tempting to write SELECT * everywhere. Production queries are often clearer and more stable when they\nselect the columns the caller actually needs. Explicit projections also make API contracts and performance tradeoffs more\nvisible.",
+      "wordCount": 451,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain SQL CRUD Filtering and Aggregates in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “SQL CRUD Filtering and Aggregates” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes without understanding query patterns",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “SQL CRUD Filtering and Aggregates” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does SQL CRUD Filtering and Aggregates solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "transactions-indexes-and-concurrency",
+      "title": "Transactions Indexes and Concurrency",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 Transactions, Indexes and Concurrency VOLUME 03 - DATABASE ENGINEERING Transactions, Indexes and Concurrency Atomic workflows, query access paths and multi-user thinking Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic database commands durable…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                           Transactions, Indexes and Concurrency\n\nVOLUME 03 - DATABASE ENGINEERING\n\nTransactions, Indexes and Concurrency\nAtomic workflows, query access paths and multi-user thinking\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 5 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                              Transactions, Indexes and Concurrency\n\nTransactions protect multi-step invariants\nMany application workflows require several database changes to succeed together. If one succeeds and another fails, the\ndatabase can end up representing a business state that should never exist. A transaction groups the changes into one unit of\nwork.\n\nA transaction groups related changes into one unit of work.\nBEGIN\n\nstart transaction\n\nUPDATE task                                        INSERT activity\n\nmark complete                                        record event\n\nCOMMIT                                                   ROLLBACK\n\nall changes become durable                                discard transaction changes\n\nFigure - COMMIT makes the unit succeed; ROLLBACK abandons it when the workflow cannot be completed safely.\n\nSuccessful transaction\n\nBEGIN;\n\nUPDATE tasks\nSET completed = true\nWHERE id = 42;\n\nINSERT INTO activity_log (task_id, action)\nVALUES (42, 'completed');\n\nCOMMIT;\n\nAbandon changes\n\nBEGIN;\n-- perform several related changes\n-- something fails or business rule is not satisfied\nROLLBACK;\n\nACID as an application developer\nProperty                  Practical meaning\n\nAtomicity                 The transaction commits as one unit or rolls back as one unit.\n\nConsistency               Constraints and application rules move the database between valid states.\n\nIsolation                 Concurrent transactions are controlled so their interaction has defined behavior.\n\nDurability                Committed changes survive normal process/server failures according to PostgreSQL durability\nmechanisms.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                              Transactions, Indexes and Concurrency\n\nConcurrency means other users exist\nA single-user tutorial can pretend no one else changes data between your read and write. Production systems cannot.\nPostgreSQL uses MVCC and transaction isolation to coordinate concurrent access. You do not need deep database-internals\nknowledge yet, but you must stop assuming that a value you read will remain unchanged until your later UPDATE.\n\nLater application pattern\n\nOptimistic concurrency checks, row locks and carefully scoped transactions exist because multiple requests can race. We\nintroduce advanced patterns only when TaskFlow has workflows that actually need them.\n\nIndexes are access paths\nIndexes are access paths - not free speed buttons.\n\nWithout useful index                                                          With useful B-tree\n\nscan many table rows                                                   navigate matching key range\n\nTrade-off\n\nfaster reads can mean more storage and write work\n\nFigure - An index can reduce lookup work when it matches the query pattern, but it has storage and maintenance cost.\n\nBy default, CREATE INDEX creates a B-tree index, which is appropriate for many equality and range searches. An index helps\nonly when it matches how the application searches or orders data. It also consumes storage and must be maintained when rows\nare inserted, updated or deleted.\nExample indexes\n\nCREATE INDEX tasks_project_id_idx\nON tasks (project_id);\n\nCREATE INDEX tasks_project_open_idx\nON tasks (project_id, completed);\n\nWhy foreign-key columns often need deliberate indexes\nA foreign-key declaration does not automatically index the referencing column in PostgreSQL. If TaskFlow frequently finds\ntasks by project_id or PostgreSQL must locate child rows while checking a parent change/delete, an index can reduce the work.\nThe correct index still depends on the actual workload.\n\nComposite index order matters\nAn index on (project_id, completed) is not equivalent to one on (completed, project_id). Index column order should reflect\nthe query patterns, selectivity and ordering requirements. Do not collect indexes as decorations.",
+      "wordCount": 561,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Transactions Indexes and Concurrency in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Transactions Indexes and Concurrency” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating IDs as the only integrity mechanism",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Transactions Indexes and Concurrency” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Transactions Indexes and Concurrency solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "normalization-and-schema-evolution",
+      "title": "Normalization and Schema Evolution",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 Normalization and Schema Evolution VOLUME 03 - DATABASE ENGINEERING Normalization and Schema Evolution Design durable facts and change schemas without losing the mental model Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                             Normalization and Schema Evolution\n\nVOLUME 03 - DATABASE ENGINEERING\n\nNormalization and Schema Evolution\nDesign durable facts and change schemas without losing the mental model\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 6 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                        Normalization and Schema Evolution\n\nNormalization is about one durable fact in one sensible place\n\nBad repeated data                                                           Separated facts\n\ntask row repeats project name                                                  projects, users, tasks\nand owner email                                                             linked by keys\n\nGoal\n\nstore each durable fact in a sensible place;\njoin related facts when reading\n\nFigure - Normalization reduces contradictory copies of the same fact; it is a design tool, not a rule to maximize table count.\n\nSuppose every task row stores project_name and project_owner_email. Renaming the project would require updating many task\nrows; missing one creates contradictory copies of the same fact. A normalized model stores the project facts once and lets tasks\nreference the project.\n\nThe useful idea behind 1NF, 2NF and 3NF\nForm                     Practical intuition\n\n1NF                      Store values in a queryable table shape; avoid repeating groups packed into one column.\n\n2NF                      When a key has multiple columns, non-key facts should depend on the whole key.\n\n3NF                      Non-key facts should describe the row identified by the key, not another non-key fact.\n\nYou do not need to chant normal forms while coding. The professional habit is to ask: What fact does this row represent?\nWhere is that fact authoritative? What contradictions become possible if I duplicate it?\n\nDenormalization is a trade-off, not a failure\nSometimes duplicated or precomputed data is deliberately introduced for performance, reporting or historical snapshots. That is\na design decision with synchronization costs. First understand the normalized source of truth; then denormalize when a\nmeasured requirement justifies it.\n\nSchema evolution is inevitable\nProduction schemas change as requirements change. PostgreSQL supports ALTER TABLE operations, but application teams\nnormally record schema changes as versioned migrations so environments can advance in a repeatable order. Phase 09 shows\nhow Prisma migrations become that change history for TaskFlow.\nSchema evolution examples\n\nALTER TABLE tasks\nADD COLUMN due_at timestamptz;\n\nALTER TABLE tasks\nADD CONSTRAINT tasks_title_not_blank\nCHECK (length(btrim(title)) > 0);\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                            Normalization and Schema Evolution\n\nA migration is not just the final schema\nThe final schema answers what the database looks like now. Migration history answers how an existing database gets from an\nolder valid state to the new valid state. Those are different concerns.\n\nRenames, destructive changes and data backfills\n●    Adding a nullable column is usually easier than immediately adding a required column to a table that already contains rows.\n●    Changing a column type can require conversion and may lock or rewrite data depending on the operation.\n●    Dropping a column destroys stored information; production migrations need backups, rollout planning and application\ncompatibility.\n●    Large data backfills are operational work, not merely schema syntax.\n●    Application deployment and database migration order can matter when old and new application versions overlap.\n\nPreview of Prisma migrations\n\nPrisma will later generate migration SQL for many schema changes, but generated SQL is still database change code. A\nprofessional developer reviews what it will do instead of treating migrations as a magic button.",
+      "wordCount": 555,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Normalization and Schema Evolution in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Normalization and Schema Evolution” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Missing composite uniqueness on membership-like tables",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Normalization and Schema Evolution” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Normalization and Schema Evolution solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "taskflow-data-modeling-lab",
+      "title": "TaskFlow Data Modeling Lab",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 TaskFlow Data Modeling Lab VOLUME 03 - DATABASE ENGINEERING TaskFlow Data Modeling Lab Translate product questions into tables, constraints, joins and indexes Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic database commands…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                     TaskFlow Data Modeling Lab\n\nVOLUME 03 - DATABASE ENGINEERING\n\nTaskFlow Data Modeling Lab\nTranslate product questions into tables, constraints, joins and indexes\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 7 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                          TaskFlow Data Modeling Lab\n\nTaskFlow practice schema - not the final production schema\nThis lab uses a deliberately small relational model so you can reason about real application questions. Phase 10 will design the\nfinal TaskFlow model after Supabase and Prisma are available. Do not prematurely copy this practice schema into production.\n\nRelationships are data rules, not drawing decorations.\n\nprojects                                    tasks                                    comments\n\nid PK                                      id PK                                      id PK\nname                                   project_id FK                               task_id FK\n\none project                               many tasks                             many comments\n\nRelational database\n\ntables + constraints + relationships + transactions\n\nFigure - A relational schema stores facts in tables and uses keys/constraints to preserve valid relationships.\n\nPractice schema\n\nCREATE TABLE practice_projects (\nid bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\nname text NOT NULL UNIQUE,\ncreated_at timestamptz NOT NULL DEFAULT now()\n);\n\nCREATE TABLE practice_tasks (\nid bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\nproject_id bigint NOT NULL REFERENCES practice_projects(id),\ntitle text NOT NULL,\ncompleted boolean NOT NULL DEFAULT false,\npriority smallint NOT NULL DEFAULT 2 CHECK (priority BETWEEN 1 AND 3),\ndue_at timestamptz,\ncreated_at timestamptz NOT NULL DEFAULT now()\n);\n\nTurn product questions into relational questions\nProduct question                                   Database question\n\nShow open tasks for one project                    Filter practice_tasks by project_id and completed.\n\nShow project name beside each task                 Join tasks to projects through project_id.\n\nCount open tasks per project                       Filter, group by project and count.\n\nDelete a project                                   What should happen to its tasks? Choose FK action from product meaning.\n\nSort upcoming work                                 Order by due_at while deciding how NULL due dates should appear.\n\nFind high-priority incomplete tasks quickly        Which query pattern might justify a composite index?\n\nSeed practice rows\nPractice seed data\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                       TaskFlow Data Modeling Lab\n\nINSERT INTO practice_projects (name)\nVALUES ('Course'), ('Portfolio')\nRETURNING id, name;\n\nINSERT INTO practice_tasks (project_id, title, priority)\nVALUES\n(1, 'Learn relational modeling', 1),\n(1, 'Practice joins', 2),\n(2, 'Build portfolio project', 1);\n\nQuery 1 - open tasks for a project\nProject task list\n\nSELECT id, title, priority\nFROM practice_tasks\nWHERE project_id = 1\nAND completed = false\nORDER BY priority, created_at;\n\nQuery 2 - project dashboard counts\nSimple project dashboard\n\nSELECT\np.id,\np.name,\ncount(t.id) FILTER (WHERE t.completed = false) AS open_tasks,\ncount(t.id) FILTER (WHERE t.completed = true) AS done_tasks\nFROM practice_projects AS p\nLEFT JOIN practice_tasks AS t ON t.project_id = p.id\nGROUP BY p.id, p.name\nORDER BY p.name;\n\nAdd an index because of a query, not because of a column\nIndex tied to a repeated query pattern\n\nCREATE INDEX practice_tasks_project_completed_idx\nON practice_tasks (project_id, completed);\n\nThis index is justifiable if TaskFlow repeatedly requests tasks by project and completion state. It is not automatically justified\nmerely because those columns exist.\n\nThink before final schema design\n●    Should project names be globally unique, or only unique inside a workspace? The answer changes the UNIQUE constraint.\n●    Should deleting a project delete tasks, prevent deletion, archive the project, or move tasks elsewhere? This changes\nreferential and application behavior.\n●    Should priority be numeric, an enum-like text value, or its own table? Choose based on domain requirements, not aesthetic\npreference.\n●    Should tasks have one assignee or many? That changes relationship cardinality.\n●    Should completed_at be derived from completed, or stored as historical information? The business meaning matters.\n\nENGINEERING HABIT\n\nSchema design is product design expressed as persistent rules. Every key, nullability choice, constraint and cascade policy\nencodes assumptions about the domain.",
+      "wordCount": 626,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain TaskFlow Data Modeling Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “TaskFlow Data Modeling Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "N+1 query patterns hidden by application loops",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TaskFlow Data Modeling Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TaskFlow Data Modeling Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "sql-safety-debugging-and-practical-workflow",
+      "title": "SQL Safety Debugging and Practical Workflow",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 SQL Safety, Debugging and Practical Workflow VOLUME 03 - DATABASE ENGINEERING SQL Safety, Debugging and Practical Workflow Operate the database carefully and isolate failures by layer Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                  SQL Safety, Debugging and Practical Workflow\n\nVOLUME 03 - DATABASE ENGINEERING\n\nSQL Safety, Debugging and Practical\nWorkflow\nOperate the database carefully and isolate failures by layer\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 8 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                       SQL Safety, Debugging and Practical Workflow\n\nSQL is powerful enough to damage data\nThe same language that updates one Todo can update every Todo. Professional database work therefore combines precise SQL\nwith observability, transactions, backups, permissions and review discipline.\n\nPreview before update or delete\nObserve the target set first\n\nSELECT id, title, completed\nFROM tasks\nWHERE project_id = 10\nAND completed = false;\n\n-- After verifying the target set:\nUPDATE tasks\nSET completed = true\nWHERE project_id = 10\nAND completed = false\nRETURNING id, title;\n\nProduction safety\n\nFor high-impact operations, use an explicit transaction, inspect the affected rows, and commit only when the result matches your\nintention. On production systems, permissions and operational procedures should further limit dangerous direct writes.\n\nParameterized queries prevent data from becoming SQL\ncode\nApplication code should not build SQL by concatenating untrusted strings. Database drivers and ORMs support parameterized\nqueries so user input is transmitted as data rather than executable SQL structure. Prisma later handles normal parameterization\nfor us, but understanding the security boundary still matters.\nParameter placeholder concept\n\n-- Conceptual parameterized SQL\nSELECT id, title\nFROM tasks\nWHERE title ILIKE $1;\n\n-- $1 is a bound parameter, not concatenated SQL text.\n\nDebug SQL layer by layer\n1      Schema: Does the table/column actually exist, and is the expected migration applied?\n2      Type: Are values compatible with the target column type?\n3      Constraint: Which NOT NULL, CHECK, UNIQUE or FOREIGN KEY rule rejected the write?\n4      Data: Does the row you expect actually exist?\n5      Query: Does WHERE match the rows you think it matches?\n6      Transaction: Is the transaction committed, rolled back, blocked or already failed?\n7      Plan/performance: Is the query logically correct but doing far more work than expected?\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                         SQL Safety, Debugging and Practical Workflow\n\nCommon PostgreSQL errors are useful evidence\nFailure                                             What to investigate\n\nduplicate key violates unique constraint            Which uniqueness rule exists? Is the duplicate expected or a race?\n\nviolates foreign key constraint                     Does the referenced parent exist? Is the relationship ID correct?\n\nnull value violates not-null constraint             Which required field was omitted? Should it truly be required?\n\nviolates check constraint                           Which domain rule rejected the candidate value?\n\nrelation does not exist                             Wrong schema/database, missing migration or misspelled object?\n\ncolumn does not exist                               Schema mismatch, typo or application ahead of database migration?\n\nUse psql as an observable client when available\nIllustrative psql workflow\n\npsql \"$env:DATABASE_URL\"\n\n\\dt\n\\d practice_tasks\nSELECT current_database();\n\nPhase 08 will provide the real Supabase connection context. The important idea now is that psql is simply another PostgreSQL\nclient: it lets you inspect schema and execute SQL without involving NestJS or Prisma, which is invaluable for isolating\ndatabase-layer problems.\n\nDo not optimize the wrong query\n●     First prove the query returns the correct rows.\n●     Then measure the workload and inspect EXPLAIN output.\n●     Add or adjust an index because of repeated query patterns, not because a blog post says every foreign key must have the\nsame index shape.\n●     Remember that indexes speed some reads while increasing storage and write maintenance.\n●     Do not use application-side loops to replace joins/aggregates when the database can answer the set-based question directly.\n\nUse EXPLAIN to inspect the plan, not to guess\nInspect a query plan\n\nEXPLAIN\nSELECT id, title\nFROM tasks\nWHERE project_id = 10\nAND completed = false;\n\nPerformance rule\n\nMeasure before optimizing. A sequential scan on a tiny table can be completely reasonable. The goal is not to force index usage;\nthe goal is to give PostgreSQL good data structures and let the planner choose an efficient plan.\n\nDatabase debugging boundary\n\nIf a SELECT returns the wrong rows in psql, the problem is below Next.js and NestJS. If the SQL is correct in psql but the API\nreturns something else, move one layer upward. This boundary-based method prevents random full-stack debugging.",
+      "wordCount": 706,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain SQL Safety Debugging and Practical Workflow in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “SQL Safety Debugging and Practical Workflow” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes without understanding query patterns",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “SQL Safety Debugging and Practical Workflow” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does SQL Safety Debugging and Practical Workflow solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "exercises-and-phase-exit",
+      "title": "Exercises and Phase Exit",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07 Exercises and Phase Exit VOLUME 03 - DATABASE ENGINEERING Exercises and Phase Exit SQL practice, relational design drills and the Phase 08 readiness standard Persistence becomes understandable when the database stops being magic. Application SQL / ORM PostgreSQL NestJS business logic…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                          Exercises and Phase Exit\n\nVOLUME 03 - DATABASE ENGINEERING\n\nExercises and Phase Exit\nSQL practice, relational design drills and the Phase 08 readiness standard\n\nPersistence becomes understandable when the database stops being magic.\n\nApplication                            SQL / ORM                              PostgreSQL\n\nNestJS business logic                   database commands                     durable relational state\n\nPhase 07 focus\n\nunderstand the database before Prisma\n\nFigure - Phase 07 isolates PostgreSQL fundamentals so later ORM code has a clear relational meaning.\n\nBook 9 of Phase 07\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                   Exercises and Phase Exit\n\nActive recall - explain before looking back\n●      What is the difference between a database, schema, table, row and column?\n●      Why is NULL not equivalent to an empty string or false?\n●      What invariant does a primary key protect?\n●      What invariant does a foreign key protect?\n●      Why does PostgreSQL not automatically index the referencing side of every foreign key?\n●      When would LEFT JOIN answer a different product question than INNER JOIN?\n●      Why can UPDATE or DELETE without WHERE be valid and dangerous at the same time?\n●      What does a transaction protect that two unrelated SQL statements do not?\n●      Why can adding an index improve reads but make writes more expensive?\n●      What problem is normalization trying to reduce?\n●      Why are migration history and final schema different artifacts?\n●      Why should application code use parameters instead of concatenating user input into SQL?\n\nLevel 1 - Follow\n1      Write CREATE TABLE statements for a project and task table with primary key, NOT NULL title, completed default and\nproject foreign key.\n2      Write INSERT statements for two projects and three tasks.\n3      Write a SELECT for incomplete tasks in one project ordered by priority.\n4      Write an UPDATE that completes exactly one task and returns the modified row.\n5      Write a DELETE that removes exactly one task and returns its id.\n\nLevel 2 - Modify\n1      Add an optional due_at timestamptz column and query only tasks with a due date.\n2      Add a CHECK constraint that allows priority values 1 through 3.\n3      Add a UNIQUE rule appropriate for a practice label table.\n4      Change a query so projects with zero tasks still appear in the result.\n5      Add a useful index for a repeated query that filters by project_id and completed.\n\nLevel 3 - Implement\nDesign a small labels feature without copying a solution. A task can have many labels and a label can belong to many tasks.\nProduce the tables, keys, constraints, join table, one INSERT flow and one JOIN query that returns task titles with label names.\n\nLevel 4 - Engineer\nTaskFlow needs project archiving. Archived projects should remain queryable for audit/history, ordinary task lists should\nexclude them, and users must not accidentally create new tasks in archived projects. Decide which rules belong in the database\nand which belong in NestJS business logic. Document your reasoning; there may be more than one defensible design.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 07                                                                         Exercises and Phase Exit\n\nDebugging drills\nScenario                                          First question\n\nINSERT fails with duplicate key                   Which UNIQUE/PK rule was violated and is the conflict expected?\n\nTask references project 999 and fails             Does project 999 exist? Should orphan tasks ever be legal?\n\nDELETE project fails due to tasks                 Is RESTRICT/NO ACTION the intended domain behavior?\n\nQuery shows duplicate project rows                Did a one-to-many JOIN multiply the parent row?\n\nDashboard count is wrong                          Are you filtering before/after grouping correctly?\n\nQuery became slow as data grew                    What does EXPLAIN show and which access pattern dominates?\n\nPhase 07 exit checklist\n●     [ ] You can explain relational tables and durable invariants without mentioning Prisma.\n●     [ ] You can choose practical types for text, booleans, numbers and timestamps.\n●     [ ] You understand NULL and use IS NULL correctly.\n●     [ ] You can distinguish PK, FK, UNIQUE, NOT NULL and CHECK responsibilities.\n●     [ ] You can write basic SELECT, INSERT, UPDATE and DELETE statements safely.\n●     [ ] You can write an INNER JOIN and explain when a LEFT JOIN is required.\n●     [ ] You can explain BEGIN, COMMIT and ROLLBACK.\n●     [ ] You can justify an index from a query pattern and name its write/storage cost.\n●     [ ] You can identify duplicated durable facts and propose a more normalized model.\n●     [ ] You understand that schema changes will later be captured as migrations.\n●     [ ] You can debug database problems independently of Next.js and NestJS.\n\nNEXT: PHASE 08 - SUPABASE POSTGRESQL\n\nWe now understand the database itself. Phase 08 will provision and explore the real managed PostgreSQL environment in\nSupabase: project creation, connection modes, credentials, SQL Editor, psql connectivity, environment secrets and the operational\nboundary between our app and its database.",
+      "wordCount": 736,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating IDs as the only integrity mechanism",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nUse relational modeling and SQL deliberately: keys, constraints, joins, transactions, indexes, and query reasoning.",
+      "body": "Guided Build Lab — Phase 07: PostgreSQL Fundamentals\n\nPurpose\nUse relational modeling and SQL deliberately: keys, constraints, joins, transactions, indexes, and query reasoning.\n\nDeliverable\nA TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nBusiness invariant -> table design -> key/constraint -> SQL query -> query plan/index -> transaction -> durable rows\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create a small local schema and insert data that exercises one-to-many and many-to-many relationships.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Write joins by hand and predict row counts before executing them.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Add unique/check/not-null constraints and intentionally violate each to observe database enforcement.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Wrap a multi-step change in a transaction and prove rollback preserves consistency.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Create an index for a real filter/sort pattern and compare EXPLAIN output conceptually.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npsql --version\npsql -h 127.0.0.1 -U <user> -d <db>\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 693,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Missing composite uniqueness on membership-like tables",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 07: PostgreSQL Fundamentals\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nBusiness invariant -> table design -> key/constraint -> SQL query -> query plan/index -> transaction -> durable rows\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Treating IDs as the only integrity mechanism\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Missing composite uniqueness on membership-like tables\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — N+1 query patterns hidden by application loops\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Adding indexes without understanding query patterns\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 448,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "N+1 query patterns hidden by application loops",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 07 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — PostgreSQL Fundamentals\n\nMission\nRebuild the capability of Phase 07 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nUse relational modeling and SQL deliberately: keys, constraints, joins, transactions, indexes, and query reasoning.\n\nRequired artifact\nA TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can read and write core SQL.\n• Can choose keys and cardinality.\n• Can explain transaction atomicity.\n• Can justify an index from a query.\n\nIndependent build sequence\n1. Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.\n2. Create a small local schema and insert data that exercises one-to-many and many-to-many relationships.\n3. Write joins by hand and predict row counts before executing them.\n4. Add unique/check/not-null constraints and intentionally violate each to observe database enforcement.\n5. Wrap a multi-step change in a transaction and prove rollback preserves consistency.\n6. Create an index for a real filter/sort pattern and compare EXPLAIN output conceptually.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 372,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding indexes without understanding query patterns",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 07 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 07: PostgreSQL Fundamentals. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 201,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Use relational modeling and SQL deliberately: keys, constraints, joins, transactions, indexes, and query reasoning.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Business invariant",
+          "table design",
+          "key/constraint",
+          "SQL query",
+          "query plan/index",
+          "transaction",
+          "durable rows"
+        ],
+        "steps": [
+          "Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.",
+          "Create a small local schema and insert data that exercises one-to-many and many-to-many relationships.",
+          "Write joins by hand and predict row counts before executing them.",
+          "Add unique/check/not-null constraints and intentionally violate each to observe database enforcement.",
+          "Wrap a multi-step change in a transaction and prove rollback preserves consistency.",
+          "Create an index for a real filter/sort pattern and compare EXPLAIN output conceptually.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can read and write core SQL",
+          "Can choose keys and cardinality",
+          "Can explain transaction atomicity",
+          "Can justify an index from a query"
+        ],
+        "breakIt": [
+          "Treating IDs as the only integrity mechanism",
+          "Missing composite uniqueness on membership-like tables"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/SQL_Practice/00_practice_schema.sql",
+      "preview": "-- Phase 07 practice schema - not the final TaskFlow production schema.\n\nCREATE TABLE practice_projects (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  name text NOT NULL UNIQUE,\n  created_at timestamptz NOT NULL DEFAULT now()\n);\n\nCREATE TABLE practice_tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  project_id bigint NOT NULL REFERENCES practice_projects(id),\n  title text NOT NULL,\n  completed boolean NOT NULL DEFAULT false,\n  priority smallint NOT NULL DEFAULT 2 CHECK (priority BETWEEN 1 AND 3),\n  due_at timestamptz,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  CONSTRAINT practice_tasks_title_not_blank CHECK (length(btrim(title)) > 0)\n);\n\nCREATE INDEX practice_tasks_project_completed_idx"
+    },
+    {
+      "path": "reference/SQL_Practice/01_seed_and_crud.sql",
+      "preview": "INSERT INTO practice_projects (name)\nVALUES ('Course'), ('Portfolio')\nRETURNING id, name;\n\nINSERT INTO practice_tasks (project_id, title, priority)\nVALUES\n  (1, 'Learn relational modeling', 1),\n  (1, 'Practice joins', 2),\n  (2, 'Build portfolio project', 1)\nRETURNING id, project_id, title, priority;\n\nSELECT id, title, completed, priority\nFROM practice_tasks\nORDER BY id;\n\nUPDATE practice_tasks\nSET completed = true\nWHERE id = 1\nRETURNING id, title, completed;"
+    },
+    {
+      "path": "reference/SQL_Practice/02_queries_and_joins.sql",
+      "preview": "SELECT\n  t.id,\n  t.title,\n  t.priority,\n  p.name AS project_name\nFROM practice_tasks AS t\nJOIN practice_projects AS p ON p.id = t.project_id\nWHERE t.completed = false\nORDER BY t.priority, t.created_at;\n\nSELECT\n  p.id,\n  p.name,\n  count(t.id) FILTER (WHERE t.completed = false) AS open_tasks,\n  count(t.id) FILTER (WHERE t.completed = true) AS done_tasks\nFROM practice_projects AS p\nLEFT JOIN practice_tasks AS t ON t.project_id = p.id\nGROUP BY p.id, p.name\nORDER BY p.name;"
+    },
+    {
+      "path": "reference/SQL_Practice/03_transaction_practice.sql",
+      "preview": "BEGIN;\n\nUPDATE practice_tasks\nSET completed = true\nWHERE id = 2\nRETURNING id, title, completed;\n\n-- Use COMMIT when the complete workflow is correct.\n-- Use ROLLBACK while practicing if you want to discard the change.\nROLLBACK;"
+    },
+    {
+      "path": "reference/SQL_Practice/04_cleanup.sql",
+      "preview": "DROP TABLE IF EXISTS practice_tasks;\nDROP TABLE IF EXISTS practice_projects;"
+    },
+    {
+      "path": "reference/SQL_Practice/README.txt",
+      "preview": "Phase 07 SQL Practice\n\nThese scripts are educational examples for PostgreSQL fundamentals.\nThey are intentionally not the final TaskFlow schema.\n\nSuggested order once you have a PostgreSQL database in Phase 08:\n1. 00_practice_schema.sql\n2. 01_seed_and_crud.sql\n3. 02_queries_and_joins.sql\n4. 03_transaction_practice.sql\n5. 04_cleanup.sql (only when you intentionally want to remove the practice tables)\n\nDo not run destructive SQL against a database you have not verified."
+    }
+  ],
+  "exercises": [
+    "Guided: Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.",
+    "Practice: Write joins by hand and predict row counts before executing them.",
+    "Debugging: reproduce and diagnose — Treating IDs as the only integrity mechanism.",
+    "Independent: deliver A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.",
+    "Explain-back: Can read and write core SQL and Can choose keys and cardinality."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Model data around entities, relationships, constraints, and access patterns before writing application queries.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Model data around entities, relationships, constraints, and access patterns before writing application queries."
+    },
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Use transactions when multiple writes must succeed or fail as one unit.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Use transactions when multiple writes must succeed or fail as one unit."
+    },
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Add indexes to support real query patterns, not every column indiscriminately."
+      ],
+      "answer": 3,
+      "explanation": "Add indexes to support real query patterns, not every column indiscriminately."
+    },
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Let database constraints defend invariants that must remain true regardless of application code.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Let database constraints defend invariants that must remain true regardless of application code."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating IDs as the only integrity mechanism.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Missing composite uniqueness on membership-like tables.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a small local schema and insert data that exercises one-to-many and many-to-many relationships."
+      ],
+      "answer": 3,
+      "explanation": "Create a small local schema and insert data that exercises one-to-many and many-to-many relationships."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: N+1 query patterns hidden by application loops.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write joins by hand and predict row counts before executing them.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write joins by hand and predict row counts before executing them."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add unique/check/not-null constraints and intentionally violate each to observe database enforcement.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Adding indexes without understanding query patterns."
+      ],
+      "answer": 1,
+      "explanation": "Add unique/check/not-null constraints and intentionally violate each to observe database enforcement."
+    }
+  ],
+  "lessonCount": 13,
+  "wordCount": 7105
+}

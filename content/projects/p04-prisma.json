@@ -1,0 +1,40 @@
+{
+  "number": 10,
+  "track": "p04-prisma",
+  "slug": "p04-prisma",
+  "title": "Add Prisma without Losing the Database Mental Model",
+  "goal": "Map the known PostgreSQL design into Prisma, inspect generated SQL, and build persistent task operations safely.",
+  "deliverables": [
+    "schema.prisma",
+    "Prisma client/service",
+    "migration",
+    "seed",
+    "relations",
+    "transaction",
+    "safe schema change"
+  ],
+  "steps": [
+    "Model the existing tables in `schema.prisma`.",
+    "Generate the client and inspect where generated types come from.",
+    "Create PrismaService in NestJS and prove connection startup/shutdown behavior.",
+    "Create a development migration and open the generated SQL before applying it.",
+    "Seed realistic TaskFlow data.",
+    "Implement one relation query and inspect its SQL/query count.",
+    "Use a transaction for one multi-write operation.",
+    "Simulate a dangerous NOT NULL change and rewrite it as expand \u2192 backfill \u2192 verify \u2192 contract.",
+    "Document the production migration sequence separately from local `migrate dev`."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

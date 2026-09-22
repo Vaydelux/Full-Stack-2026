@@ -1,0 +1,1074 @@
+{
+  "number": 13,
+  "slug": "phase-13",
+  "title": "Professional Error Handling",
+  "volume": 4,
+  "readme": "FULL-STACK DEVELOPER 2026\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nThis phase continues Phase 12's validated persistent Task API.\nIt introduces a stable API error envelope, Fastify request correlation, NestJS 12 structured logging, a global exception filter, safe Prisma 7 error translation, and frontend error consumption.\n\nCourse locks remain:\n- NestJS 12.0.3\n- Fastify 5.x course line\n- Prisma 7.9.1\n- Zod 4.6.5\n\nStart with 00_Phase_13_Guide.pdf or read 11_Phase_13_Complete_Book.pdf.\nThe reference snapshot contains Phase 13 changed files and assumes the Phase 12 project already exists.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "error-taxonomy-and-api-contract",
+      "title": "Error Taxonomy and API Contract",
+      "summary": "Error Taxonomy & API Contract Expected failures, unexpected faults, HTTP semantics, machine codes, and public error design Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone Failure occurs ↓ Classify meaning ↓ Choose safe status/code ↓ Return stable contract Phase 13…",
+      "body": "Error Taxonomy & API Contract\nExpected failures, unexpected faults, HTTP semantics, machine codes, and public\nerror design\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nFailure occurs\n\n↓\n\nClassify meaning\n\n↓\n\nChoose safe status/code\n\n↓\n\nReturn stable contract\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nNot every failure is the same\nProfessional error handling begins by classifying failures before choosing a status code or message. Treating\nevery exception as a generic 500 makes the API hard to use. Treating every failure as a client mistake hides\nreal server faults.\n\nCategory                        Example                                                Expected handling\n\nInvalid request                 blank title, malformed UUID                            400 with validation details\n\nMissing resource                valid Task ID does not exist                           404 with domain code\n\nState conflict                  duplicate unique value / relation conflict             409\n\nAuthentication later            missing/invalid token                                  401\n\nAuthorization later             identity lacks permission                              403\n\nUnexpected fault                bug, unavailable dependency, unknown exception         500 sanitized to client\n\nFigure 1 - Expected failure vs unexpected fault\nRequest enters system\n\n↓\n\nCan the application explain the failure safely?\n\n↓\n\nYes -> stable 4xx response\n\n↓\n\nNo -> log diagnostics internally\n\n↓\n\nReturn sanitized 500\n\nA client-facing API should expose actionable contract information without exposing server internals.\n\nStatus code is not the whole contract\nTwo 404 responses can mean different application situations. A stable application error code lets clients\ndistinguish them without parsing English text.\n\n{\n\"statusCode\": 404,\n\"code\": \"TASK_NOT_FOUND\",\n\"message\": \"Task ... was not found.\",\n\"requestId\": \"7\",\n\"timestamp\": \"2026-09-18T...Z\",\n\"path\": \"/tasks/...\"\n}\n\nHuman message vs machine code\n\nField                                Purpose\n\nstatusCode                           HTTP semantics; proxies, clients and tooling understand it\n\ncode                                 Stable machine-readable application meaning\n\nmessage                              Human-readable explanation\n\ndetails                              Optional structured validation information\n\nrequestId                            Correlation between client failure and server log\n\ntimestamp                            When the server produced the error\n\npath                                 Which endpoint failed\n\nDo not parse English messages\n\nFrontend code should branch on statusCode or code, not on exact English wording such as message.includes(\"not\nfound\"). Messages can change for clarity; stable codes are the contract.\n\nError handling is a boundary concern\nBusiness services should explain domain failures. The global exception boundary should format those failures\nfor HTTP. Database adapters should not dictate the public API. This separation prevents infrastructure-specific\nerror text from becoming a client contract.",
+      "wordCount": 364,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Error Taxonomy and API Contract in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Error Taxonomy and API Contract matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Error Taxonomy and API Contract” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning raw exception messages/stacks",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Error Taxonomy and API Contract” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Error Taxonomy and API Contract solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "nestjs-exception-layer-and-request-lifecycle",
+      "title": "NestJS Exception Layer and Request Lifecycle",
+      "summary": "NestJS Exception Layer & Request Lifecycle How filters fit into NestJS 12 request processing and why global error boundaries beat repetitive try/catch Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone request ↓ guards/interceptors/pipes ↓ controller/service ↓ uncaught exception ↓ filter…",
+      "body": "NestJS Exception Layer & Request\nLifecycle\nHow filters fit into NestJS 12 request processing and why global error boundaries beat\nrepetitive try/catch\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nrequest\n\n↓\n\nguards/interceptors/pipes\n\n↓\n\ncontroller/service\n\n↓\n\nuncaught exception\n\n↓\n\nfilter\n\n↓\n\nresponse\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nNestJS already has an exception layer\nNest catches unhandled exceptions after request processing and converts HttpException subclasses into\nHTTP responses. Unknown errors become a generic 500. Exception filters exist when an application needs\nmore control over response shape, logging, or error translation.\n\nFigure 1 - Relevant request lifecycle\nIncoming request\n\n↓\n\nmiddleware\n\n↓\n\nguards\n\n↓\n\ninterceptors (before)\n\n↓\n\npipes / validation\n\n↓\n\ncontroller\n\n↓\n\nservice\n\n↓\n\ninterceptors (after)\n\n↓\n\nexception filters when an uncaught exception occurs\n\n↓\n\nHTTP response\n\nThe filter is the final HTTP error boundary for exceptions that were not already handled.\n\nWhy not try/catch every controller?\n• Controllers become repetitive and harder to read.\n\n• Validation errors happen before many controller handlers run.\n\n• Infrastructure errors can escape from deeper providers.\n\n• Response formatting drifts between endpoints.\n\n• A global filter centralizes HTTP error serialization without forcing all business logic into the filter.\n\nHttpException is already useful\n\nNestJS exceptions such as BadRequestException, NotFoundException, ConflictException,\nUnauthorizedException, and ForbiddenException communicate HTTP intent. TaskFlow keeps using those\nconcepts, but enriches selected exceptions with stable application codes.\n\nthrow new NotFoundException({\ncode: \"TASK_NOT_FOUND\",\nmessage: `Task ${taskId} was not found.`,\n});\n\nCatch everything - carefully\nA @Catch() filter can normalize both known and unknown errors. The filter must not accidentally expose stack\ntraces, SQL, credentials, or raw Prisma messages to clients. Unknown faults should be logged internally and\nreturned as a generic 500 response.\n\nFastify-friendly implementation\n\nNestJS documents a platform-agnostic catch-all filter using HttpAdapterHost. TaskFlow follows that pattern instead\nof calling Express response.json(), so the code remains correct with the Fastify adapter selected earlier in the\ncourse.\n\nGlobal registration through dependency injection\nBecause our filter needs HttpAdapterHost and our interceptor needs Logger behavior, register them as\nAPP_FILTER / APP_INTERCEPTOR providers rather than manually creating ad-hoc instances throughout\ncontrollers.\n\nproviders: [\n{\nprovide: APP_INTERCEPTOR,\nuseClass: RequestLoggingInterceptor,\n},\n{\nprovide: APP_FILTER,\nuseClass: ApiExceptionFilter,\n},\n]",
+      "wordCount": 348,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "nest",
+        "objectives": [
+          "Explain NestJS Exception Layer and Request Lifecycle in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this nest concept.",
+          "Diagnose one representative nest failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "NestJS structure becomes valuable when the request pipeline and responsibility of controllers, services, guards, pipes, and providers are explicit rather than magical.",
+        "mentalModel": [
+          "HTTP request",
+          "Fastify adapter",
+          "Nest pipeline",
+          "controller",
+          "service",
+          "response"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS Exception Layer and Request Lifecycle” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP request → Fastify adapter → Nest pipeline → controller → service → response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Controller delegates; service owns application behavior",
+          "code": "@Controller(\"tasks\")\nexport class TasksController {\n  constructor(private readonly tasks: TasksService) {}\n\n  @Get()\n  findAll() {\n    return this.tasks.findAll();\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Catching everything inside each controller",
+          "Change one assumption in the nest example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Nest cannot resolve dependencies",
+            "investigation": "Read the constructor index in the error, then check provider registration, module imports, and exports in that order."
+          },
+          {
+            "symptom": "Endpoint not reached",
+            "investigation": "Confirm method/path, controller registration, global prefix, and guard/pipe behavior using request logs."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS Exception Layer and Request Lifecycle” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS Exception Layer and Request Lifecycle solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the nest boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "design-the-taskflow-error-envelope",
+      "title": "Design the TaskFlow Error Envelope",
+      "summary": "Design the TaskFlow Error Envelope statusCode, code, message, details, requestId, timestamp, and path Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone failure ↓ normalized API error ↓ client + support correlation Phase 13 creates one professional exception boundary and a…",
+      "body": "Design the TaskFlow Error Envelope\nstatusCode, code, message, details, requestId, timestamp, and path\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nfailure\n\n↓\n\nnormalized API error\n\n↓\n\nclient + support correlation\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nDesign the TaskFlow error envelope\nThe API now needs a format that is useful to browser code, PowerShell tests, future mobile clients, and\nproduction logs. Keep it small. Every field should answer a real debugging or client-handling question.\n\nexport type ApiErrorDetails = string[] | Record<string, unknown>;\n\nexport type ApiErrorResponse = {\nstatusCode: number;\ncode: string;\nmessage: string;\nrequestId: string;\ntimestamp: string;\npath: string;\ndetails?: ApiErrorDetails;\n};\n\nExamples by failure type\n// 400 validation\n{\n\"statusCode\": 400,\n\"code\": \"BAD_REQUEST\",\n\"message\": \"Request validation failed.\",\n\"details\": [\"title: String must contain at least 1 character(s)\"],\n\"requestId\": \"12\",\n\"timestamp\": \"...\",\n\"path\": \"/tasks\"\n}\n\n// 404 domain failure\n{\n\"statusCode\": 404,\n\"code\": \"TASK_NOT_FOUND\",\n\"message\": \"Task 123... was not found.\",\n\"requestId\": \"13\",\n\"timestamp\": \"...\",\n\"path\": \"/tasks/123...\"\n}\n\n// 500 unexpected fault\n{\n\"statusCode\": 500,\n\"code\": \"INTERNAL_ERROR\",\n\"message\": \"An unexpected server error occurred.\",\n\"requestId\": \"14\",\n\"timestamp\": \"...\",\n\"path\": \"/tasks\"\n}\n\nWhy requestId belongs in the client response\nWhen a user reports a failure, “it broke at 2:13 AM” is weak evidence. A request identifier gives support and\nengineering teams an exact correlation key that can be searched in server logs.\n\nFigure 1 - Correlation workflow\nClient receives requestId = 14\n\n↓\n\nSupport includes 14 in bug report\n\n↓\n\nEngineer searches structured logs for requestId 14\n\n↓\n\nServer log shows method, path, status, exception context\n\nA correlation identifier connects a sanitized public response to private server diagnostics without exposing those diagnostics.\n\nDo not overstuff the contract\nAvoid sending implementation fields such as Prisma stack, database host, migration name, SQL statement,\nsource file path, or environment variable values. They belong in protected logs, not the public transport\ncontract.",
+      "wordCount": 299,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Design the TaskFlow Error Envelope in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Design the TaskFlow Error Envelope” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using one generic 400 for semantically different failures",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Design the TaskFlow Error Envelope” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Design the TaskFlow Error Envelope solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "request-ids-and-structured-logging",
+      "title": "Request IDs and Structured Logging",
+      "summary": "Request IDs & Structured Logging Use Fastify request IDs, response headers, timing, and NestJS 12 structured logger metadata Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone Fastify request.id ↓ interceptor ↓ x-request-id + success log ↓ exception filter for failures…",
+      "body": "Request IDs & Structured Logging\nUse Fastify request IDs, response headers, timing, and NestJS 12 structured logger\nmetadata\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nFastify request.id\n\n↓\n\ninterceptor\n\n↓\n\nx-request-id + success log\n\n↓\n\nexception filter for failures\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nFastify already gives every request an ID\nFastify Request includes an id field. We can reuse it as the TaskFlow correlation identifier instead of inventing a\nseparate request-context system during this phase.\n\nimport {\nCallHandler,\nExecutionContext,\nInjectable,\nLogger,\nNestInterceptor,\n} from \"@nestjs/common\";\nimport { FastifyReply, FastifyRequest } from \"fastify\";\nimport { Observable } from \"rxjs\";\nimport { tap } from \"rxjs/operators\";\n\n@Injectable()\nexport class RequestLoggingInterceptor implements NestInterceptor {\nprivate readonly logger = new Logger(RequestLoggingInterceptor.name);\n\nintercept(\ncontext: ExecutionContext,\nnext: CallHandler,\n): Observable<unknown> {\nconst http = context.switchToHttp();\nconst request = http.getRequest<FastifyRequest>();\nconst reply = http.getResponse<FastifyReply>();\nconst requestId = String(request.id);\nconst startedAt = performance.now();\n\nreply.header(\"x-request-id\", requestId);\n\nreturn next.handle().pipe(\ntap(() => {\nthis.logger.log(\"Request completed\", {\nrequestId,\nmethod: request.method,\npath: request.url,\nstatusCode: reply.statusCode,\ndurationMs: Math.round(performance.now() - startedAt),\n});\n}),\n);\n}\n}\n\nWhat the interceptor owns\n• Read Fastify request.id.\n\n• Return the same identifier in the x-request-id response header for successful responses.\n\n• Measure request duration.\n\n• Write one structured completion log after successful controller execution.\n\n• Avoid swallowing exceptions; failures continue to the global exception filter.\n\nDo not blindly trust caller-provided request IDs\n\nFastify can be configured to use an incoming request-id header, but its documentation warns that callers can then\nchoose arbitrary values unless you validate them. TaskFlow keeps Fastify-generated IDs for now.\n\nNestJS 12 structured logger metadata\nNestJS 12 treats plain objects passed after the message as structured parameters. That makes metadata such\nas requestId, method, path, durationMs, and statusCode easy to keep together in one log record.\n\nthis.logger.log(\"Request completed\", {\nrequestId,\nmethod: request.method,\npath: request.url,\nstatusCode: reply.statusCode,\ndurationMs,\n});\n\nSuccess and failure logs have different owners\nThe interceptor logs successful completion. The exception filter logs rejected requests and unexpected faults\nbecause it knows the final error classification and public status code. This avoids duplicate error logs for the\nsame exception.\n\nFigure 1 - Logging split\nSuccessful request\n\n↓\n\nRequestLoggingInterceptor logs completion\n\n↓\n\nError request\n\n↓\n\nApiExceptionFilter logs rejection/fault\n\nOne event per responsibility keeps logs readable.",
+      "wordCount": 380,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "observability",
+        "objectives": [
+          "Explain Request IDs and Structured Logging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this observability concept.",
+          "Diagnose one representative observability failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Request IDs and Structured Logging matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "correlation id",
+          "structured event",
+          "metric/trace",
+          "diagnosis"
+        ],
+        "steps": [
+          "Restate the goal of “Request IDs and Structured Logging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → correlation id → structured event → metric/trace → diagnosis. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Log structured context, not prose-only strings",
+          "code": "logger.error({\n  requestId, route: request.url, userId: user?.id,\n  errorCode: error.code, durationMs,\n}, \"request failed\");"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Logging secrets/tokens with error context",
+          "Change one assumption in the observability example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Request IDs and Structured Logging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Request IDs and Structured Logging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the observability boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "global-apiexceptionfilter",
+      "title": "Global ApiExceptionFilter",
+      "summary": "Global ApiExceptionFilter Build a Fastify-compatible catch-all filter with HttpAdapterHost and safe normalization Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone exception ↓ normalize ↓ log ↓ httpAdapter.reply Phase 13 creates one professional exception boundary and a correlation story that spans…",
+      "body": "Global ApiExceptionFilter\nBuild a Fastify-compatible catch-all filter with HttpAdapterHost and safe normalization\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nexception\n\n↓\n\nnormalize\n\n↓\n\nlog\n\n↓\n\nhttpAdapter.reply\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nBuild the global ApiExceptionFilter\nThe filter is intentionally a translation boundary. It receives unknown exceptions, decides which failures are\nsafe and known, creates one public envelope, logs diagnostics, then writes the response through NestJS\nHttpAdapterHost.\n\nimport {\nArgumentsHost,\nCatch,\nExceptionFilter,\nHttpException,\nHttpStatus,\nLogger,\n} from \"@nestjs/common\";\nimport { HttpAdapterHost } from \"@nestjs/core\";\nimport { FastifyRequest } from \"fastify\";\nimport { Prisma } from \"../../generated/prisma/client\";\nimport { ApiErrorResponse } from \"./api-error-response\";\n\n@Catch()\nexport class ApiExceptionFilter implements ExceptionFilter {\nprivate readonly logger = new Logger(ApiExceptionFilter.name);\n\nconstructor(private readonly httpAdapterHost: HttpAdapterHost) {}\n\ncatch(exception: unknown, host: ArgumentsHost): void {\nconst { httpAdapter } = this.httpAdapterHost;\nconst context = host.switchToHttp();\nconst request = context.getRequest<FastifyRequest>();\nconst response = context.getResponse();\n\nconst result = this.normalize(exception);\nconst requestId = String(request.id);\nconst path = httpAdapter.getRequestUrl(request);\n\nconst body: ApiErrorResponse = {\nstatusCode: result.statusCode,\ncode: result.code,\nmessage: result.message,\nrequestId,\ntimestamp: new Date().toISOString(),\npath,\n...(result.details ? { details: result.details } : {}),\n};\n\nif (result.statusCode >= 500) {\nthis.logger.error(\"Unhandled request failure\", {\nrequestId,\n\nmethod: request.method,\npath,\nstatusCode: result.statusCode,\nexceptionName:\nexception instanceof Error ? exception.name : typeof exception,\nstack: exception instanceof Error ? exception.stack : undefined,\n});\n} else {\nthis.logger.warn(\"Request rejected\", {\nrequestId,\nmethod: request.method,\npath,\nstatusCode: result.statusCode,\ncode: result.code,\n});\n}\n\nhttpAdapter.reply(response, body, result.statusCode);\n}\n\nprivate normalize(exception: unknown): {\nstatusCode: number;\ncode: string;\nmessage: string;\ndetails?: string[] | Record<string, unknown>;\n} {\nif (exception instanceof HttpException) {\nreturn this.fromHttpException(exception);\n}\n\nif (exception instanceof Prisma.PrismaClientKnownRequestError) {\nreturn this.fromPrismaError(exception);\n}\n\nreturn {\nstatusCode: HttpStatus.INTERNAL_SERVER_ERROR,\ncode: \"INTERNAL_ERROR\",\nmessage: \"An unexpected server error occurred.\",\n};\n}\n\nprivate fromHttpException(exception: HttpException) {\n\nconst statusCode = exception.getStatus();\nconst response = exception.getResponse();\n\nif (typeof response === \"string\") {\nreturn {\nstatusCode,\ncode: this.defaultCode(statusCode),\nmessage: response,\n};\n}\n\nif (response && typeof response === \"object\") {\nconst body = response as {\ncode?: unknown;\nmessage?: unknown;\n};\n\nif (Array.isArray(body.message)) {\nreturn {\nstatusCode,\ncode: typeof body.code === \"string\"\n? body.code\n: this.defaultCode(statusCode),\nmessage: \"Request validation failed.\",\ndetails: body.message.map(String),\n};\n}\n\nif (typeof body.message === \"string\") {\nreturn {\nstatusCode,\ncode: typeof body.code === \"string\"\n? body.code\n: this.defaultCode(statusCode),\nmessage: body.message,\n};\n}\n}\n\nreturn {\nstatusCode,\ncode: this.defaultCode(statusCode),\n\nmessage: \"Request failed.\",\n};\n}\n\nprivate fromPrismaError(\nexception: Prisma.PrismaClientKnownRequestError,\n) {\nswitch (exception.code) {\ncase \"P2002\":\nreturn {\nstatusCode: HttpStatus.CONFLICT,\ncode: \"UNIQUE_CONSTRAINT_CONFLICT\",\nmessage: \"A resource with the same unique value already exists.\",\n};\n\ncase \"P2003\":\nreturn {\nstatusCode: HttpStatus.CONFLICT,\ncode: \"RELATION_CONFLICT\",\nmessage: \"The operation conflicts with an existing relationship.\",\n};\n\ncase \"P2025\":\nreturn {\nstatusCode: HttpStatus.NOT_FOUND,\ncode: \"RESOURCE_NOT_FOUND\",\nmessage: \"The requested resource was not found.\",\n};\n\ndefault:\nreturn {\nstatusCode: HttpStatus.INTERNAL_SERVER_ERROR,\ncode: \"DATABASE_ERROR\",\nmessage: \"A database operation failed.\",\n};\n}\n}\n\nprivate defaultCode(statusCode: number): string {\nswitch (statusCode) {\ncase HttpStatus.BAD_REQUEST:\nreturn \"BAD_REQUEST\";\n\ncase HttpStatus.UNAUTHORIZED:\nreturn \"UNAUTHORIZED\";\ncase HttpStatus.FORBIDDEN:\nreturn \"FORBIDDEN\";\ncase HttpStatus.NOT_FOUND:\nreturn \"NOT_FOUND\";\ncase HttpStatus.CONFLICT:\nreturn \"CONFLICT\";\ndefault:\nreturn `HTTP_${statusCode}`;\n}\n}\n}\n\nThree normalization paths\nInput exception                               Normalization path                       Public result\n\nHttpException                                 Preserve status, code/message where      4xx/5xx contract\nsupplied\n\nPrisma known request error                    Translate known P-codes                  409/404 or sanitized DB failure\n\nAnything else                                 Treat as unexpected fault                500 INTERNAL_ERROR\n\nValidation details without framework coupling\nThe filter does not need to know that Zod created the validation error. It inspects the HttpException response. If\nthe message is an array, TaskFlow uses a stable top-level message and moves those strings into details.\n\nif (Array.isArray(body.message)) {\nreturn {\nstatusCode,\ncode: \"BAD_REQUEST\",\nmessage: \"Request validation failed.\",\ndetails: body.message.map(String),\n};\n}\n\nAdapter-agnostic response writing\nhttpAdapter.reply(\nresponse,\nbody,\nresult.statusCode,\n);\n\nWhy this matters\n\nEarlier NestJS examples often use Express Response.json(). Our course explicitly chose Fastify in Phase 04, so the\nexception boundary should not quietly depend on Express-only APIs.",
+      "wordCount": 624,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Global ApiExceptionFilter in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Global ApiExceptionFilter matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Global ApiExceptionFilter” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning raw exception messages/stacks",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Global ApiExceptionFilter” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Global ApiExceptionFilter solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "prisma-error-translation",
+      "title": "Prisma Error Translation",
+      "summary": "Prisma Error Translation Translate Prisma 7 P2002, P2003, and P2025 without leaking ORM internals Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone Prisma error ↓ domain context if available ↓ safe HTTP mapping Phase 13 creates one professional exception boundary…",
+      "body": "Prisma Error Translation\nTranslate Prisma 7 P2002, P2003, and P2025 without leaking ORM internals\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nPrisma error\n\n↓\n\ndomain context if available\n\n↓\n\nsafe HTTP mapping\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nTranslate Prisma errors deliberately\nPrisma errors are implementation details. Clients should receive HTTP/domain semantics, not raw ORM error\ntext. TaskFlow catches a small set of understood Prisma 7 codes and gives them stable meanings.\n\nPrisma code              Meaning                                              TaskFlow HTTP mapping\n\nP2002                    Unique constraint failed                             409 UNIQUE_CONSTRAINT_CONFLICT\n\nP2003                    Foreign key constraint failed                        409 RELATION_CONFLICT\n\nP2025                    Required record for operation not found              404 RESOURCE_NOT_FOUND\n\nOther known              Known Prisma failure not explicitly modeled          500 DATABASE_ERROR\nrequest error\n\nDo not return Prisma message directly\n// BAD public response\n{\n\"message\": \"Invalid this.prisma.task.create() invocation ...\nUnique constraint failed ...\"\n}\n\nSensitive implementation detail\n\nRaw ORM messages may contain model names, operation context, field names, local paths, or other details that\nclients do not need. Log what engineers need privately; expose a safe contract publicly.\n\nWhere P2025 should be handled\nFor a Task update/delete, the service knows the domain context and can produce TASK_NOT_FOUND. That\nis more useful than allowing the global filter to produce generic RESOURCE_NOT_FOUND. The global P2025\nmapping remains a safety net for errors that escape from less contextual code.\n\nFigure 1 - Context first, global fallback second\nTasksService catches expected P2025\n\n↓\n\nThrows TaskNotFoundException with TASK_NOT_FOUND\n\n↓\n\nGlobal filter only formats the exception\n\n↓\n\nUnexpected uncaught P2025 elsewhere\n\n↓\n\nGlobal filter returns generic RESOURCE_NOT_FOUND\n\nTranslate errors as close as possible to the layer that understands their business meaning, while keeping a global safety boundary.\n\nConflict does not always mean 409\nUse 409 when the request is structurally valid but conflicts with current server state. Do not mechanically map\nevery database exception to 409. Connection failures, malformed schema, timeouts, and unknown database\nfaults are server-side operational failures, not client conflicts.",
+      "wordCount": 324,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Error Translation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Error Translation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Catching everything inside each controller",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Error Translation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Error Translation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "service-vs-filter-boundaries",
+      "title": "Service vs Filter Boundaries",
+      "summary": "Service vs Filter Boundaries Domain-specific exceptions, contextual translation, and keeping business meaning out of global infrastructure code Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone service understands use case ↓ exception carries meaning ↓ filter formats HTTP Phase 13 creates…",
+      "body": "Service vs Filter Boundaries\nDomain-specific exceptions, contextual translation, and keeping business meaning\nout of global infrastructure code\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nservice understands use case\n\n↓\n\nexception carries meaning\n\n↓\n\nfilter formats HTTP\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nCreate application-specific exceptions only when they\nadd meaning\nNestJS already has NotFoundException and ConflictException. TaskFlow subclasses them only when a stable\napplication code or reusable domain message earns its place.\n\nimport {\nConflictException,\nNotFoundException,\n} from \"@nestjs/common\";\n\nexport class TaskNotFoundException extends NotFoundException {\nconstructor(taskId: string) {\nsuper({\ncode: \"TASK_NOT_FOUND\",\nmessage: `Task ${taskId} was not found.`,\n});\n}\n}\n\nexport class ProjectNotFoundException extends NotFoundException {\nconstructor(projectId: string) {\nsuper({\ncode: \"PROJECT_NOT_FOUND\",\nmessage: `Project ${projectId} was not found.`,\n});\n}\n}\n\nexport class ResourceConflictException extends ConflictException {\nconstructor(message: string, code = \"RESOURCE_CONFLICT\") {\nsuper({ code, message });\n}\n}\n\nTasksService now communicates domain meaning\nThe service decides that a missing Task is a Task-domain event, not merely a Prisma event. That keeps the\npublic API independent from which ORM we use.\n\nimport { Injectable } from \"@nestjs/common\";\nimport { Prisma } from \"../generated/prisma/client\";\nimport { PrismaService } from \"../prisma/prisma.service\";\nimport {\nProjectNotFoundException,\nTaskNotFoundException,\n} from \"../common/errors/application.exceptions\";\nimport {\nCreateTaskDto,\nUpdateTaskDto,\n} from \"./tasks.schemas\";\n\n@Injectable()\nexport class TasksService {\nconstructor(private readonly prisma: PrismaService) {}\n\nfindAll() {\nreturn this.prisma.task.findMany({\norderBy: { createdAt: \"desc\" },\n});\n}\n\nasync findOne(id: string) {\nconst task = await this.prisma.task.findUnique({\nwhere: { id },\n});\n\nif (!task) {\nthrow new TaskNotFoundException(id);\n}\n\nreturn task;\n}\n\nasync create(input: CreateTaskDto) {\nconst project = await this.prisma.project.findUnique({\nwhere: { id: input.projectId },\nselect: { id: true },\n});\n\nif (!project) {\nthrow new ProjectNotFoundException(input.projectId);\n\n}\n\nreturn this.prisma.task.create({\ndata: input,\n});\n}\n\nasync update(id: string, input: UpdateTaskDto) {\ntry {\nreturn await this.prisma.task.update({\nwhere: { id },\ndata: input,\n});\n} catch (error) {\nthis.rethrowMissingTask(error, id);\n}\n}\n\nasync remove(id: string) {\ntry {\nawait this.prisma.task.delete({\nwhere: { id },\n});\n} catch (error) {\nthis.rethrowMissingTask(error, id);\n}\n}\n\nprivate rethrowMissingTask(error: unknown, id: string): never {\nif (\nerror instanceof Prisma.PrismaClientKnownRequestError &&\nerror.code === \"P2025\"\n) {\nthrow new TaskNotFoundException(id);\n}\n\nthrow error;\n}\n}\n\nResponsibility boundaries\nLayer                                  Owns\n\nZod / pipe                             Request shape validity\n\nTasksService                           Task/Project existence and business meaning\n\nPrisma                                 Persistence operations and database protocol\n\nApiExceptionFilter                     HTTP serialization, safe fallback, final logging\n\nAnti-pattern: filter contains business rules\n// Avoid turning the global filter into this:\nif (exception.code === \"P2025\" && request.url.startsWith(\"/tasks\")) {\n// infer Task business meaning from URL here...\n}\n\nArchitecture rule\n\nThe global filter should not reverse-engineer domain context from routes or database metadata. Services know the\nuse case. Filters know HTTP error serialization.\n\nAnti-pattern: swallowing unknown errors\nIf a service catches unknown Error and turns it into BadRequestException, a programming bug can\nmasquerade as a client mistake. Catch only failures you understand and can meaningfully translate. Re-throw\nthe rest.",
+      "wordCount": 452,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Service vs Filter Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Service vs Filter Boundaries matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Service vs Filter Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using one generic 400 for semantically different failures",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Service vs Filter Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Service vs Filter Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "safe-production-error-exposure",
+      "title": "Safe Production Error Exposure",
+      "summary": "Safe Production Error Exposure Sanitized client responses, protected diagnostics, logging hygiene, and privacy-aware failure handling Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone client-safe response ↓ requestId ↓ private structured diagnostic log Phase 13 creates one professional exception boundary and…",
+      "body": "Safe Production Error Exposure\nSanitized client responses, protected diagnostics, logging hygiene, and privacy-aware\nfailure handling\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nclient-safe response\n\n↓\n\nrequestId\n\n↓\n\nprivate structured diagnostic log\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nProduction errors should be boring to clients and rich\nto engineers\nThe client needs a safe message, stable code, and requestId. Engineers need internal context such as\nexception name, stack, method, path, status, and timing. These are different audiences.\n\nInformation                                     Public response    Protected server log\n\nstatus / code                                   Yes                Yes\n\nhuman-safe message                              Yes                Yes\n\nrequestId                                       Yes                Yes\n\nstack trace                                     No                 Yes for unexpected faults\n\nraw SQL                                         No                 Usually no; only under controlled diagnostics\n\nDATABASE_URL / credentials                      Never              Never\n\nrequest password/token                          Never              Never\n\nPrisma raw error text                           Usually no         May be logged carefully if sanitized\n\nStructured logging example\nthis.logger.error(\"Unhandled request failure\", {\nrequestId,\nmethod: request.method,\npath,\nstatusCode: 500,\nexceptionName: exception.name,\nstack: exception.stack,\n});\n\nDo not log request bodies by default\nBodies can contain passwords, tokens, personal data, payroll values, applicant information, employee records,\nor uploaded document metadata in future TaskFlow-derived systems. Logging everything because it is\nconvenient is not professional observability.\n\nSecurity and privacy rule\n\nError handling is also data-handling design. Decide what logs are allowed to contain before production, who can\nread them, and how long they are retained.\n\nUnknown 500 workflow\nFigure 1 - Safe 500 lifecycle\nUnexpected exception occurs\n\n↓\n\nFilter creates INTERNAL_ERROR response\n\n↓\n\nClient receives requestId\n\n↓\n\nServer logs requestId + private diagnostic context\n\n↓\n\nEngineer correlates without exposing internals\n\nA secure system does not need to choose between debuggability and safe client responses.",
+      "wordCount": 276,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Safe Production Error Exposure in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Safe Production Error Exposure” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Logging secrets/tokens with error context",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Safe Production Error Exposure” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Safe Production Error Exposure solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "client-error-consumption-and-debugging",
+      "title": "Client Error Consumption and Debugging",
+      "summary": "Client Error Consumption & Debugging Parse the stable envelope in Next.js and distinguish API failures from transport failures Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone fetch ↓ network vs HTTP response ↓ ApiClientError ↓ UI recovery Phase 13 creates…",
+      "body": "Client Error Consumption & Debugging\nParse the stable envelope in Next.js and distinguish API failures from transport\nfailures\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nfetch\n\n↓\n\nnetwork vs HTTP response\n\n↓\n\nApiClientError\n\n↓\n\nUI recovery\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nFrontend should consume the contract, not framework\naccidents\nNext.js should not need to know whether NestJS, Zod, Prisma, PostgreSQL, or Fastify produced the failure. It\nshould parse TaskFlow's stable API error response.\n\nexport type ApiErrorResponse = {\nstatusCode: number;\ncode: string;\nmessage: string;\nrequestId: string;\ntimestamp: string;\npath: string;\ndetails?: string[] | Record<string, unknown>;\n};\n\nexport class ApiClientError extends Error {\nconstructor(\npublic readonly statusCode: number,\npublic readonly code: string,\nmessage: string,\npublic readonly requestId?: string,\npublic readonly details?: ApiErrorResponse[\"details\"],\n) {\nsuper(message);\n}\n}\n\nexport async function throwIfNotOk(response: Response) {\nif (response.ok) return;\n\nlet payload: ApiErrorResponse | undefined;\n\ntry {\npayload = (await response.json()) as ApiErrorResponse;\n} catch {\n// The server may have returned a non-JSON infrastructure error.\n}\n\nthrow new ApiClientError(\nresponse.status,\npayload?.code ?? \"HTTP_ERROR\",\npayload?.message ?? \"The request failed.\",\npayload?.requestId,\npayload?.details,\n);\n}\n\nTypical UI decisions\nError condition                                 Possible UI behavior\n\nBAD_REQUEST + details                           Show field/form feedback or a request summary\n\nTASK_NOT_FOUND                                  Show “Task no longer exists” and navigate back\n\nUNAUTHORIZED later                              Prompt login / refresh session\n\nFORBIDDEN later                                 Explain missing permission\n\nCONFLICT                                        Explain stale/duplicate state and offer recovery\n\nINTERNAL_ERROR                                  Show generic failure + requestId for support\n\nNetwork error is not the same as API error\n\nIf fetch cannot reach the server, there may be no HTTP status, no JSON envelope, and no requestId. That is a\ntransport failure. If the API returns 404/409/500, fetch receives an HTTP response and the TaskFlow error\nparser can process the body.\n\nFigure 1 - Client failure split\nfetch() call\n\n↓\n\nNo HTTP response -> transport/network error\n\n↓\n\nHTTP response received\n\n↓\n\nresponse.ok false -> parse ApiErrorResponse\n\n↓\n\nthrow ApiClientError\n\nThe UI can now distinguish connectivity from server-declared application failures.\n\nDebug with requestId first\nWhen an INTERNAL_ERROR reaches the browser, show a short message and the requestId. Do not dump\nstack traces into the UI. During development, the same ID should be visible in the Nest terminal log so you can\ncorrelate the failure quickly.",
+      "wordCount": 367,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Client Error Consumption and Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Client Error Consumption and Debugging matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Client Error Consumption and Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning raw exception messages/stacks",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Client Error Consumption and Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Client Error Consumption and Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Error matrix, correlation exercise, engineering challenges, oral exam, and completion checklist Phase 13 - Professional Error Handling Volume 04 - Professional Backend Architecture milestone implement ↓ trigger errors ↓ correlate logs ↓ verify contract ↓ explain architecture Phase 13 creates…",
+      "body": "Hands-On Lab & Phase Exit\nError matrix, correlation exercise, engineering challenges, oral exam, and completion\nchecklist\n\nPhase 13 - Professional Error Handling\nVolume 04 - Professional Backend\n\nArchitecture milestone\nimplement\n\n↓\n\ntrigger errors\n\n↓\n\ncorrelate logs\n\n↓\n\nverify contract\n\n↓\n\nexplain architecture\n\nPhase 13 creates one professional exception boundary and a correlation story that spans client response and server logs.\n\nHands-on lab\nThe exit lab proves that TaskFlow has one coherent error boundary instead of a collection of framework-default\nresponses.\n\nLab A - Add the error contract\n• Create ApiErrorResponse.\n\n• Add TaskNotFoundException and ProjectNotFoundException.\n\n• Update TasksService to throw domain-specific exceptions where context is known.\n\n• Keep unknown exceptions re-thrown.\n\nLab B - Add global filter and request logging\n• Create ApiExceptionFilter using HttpAdapterHost.\n\n• Create RequestLoggingInterceptor using Fastify request.id.\n\n• Register both globally with APP_FILTER and APP_INTERCEPTOR.\n\n• Verify successful responses expose x-request-id.\n\n• Verify 4xx/5xx error bodies contain requestId.\n\nLab C - Error matrix\nScenario                                                          Expected\n\nGET /tasks/not-a-uuid                                             400 BAD_REQUEST, requestId\n\nGET valid missing Task UUID                                       404 TASK_NOT_FOUND, requestId\n\nPOST missing/invalid body                                         400 BAD_REQUEST + details\n\nPOST valid body, missing Project                                  404 PROJECT_NOT_FOUND\n\nKnown unique conflict (where available)                           409 UNIQUE_CONSTRAINT_CONFLICT\n\nP2025 escaping contextual service handling                        404 RESOURCE_NOT_FOUND fallback\n\nDeliberate unexpected Error in dev test route                     500 INTERNAL_ERROR, no stack in response\n\nLab D - Correlation exercise\n• Trigger one failing request.\n\n• Copy requestId from the JSON response.\n\n• Find the matching NestJS log entry.\n\n• Confirm the client response is sanitized while the log has diagnostic context.\n\n• Remove any temporary route used to create an artificial 500.\n\nExercise levels\nLevel                     Challenge\n\n1 - Follow                Implement the reference filter/interceptor and pass the smoke-test matrix.\n\nLevel                     Challenge\n\n2 - Modify                Add a stable PROJECT_NOT_FOUND client handling branch in the Next.js API helper demo.\n\n3 - Implement             Add a Task title uniqueness rule inside one Project and map its P2002 conflict safely.\n\n4 - Engineer              Design an error-code naming convention for a future HRIS with payroll, leave, recruitment, and employee\ndomains; explain which codes are public contracts and which diagnostics remain internal.\n\nArchitecture oral exam\n• Why should a global error filter not contain Task business rules?\n\n• Why is requestId useful if the client never sees a stack trace?\n\n• When should a service catch a Prisma error instead of relying on the global filter?\n\n• Why is P2002 usually 409 but an unavailable database usually 500?\n\n• What is the difference between a network failure and an API error response?\n\n• Which data should never be written to logs even during debugging?\n\nPhase exit checklist\n• all error responses have statusCode, code, message, requestId, timestamp, and path.\n\n• validation details remain useful without exposing internals.\n\n• Task/Project not-found failures have domain codes.\n\n• known Prisma conflicts are translated safely.\n\n• unknown errors return sanitized 500 responses.\n\n• requestId correlates client response and server logs.\n\n• successful responses expose x-request-id.\n\n• NestJS production build passes.\n\n• you can explain which layer owns classification, translation, formatting, and logging.\n\nFigure 1 - Phase 13 complete architecture\nRequest / Fastify request.id\n\n↓\n\nValidation + Controller + Service\n\n↓\n\nKnown domain or infrastructure exception\n\n↓\n\nApiExceptionFilter\n\n↓\n\nStable ApiErrorResponse + requestId\n\n↓\n\nStructured server log\n\nTaskFlow now has a professional error boundary that remains useful as authentication, authorization, and business rules become\nmore complex.\n\nNext phase\n\nPhase 14 will deepen Service & Business Logic Architecture: application invariants, cross-model rules, workflow\nmethods, transactions where needed, orchestration vs persistence, and keeping controllers thin without turning\nservices into giant “god classes.”",
+      "wordCount": 539,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Catching everything inside each controller",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nCreate a stable application error model that separates expected domain/transport failures from unexpected faults and keeps diagnostics observable.",
+      "body": "Guided Build Lab — Phase 13: Professional Error Handling\n\nPurpose\nCreate a stable application error model that separates expected domain/transport failures from unexpected faults and keeps diagnostics observable.\n\nDeliverable\nError taxonomy + NestJS mapping layer/filters + structured error response with request IDs.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nfailure occurs -> typed/application error -> exception mapping -> structured log -> safe HTTP error -> frontend recovery\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Inventory current TaskFlow failures and group them into validation, auth, forbidden, missing, conflict, infrastructure, and unexpected categories.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create explicit application errors for expected business outcomes rather than throwing arbitrary strings.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Map errors to one stable HTTP envelope at a central boundary.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Add request/correlation IDs to responses and logs.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Trigger each error class intentionally and verify both client-safe response and server diagnostic context.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Prove an unexpected exception returns a generic 500 while the real stack/context remains in logs.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 644,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using one generic 400 for semantically different failures",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 13: Professional Error Handling\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nfailure occurs -> typed/application error -> exception mapping -> structured log -> safe HTTP error -> frontend recovery\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Returning raw exception messages/stacks\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Catching everything inside each controller\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Using one generic 400 for semantically different failures\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Logging secrets/tokens with error context\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 446,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Logging secrets/tokens with error context",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 13 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Professional Error Handling\n\nMission\nRebuild the capability of Phase 13 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nCreate a stable application error model that separates expected domain/transport failures from unexpected faults and keeps diagnostics observable.\n\nRequired artifact\nError taxonomy + NestJS mapping layer/filters + structured error response with request IDs.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can distinguish expected vs unexpected errors.\n• Can map failures centrally.\n• Can trace a request by ID.\n• Can design frontend recovery from stable error codes.\n\nIndependent build sequence\n1. Inventory current TaskFlow failures and group them into validation, auth, forbidden, missing, conflict, infrastructure, and unexpected categories.\n2. Create explicit application errors for expected business outcomes rather than throwing arbitrary strings.\n3. Map errors to one stable HTTP envelope at a central boundary.\n4. Add request/correlation IDs to responses and logs.\n5. Trigger each error class intentionally and verify both client-safe response and server diagnostic context.\n6. Prove an unexpected exception returns a generic 500 while the real stack/context remains in logs.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 376,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning raw exception messages/stacks",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 13 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 13: Professional Error Handling. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nError taxonomy + NestJS mapping layer/filters + structured error response with request IDs.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 198,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Create a stable application error model that separates expected domain/transport failures from unexpected faults and keeps diagnostics observable.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "failure occurs",
+          "typed/application error",
+          "exception mapping",
+          "structured log",
+          "safe HTTP error",
+          "frontend recovery"
+        ],
+        "steps": [
+          "Inventory current TaskFlow failures and group them into validation, auth, forbidden, missing, conflict, infrastructure, and unexpected categories.",
+          "Create explicit application errors for expected business outcomes rather than throwing arbitrary strings.",
+          "Map errors to one stable HTTP envelope at a central boundary.",
+          "Add request/correlation IDs to responses and logs.",
+          "Trigger each error class intentionally and verify both client-safe response and server diagnostic context.",
+          "Prove an unexpected exception returns a generic 500 while the real stack/context remains in logs.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can distinguish expected vs unexpected errors",
+          "Can map failures centrally",
+          "Can trace a request by ID",
+          "Can design frontend recovery from stable error codes"
+        ],
+        "breakIt": [
+          "Returning raw exception messages/stacks",
+          "Catching everything inside each controller"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/README.txt",
+      "preview": "TaskFlow Phase 13 - Professional Error Handling\n\nThis snapshot contains the files changed by Phase 13. It assumes the Phase 12 project already exists.\n\nMain additions:\n- one consistent API error response shape\n- a catch-all NestJS exception filter using HttpAdapterHost\n- Prisma P2002/P2003/P2025 translation\n- domain-specific not-found exceptions\n- Fastify request IDs surfaced to clients and logs\n- NestJS 12 structured logging metadata\n- a small Next.js-side API error parser\n\nRun apps/api, then execute tests/error-contract-smoke-tests.ps1."
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/api/src/app.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\";\nimport { APP_FILTER, APP_INTERCEPTOR } from \"@nestjs/core\";\nimport { ApiExceptionFilter } from \"./common/errors/api-exception.filter\";\nimport { RequestLoggingInterceptor } from \"./common/interceptors/request-logging.interceptor\";\nimport { HealthModule } from \"./health/health.module\";\nimport { PrismaModule } from \"./prisma/prisma.module\";\nimport { TasksModule } from \"./tasks/tasks.module\";\n\n@Module({\n  imports: [\n    HealthModule,\n    PrismaModule,\n    TasksModule,\n  ],\n  providers: [\n    {\n      provide: APP_INTERCEPTOR,\n      useClass: RequestLoggingInterceptor,\n    },\n    {"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/api/src/common/errors/api-error-response.ts",
+      "preview": "export type ApiErrorDetails = string[] | Record<string, unknown>;\n\nexport type ApiErrorResponse = {\n  statusCode: number;\n  code: string;\n  message: string;\n  requestId: string;\n  timestamp: string;\n  path: string;\n  details?: ApiErrorDetails;\n};"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/api/src/common/errors/api-exception.filter.ts",
+      "preview": "import {\n  ArgumentsHost,\n  Catch,\n  ExceptionFilter,\n  HttpException,\n  HttpStatus,\n  Logger,\n} from \"@nestjs/common\";\nimport { HttpAdapterHost } from \"@nestjs/core\";\nimport { FastifyRequest } from \"fastify\";\nimport { Prisma } from \"../../generated/prisma/client\";\nimport { ApiErrorResponse } from \"./api-error-response\";\n\n@Catch()\nexport class ApiExceptionFilter implements ExceptionFilter {\n  private readonly logger = new Logger(ApiExceptionFilter.name);\n\n  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}\n\n  catch(exception: unknown, host: ArgumentsHost): void {"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/api/src/common/errors/application.exceptions.ts",
+      "preview": "import {\n  ConflictException,\n  NotFoundException,\n} from \"@nestjs/common\";\n\nexport class TaskNotFoundException extends NotFoundException {\n  constructor(taskId: string) {\n    super({\n      code: \"TASK_NOT_FOUND\",\n      message: `Task ${taskId} was not found.`,\n    });\n  }\n}\n\nexport class ProjectNotFoundException extends NotFoundException {\n  constructor(projectId: string) {\n    super({\n      code: \"PROJECT_NOT_FOUND\",\n      message: `Project ${projectId} was not found.`,\n    });"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/api/src/common/interceptors/request-logging.interceptor.ts",
+      "preview": "import {\n  CallHandler,\n  ExecutionContext,\n  Injectable,\n  Logger,\n  NestInterceptor,\n} from \"@nestjs/common\";\nimport { FastifyReply, FastifyRequest } from \"fastify\";\nimport { Observable } from \"rxjs\";\nimport { tap } from \"rxjs/operators\";\n\n@Injectable()\nexport class RequestLoggingInterceptor implements NestInterceptor {\n  private readonly logger = new Logger(RequestLoggingInterceptor.name);\n\n  intercept(\n    context: ExecutionContext,\n    next: CallHandler,\n  ): Observable<unknown> {\n    const http = context.switchToHttp();"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/api/src/tasks/tasks.service.ts",
+      "preview": "import { Injectable } from \"@nestjs/common\";\nimport { Prisma } from \"../generated/prisma/client\";\nimport { PrismaService } from \"../prisma/prisma.service\";\nimport {\n  ProjectNotFoundException,\n  TaskNotFoundException,\n} from \"../common/errors/application.exceptions\";\nimport {\n  CreateTaskDto,\n  UpdateTaskDto,\n} from \"./tasks.schemas\";\n\n@Injectable()\nexport class TasksService {\n  constructor(private readonly prisma: PrismaService) {}\n\n  findAll() {\n    return this.prisma.task.findMany({\n      orderBy: { createdAt: \"desc\" },\n    });"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/apps/web/src/lib/api/api-error.ts",
+      "preview": "export type ApiErrorResponse = {\n  statusCode: number;\n  code: string;\n  message: string;\n  requestId: string;\n  timestamp: string;\n  path: string;\n  details?: string[] | Record<string, unknown>;\n};\n\nexport class ApiClientError extends Error {\n  constructor(\n    public readonly statusCode: number,\n    public readonly code: string,\n    message: string,\n    public readonly requestId?: string,\n    public readonly details?: ApiErrorResponse[\"details\"],\n  ) {\n    super(message);\n  }"
+    },
+    {
+      "path": "reference/TaskFlow_Error_Handling_Snapshot/tests/error-contract-smoke-tests.ps1",
+      "preview": "# TaskFlow Phase 13 error-contract smoke tests\n# Run while apps/api is running on http://localhost:4000\n\n$base = \"http://localhost:4000\"\n\nfunction Show-ErrorContract {\n  param([scriptblock]$Request)\n\n  try {\n    & $Request\n  }\n  catch {\n    $response = $_.Exception.Response\n\n    if ($null -eq $response) {\n      Write-Host \"No HTTP response was returned.\"\n      throw\n    }\n\n    $body = $_.ErrorDetails.Message | ConvertFrom-Json"
+    }
+  ],
+  "exercises": [
+    "Guided: Inventory current TaskFlow failures and group them into validation, auth, forbidden, missing, conflict, infrastructure, and unexpected categories.",
+    "Practice: Map errors to one stable HTTP envelope at a central boundary.",
+    "Debugging: reproduce and diagnose — Returning raw exception messages/stacks.",
+    "Independent: deliver Error taxonomy + NestJS mapping layer/filters + structured error response with request IDs.",
+    "Explain-back: Can distinguish expected vs unexpected errors and Can map failures centrally."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 13's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Map known failures to stable HTTP error responses instead of leaking raw exceptions."
+      ],
+      "answer": 3,
+      "explanation": "Map known failures to stable HTTP error responses instead of leaking raw exceptions."
+    },
+    {
+      "question": "Which practice best matches Phase 13's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Keep unexpected errors observable to operators while returning safe messages to clients.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Keep unexpected errors observable to operators while returning safe messages to clients."
+    },
+    {
+      "question": "Which practice best matches Phase 13's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Use consistent error shapes so frontend code does not branch on dozens of unrelated formats.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Use consistent error shapes so frontend code does not branch on dozens of unrelated formats."
+    },
+    {
+      "question": "Which practice best matches Phase 13's engineering goal?",
+      "options": [
+        "Preserve enough context in logs to diagnose an error without sending secrets to the browser.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Preserve enough context in logs to diagnose an error without sending secrets to the browser."
+    },
+    {
+      "question": "You are working through the Phase 13 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Returning raw exception messages/stacks.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inventory current TaskFlow failures and group them into validation, auth, forbidden, missing, conflict, infrastructure, and unexpected categories.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Inventory current TaskFlow failures and group them into validation, auth, forbidden, missing, conflict, infrastructure, and unexpected categories."
+    },
+    {
+      "question": "You are working through the Phase 13 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create explicit application errors for expected business outcomes rather than throwing arbitrary strings.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Catching everything inside each controller."
+      ],
+      "answer": 1,
+      "explanation": "Create explicit application errors for expected business outcomes rather than throwing arbitrary strings."
+    },
+    {
+      "question": "You are working through the Phase 13 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Map errors to one stable HTTP envelope at a central boundary.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using one generic 400 for semantically different failures.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Map errors to one stable HTTP envelope at a central boundary."
+    },
+    {
+      "question": "You are working through the Phase 13 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Logging secrets/tokens with error context.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add request/correlation IDs to responses and logs."
+      ],
+      "answer": 3,
+      "explanation": "Add request/correlation IDs to responses and logs."
+    }
+  ],
+  "lessonCount": 14,
+  "wordCount": 5637
+}

@@ -1,0 +1,1208 @@
+{
+  "number": 24,
+  "slug": "phase-24",
+  "title": "Repository Pattern",
+  "volume": 7,
+  "readme": "FULL STACK DEVELOPER 2026\nVolume 07 - Advanced Application Architecture\nPhase 24 - Repository Pattern\n\nThis phase introduces a focused TaskRepository only after persistence complexity justifies it. It rejects generic CRUD wrappers and preserves transaction correctness over architectural purity.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "when-a-repository-earns-its-place",
+      "title": "When a Repository Earns Its Place",
+      "summary": "When a Repository Earns Its Place Volume 07 - Advanced Application Architecture | Phase 24 The smell is not Prisma itself Prisma is already a strong type-safe data access API. Wrapping every single Prisma call with an identical method such as repository.findMany() usually adds no…",
+      "body": "When a Repository Earns Its Place\nVolume 07 - Advanced Application Architecture | Phase 24\n\nThe smell is not Prisma itself\nPrisma is already a strong type-safe data access API. Wrapping every single Prisma call with an\nidentical method such as repository.findMany() usually adds no architectural value. The useful\npressure appears when business services need to stop knowing detailed relation filters,\npagination/count mechanics, persistence mapping, or testing setup.\n\nBefore the repository\nTasksService\n-> Prisma task.findMany(...deep authorization scope...)\n-> Prisma task.count(...same where...)\n-> Prisma error codes\n-> relation include/select shapes\n-> business rules\n-> workflow decisions\n\nAfter a useful repository\nTasksService\n-> taskRepository.listScoped(userId, query)\n-> business rules\n-> workflow decisions\n\nPrismaTaskRepository\n-> Prisma where/orderBy/select\n-> count + page query\n-> persistence mapping\n\nDecision checklist\n• Would the service become easier to read if query construction moved out?\n\n• Do multiple workflows need the same complex persistence query?\n\n• Do unit tests currently need extensive Prisma-shaped mocks?\n\n• Would a stable application-owned result type reduce persistence leakage?\n\n• Can you name repository operations in business/persistence language more meaningful than\ngeneric CRUD?",
+      "wordCount": 171,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain When a Repository Earns Its Place in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "When a Repository Earns Its Place matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “When a Repository Earns Its Place” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "GenericRepository<T> mirroring ORM methods",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “When a Repository Earns Its Place” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does When a Repository Earns Its Place solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "design-the-taskrepository-contract",
+      "title": "Design the TaskRepository Contract",
+      "summary": "Design the TaskRepository Contract Volume 07 - Advanced Application Architecture | Phase 24 Design from the consumer inward Start from what TasksService actually needs. Do not start by reproducing every Prisma method. A repository contract is an application boundary, not an ORM compatibility layer. Feature-owned…",
+      "body": "Design the TaskRepository Contract\nVolume 07 - Advanced Application Architecture | Phase 24\n\nDesign from the consumer inward\nStart from what TasksService actually needs. Do not start by reproducing every Prisma method.\nA repository contract is an application boundary, not an ORM compatibility layer.\n\nFeature-owned contract\nexport interface TaskRepository {\nfindById(id: string): Promise<TaskRecord | null>\n\nfindScopedById(\ntaskId: string,\nuserId: string,\n): Promise<TaskRecord | null>\n\nlistScoped(\nuserId: string,\nquery: TaskListQuery,\n): Promise<PaginatedTasks>\n\ncreate(input: CreateTaskRecord): Promise<TaskRecord>\nupdate(id: string, input: UpdateTaskRecord): Promise<TaskRecord>\ndelete(id: string): Promise<void>\n}\n\nContract design rules\n• Return application-owned shapes when persistence independence is worth the mapping cost.\n\n• Keep HTTP request/response concerns out of the repository.\n\n• Do not put authorization decisions in the repository; it may enforce a caller-provided scope,\nwhile the service decides the policy.\n\n• Prefer methods that capture meaningful query intent over dozens of tiny ORM wrappers.\n\n• Keep the interface inside the feature until more features genuinely need a shared abstraction.",
+      "wordCount": 155,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Design the TaskRepository Contract in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Design the TaskRepository Contract” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository wrapping every trivial Prisma call with no value",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Design the TaskRepository Contract” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Design the TaskRepository Contract solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "nestjs-di-tokens-and-module-binding",
+      "title": "NestJS DI Tokens and Module Binding",
+      "summary": "NestJS DI Tokens and Module Binding Volume 07 - Advanced Application Architecture | Phase 24 Interfaces disappear at runtime TypeScript interfaces are compile-time only, so NestJS cannot inject TaskRepository directly. The runtime container needs a token. Current NestJS documentation explicitly supports strings, symbols, enums, classes,…",
+      "body": "NestJS DI Tokens and Module Binding\nVolume 07 - Advanced Application Architecture | Phase 24\n\nInterfaces disappear at runtime\nTypeScript interfaces are compile-time only, so NestJS cannot inject TaskRepository directly. The\nruntime container needs a token. Current NestJS documentation explicitly supports strings,\nsymbols, enums, classes, and abstract classes as provider tokens. TaskFlow chooses a Symbol to\navoid accidental collisions.\n\nToken and provider\nexport const TASK_REPOSITORY =\nSymbol(\"TASK_REPOSITORY\")\n\n@Module({\nproviders: [\nTasksService,\n{\nprovide: TASK_REPOSITORY,\nuseClass: PrismaTaskRepository,\n},\n],\n})\nexport class TasksModule {}\n\nInject the contract\nconstructor(\n@Inject(TASK_REPOSITORY)\nprivate readonly tasks: TaskRepository,\n) {}\n\nContract separates what the service needs from how Prisma performs it\n\nTasksService                            DI token                  PrismaTaskRepository\nTaskRepository contract                 TASK_REPOSITORY                implements contract\n\nPrismaService\ngenerated client + adapter\n\nFigure 24.1 - Inject the contract\n\nWhy useClass matters\nThe service depends on the token and interface shape, while the module decides which concrete\nimplementation satisfies that dependency. Tests can supply a fake with useValue without\n\nchanging production code.",
+      "wordCount": 148,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain NestJS DI Tokens and Module Binding in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS DI Tokens and Module Binding” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocks proving an imaginary database behavior",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS DI Tokens and Module Binding” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS DI Tokens and Module Binding solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "prismataskrepository-query-and-mapping-implementation",
+      "title": "Prismataskrepository Query and Mapping Implementation",
+      "summary": "PrismaTaskRepository: Query and Mapping Implementation Volume 07 - Advanced Application Architecture | Phase 24 Persistence details belong here The implementation owns Prisma relation filters, ordering, select/include decisions, error-code translation that is truly persistence-specific, and mapping from generated records into stable repository result shapes. Scoped list…",
+      "body": "PrismaTaskRepository: Query and\nMapping Implementation\nVolume 07 - Advanced Application Architecture | Phase 24\n\nPersistence details belong here\nThe implementation owns Prisma relation filters, ordering, select/include decisions, error-code\ntranslation that is truly persistence-specific, and mapping from generated records into stable\nrepository result shapes.\n\nScoped list example\nasync listScoped(\nuserId: string,\nquery: TaskListQuery,\n): Promise<PaginatedTasks> {\nconst where = this.buildScopedWhere(userId, query)\nconst orderBy = this.buildOrderBy(query)\nconst skip = (query.page - 1) * query.pageSize\n\nconst [rows, totalItems] = await this.prisma.$transaction([\nthis.prisma.task.findMany({\nwhere,\norderBy,\nskip,\ntake: query.pageSize,\nselect: taskListSelect,\n}),\nthis.prisma.task.count({ where }),\n])\n\nreturn mapPage(rows, totalItems, query)\n}\n\nWhy this is useful\n• The service no longer knows Prisma relation syntax.\n\n• The count and data query cannot accidentally build different filters.\n\n• Sorting allow-lists stay close to persistence mapping.\n\n• Changing select/include structure does not force business-service edits.\n\nDo not hide everything\nA repository should hide persistence mechanics that the service should not care about. It should\nnot hide important business decisions by burying them in database code.",
+      "wordCount": 168,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prismataskrepository Query and Mapping Implementation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prismataskrepository Query and Mapping Implementation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mapping everything into duplicate types without a domain need",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prismataskrepository Query and Mapping Implementation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prismataskrepository Query and Mapping Implementation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "refactor-tasksservice-to-business-intent",
+      "title": "Refactor TasksService to Business Intent",
+      "summary": "Refactor TasksService to Business Intent Volume 07 - Advanced Application Architecture | Phase 24 Before A service method that mixes policy, Prisma query construction, mapping, and database error handling becomes difficult to scan. After async getTaskForUser( taskId: string, currentUser: CurrentUser, ) { const task =…",
+      "body": "Refactor TasksService to Business\nIntent\nVolume 07 - Advanced Application Architecture | Phase 24\n\nBefore\nA service method that mixes policy, Prisma query construction, mapping, and database error\nhandling becomes difficult to scan.\n\nAfter\nasync getTaskForUser(\ntaskId: string,\ncurrentUser: CurrentUser,\n) {\nconst task = await this.tasks.findScopedById(\ntaskId,\ncurrentUser.id,\n)\n\nif (!task) {\nthrow new TaskNotFoundException(taskId)\n}\n\nreturn task\n}\n\nResponsibility split\nController                     HTTP method, params/body/query, status codes, decorators.\n\nService                        Business policy, workflow, invariants, authorization decisions.\n\nRepository                     Persistence queries, scopes supplied by the service, mapping, database-facing\nmechanics.\n\nPrismaService                  Generated Prisma Client lifecycle and connection/adapter concerns.\n\nThe service still owns meaning\nA repository may return null. The service decides whether that means Task-not-found, hidden\ncross-tenant resource, optional relationship, or some other domain outcome.",
+      "wordCount": 120,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Refactor TasksService to Business Intent in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Refactor TasksService to Business Intent matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Refactor TasksService to Business Intent” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "GenericRepository<T> mirroring ORM methods",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Refactor TasksService to Business Intent” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Refactor TasksService to Business Intent solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "transactions-and-the-repository-boundary",
+      "title": "Transactions and the Repository Boundary",
+      "summary": "Transactions and the Repository Boundary Volume 07 - Advanced Application Architecture | Phase 24 Repositories make transactions harder if designed carelessly A transaction spanning Task, Membership, Project, audit records, and notifications is an application workflow. Hiding every table behind an isolated repository can make it…",
+      "body": "Transactions and the Repository\nBoundary\nVolume 07 - Advanced Application Architecture | Phase 24\n\nRepositories make transactions harder if designed\ncarelessly\nA transaction spanning Task, Membership, Project, audit records, and notifications is an\napplication workflow. Hiding every table behind an isolated repository can make it difficult to\nguarantee that all writes share the same Prisma transaction client.\n\nTaskFlow decision\nPhase 24 does not introduce a generic UnitOfWork or transaction manager yet. Single-repository\natomic operations may use Prisma transactions internally. Cross-feature transactional\norchestration remains explicit until repeated pressure justifies a dedicated abstraction.\n\nGood internal transaction\nconst [rows, total] = await prisma.$transaction([\nprisma.task.findMany({ where, ...page }),\nprisma.task.count({ where }),\n])\n\nWarning sign\nservice -> TaskRepository\n-> MembershipRepository\n-> AuditRepository\n-> ??? how do all three share one transaction?\n\nRule\nDo not weaken atomicity just to preserve a repository pattern. Persistence\nabstraction is secondary to correctness.\n\nPrisma context\nPrisma 7 still distinguishes nested writes, sequential/batch transactions, and interactive\ntransactions. Those mechanics remain implementation concerns, but the transaction boundary\nshould be chosen by the application workflow.",
+      "wordCount": 167,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Transactions and the Repository Boundary in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Transactions and the Repository Boundary” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository wrapping every trivial Prisma call with no value",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Transactions and the Repository Boundary” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Transactions and the Repository Boundary solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "query-specific-repositories-vs-generic-crud",
+      "title": "Query Specific Repositories vs Generic CRUD",
+      "summary": "Query-Specific Repositories vs Generic CRUD Volume 07 - Advanced Application Architecture | Phase 24 The generic repository trap Generic repository trap GenericRepository<T> TaskRepository find / create / update / delete listScoped / findContext / create Mirrors ORM and hides useful query semantics Names persistence operations…",
+      "body": "Query-Specific Repositories vs Generic\nCRUD\nVolume 07 - Advanced Application Architecture | Phase 24\n\nThe generic repository trap\nGeneric repository trap\n\nGenericRepository<T>                                                     TaskRepository\n\nfind / create / update / delete                                  listScoped / findContext / create\n\nMirrors ORM and hides useful query semantics                  Names persistence operations the service actually needs\n\nFigure 24.1 - The generic repository trap\n\nGeneric wrapper example\ninterface Repository<T> {\nfindAll(): Promise<T[]>\nfindById(id: string): Promise<T | null>\ncreate(data: Partial<T>): Promise<T>\nupdate(id: string, data: Partial<T>): Promise<T>\ndelete(id: string): Promise<void>\n}\n\nWhy it often fails\nThis contract is so broad that complex filtering, scoped authorization, relations, partial updates,\ntransactions, bulk operations, and database-specific capabilities soon leak through anyway. It\noften recreates a weaker ORM on top of a stronger ORM.\n\nPrefer feature semantics\n• listScoped(userId, query)\n\n• findForAssignment(taskId)\n\n• findByIdInWorkspace(taskId, workspaceId)\n\n• createFromProject(projectId, data)\n\nNot every query needs a repository method\nIf a one-off reporting query appears later, evaluate it independently. A read-model/query service\nmay be clearer than bloating TaskRepository with unrelated analytics.",
+      "wordCount": 167,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Query Specific Repositories vs Generic CRUD in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Query Specific Repositories vs Generic CRUD matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Query Specific Repositories vs Generic CRUD” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocks proving an imaginary database behavior",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Query Specific Repositories vs Generic CRUD” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Query Specific Repositories vs Generic CRUD solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "unit-testing-with-a-fake-repository",
+      "title": "Unit Testing with a Fake Repository",
+      "summary": "Unit Testing with a Fake Repository Volume 07 - Advanced Application Architecture | Phase 24 The repository pays rent in tests NestJS makes provider replacement straightforward. Instead of teaching a service test every Prisma method and nested relation shape, we can inject a tiny fake…",
+      "body": "Unit Testing with a Fake Repository\nVolume 07 - Advanced Application Architecture | Phase 24\n\nThe repository pays rent in tests\nNestJS makes provider replacement straightforward. Instead of teaching a service test every\nPrisma method and nested relation shape, we can inject a tiny fake that implements the\nrepository contract.\n\nIn-memory fake\nclass FakeTaskRepository implements TaskRepository {\nitems = new Map<string, TaskRecord>()\n\nasync findById(id: string) {\nreturn this.items.get(id) ?? null\n}\n\nasync update(id: string, input: UpdateTaskRecord) {\nconst current = this.items.get(id)\nif (!current) throw new Error(\"missing fake record\")\n\nconst next = { ...current, ...input }\nthis.items.set(id, next)\nreturn next\n}\n\n// implement only the contract, not Prisma\n}\n\nNest testing module\nconst moduleRef = await Test.createTestingModule({\nproviders: [\nTasksService,\n{\nprovide: TASK_REPOSITORY,\nuseValue: fakeRepository,\n},\n],\n}).compile()\n\nWhat this test proves\n• Status-transition rules.\n\n• 403/404 domain decisions.\n\n• Derived completedAt behavior.\n\n• Due-date policy.\n\n• Service orchestration independent of PostgreSQL.\n\nWhat it does not prove\nA fake repository does not prove that Prisma relation filters, indexes, migrations, constraints, or\nSQL behavior are correct. Those belong to repository integration tests.",
+      "wordCount": 170,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Unit Testing with a Fake Repository in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Unit Testing with a Fake Repository” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mapping everything into duplicate types without a domain need",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Unit Testing with a Fake Repository” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Unit Testing with a Fake Repository solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "repository-integration-tests-with-postgresql",
+      "title": "Repository Integration Tests with PostgreSQL",
+      "summary": "Repository Integration Tests with PostgreSQL Volume 07 - Advanced Application Architecture | Phase 24 Test the real adapter separately The concrete Prisma repository should be tested against a real disposable/resettable PostgreSQL database because its job is to translate the contract into real persistence behavior. Current…",
+      "body": "Repository Integration Tests with\nPostgreSQL\nVolume 07 - Advanced Application Architecture | Phase 24\n\nTest the real adapter separately\nThe concrete Prisma repository should be tested against a real disposable/resettable PostgreSQL\ndatabase because its job is to translate the contract into real persistence behavior. Current\nPrisma guidance explicitly distinguishes unit tests with mocks from integration tests against a\nreal test database.\n\nIntegration scope\n• Apply migrations to a test database.\n\n• Seed the minimum Workspace/User/Membership/Project graph.\n\n• Call PrismaTaskRepository directly.\n\n• Verify scoped reads cannot cross Workspaces.\n\n• Verify pagination count and rows share filters.\n\n• Verify sorting and nullable relations.\n\n• Reset data between tests.\n\nTwo boundaries\nTwo different questions require two different test boundaries\n\nService unit test                                   Repository integration test\nTasksService -> FakeTaskRepository                        PrismaTaskRepository -> PostgreSQL\nNo PostgreSQL required                                     Real migrations + queries\n\nProves business decisions                                   Proves SQL/query mapping\n\nFigure 24.1 - Two boundaries\n\nWhy both matter\nA service unit test can pass while a Prisma where clause is wrong. A repository integration test\ncan pass while business policy is wrong. Keep the questions separate.",
+      "wordCount": 170,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Repository Integration Tests with PostgreSQL in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Repository Integration Tests with PostgreSQL” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "GenericRepository<T> mirroring ORM methods",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Repository Integration Tests with PostgreSQL” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Repository Integration Tests with PostgreSQL solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "mapping-persistence-types-and-leakage-tradeoffs",
+      "title": "Mapping Persistence Types and Leakage Tradeoffs",
+      "summary": "Mapping, Persistence Types and Leakage Trade-offs Volume 07 - Advanced Application Architecture | Phase 24 Three choices A repository can return Prisma-generated types, application-owned structural records, or full domain entities. Each option has a different cost. TaskFlow chooses application-owned structural records without introducing rich domain…",
+      "body": "Mapping, Persistence Types and\nLeakage Trade-offs\nVolume 07 - Advanced Application Architecture | Phase 24\n\nThree choices\nA repository can return Prisma-generated types, application-owned structural records, or full\ndomain entities. Each option has a different cost. TaskFlow chooses application-owned structural\nrecords without introducing rich domain entity classes yet.\n\nTrade-off table\nOption                        Benefit                   Cost\n\nPrisma types                  Least mapping             Strong persistence coupling\n\nApp records                   Stable service contract   Some mapping code\n\nDomain entities               Rich behavior boundary    Highest complexity; not earned yet\n\nExample application-owned record\nexport type TaskRecord = {\nid: string\nprojectId: string\nassigneeId: string | null\ntitle: string\ndescription: string | null\nstatus: TaskStatus\npriority: TaskPriority\ndueAt: Date | null\ncompletedAt: Date | null\ncreatedAt: Date\nupdatedAt: Date\n}\n\nRule\nMapping is justified when it buys a stable boundary. Do not create mapper classes for every\nobject merely to satisfy a diagram.",
+      "wordCount": 131,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Mapping Persistence Types and Leakage Tradeoffs in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Mapping Persistence Types and Leakage Tradeoffs matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Mapping Persistence Types and Leakage Tradeoffs” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository wrapping every trivial Prisma call with no value",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Mapping Persistence Types and Leakage Tradeoffs” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Mapping Persistence Types and Leakage Tradeoffs solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "incremental-adoption-and-anti-patterns",
+      "title": "Incremental Adoption and Anti Patterns",
+      "summary": "Incremental Adoption and Anti-Patterns Volume 07 - Advanced Application Architecture | Phase 24 Do not big-bang refactor TaskFlow migrates read/list and straightforward write paths first. Transaction-heavy or cross-feature persistence can remain direct Prisma temporarily if forcing it behind the new boundary would make correctness harder…",
+      "body": "Incremental Adoption and\nAnti-Patterns\nVolume 07 - Advanced Application Architecture | Phase 24\n\nDo not big-bang refactor\nTaskFlow migrates read/list and straightforward write paths first. Transaction-heavy or\ncross-feature persistence can remain direct Prisma temporarily if forcing it behind the new\nboundary would make correctness harder to see.\n\nMigration path\nStep 1   identify repeated/complex persistence logic\nStep 2   define the smallest useful contract\nStep 3   implement Prisma adapter\nStep 4   bind with Nest DI token\nStep 5   move one service path at a time\nStep 6   add fake service tests\nStep 7   add repository integration tests\nStep 8   reassess remaining direct Prisma usage\n\nAnti-patterns\n• One repository interface per Prisma model by default.\n\n• A generic repository that only renames Prisma methods.\n\n• Repositories throwing HTTP exceptions.\n\n• Repositories deciding user permissions instead of receiving an already-decided scope.\n\n• Mapping every field through ceremonial classes with no boundary benefit.\n\n• Breaking transaction atomicity to keep repositories pure.\n\n• Assuming repository means the application is database-agnostic in practice.\n\nSuccess criterion\nThe repository is successful when TasksService becomes easier to read and test while\npersistence correctness remains explicit. File count is not the metric.",
+      "wordCount": 184,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Incremental Adoption and Anti Patterns in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Incremental Adoption and Anti Patterns matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Incremental Adoption and Anti Patterns” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocks proving an imaginary database behavior",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Incremental Adoption and Anti Patterns” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Incremental Adoption and Anti Patterns solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Volume 07 - Advanced Application Architecture | Phase 24 Lab 1 - Identify pressure Open the current TasksService. Mark each line as HTTP concern, business policy, authorization policy, persistence query, persistence mapping, or transaction concern. Only the persistence categories are…",
+      "body": "Hands-On Lab and Phase Exit\nVolume 07 - Advanced Application Architecture | Phase 24\n\nLab 1 - Identify pressure\nOpen the current TasksService. Mark each line as HTTP concern, business policy, authorization\npolicy, persistence query, persistence mapping, or transaction concern. Only the persistence\ncategories are candidates for TaskRepository.\n\nLab 2 - Extract listScoped\n• Define TaskRepository.listScoped().\n\n• Move Prisma where, sorting, skip/take, and count logic into PrismaTaskRepository.\n\n• Keep filter semantics and authorization policy clear.\n\n• Verify the API response does not change.\n\nLab 3 - Replace the provider in a unit test\n• Create FakeTaskRepository.\n\n• Use TASK_REPOSITORY with useValue.\n\n• Test one valid status transition.\n\n• Test one invalid transition.\n\n• Confirm no database is required.\n\nLab 4 - Integration verification\n• Use a dedicated test PostgreSQL database.\n\n• Apply migrations.\n\n• Create two Workspaces and memberships.\n\n• Verify a scoped repository query never returns the other Workspace Task.\n\n• Verify pagination metadata matches the filtered rows.\n\nEngineer challenge\nDesign how you would support a cross-repository transaction involving Task assignment,\nMembership validation, and an AuditLog write. Compare: direct Prisma orchestration, a\nUnitOfWork/transaction context, or a purpose-built persistence operation. Do not implement the\nmost abstract option automatically; justify the cost.\n\nPhase exit checklist\n• I can explain why Prisma does not automatically require a repository wrapper.\n\n• I can design a contract from service needs rather than ORM methods.\n\n• I can bind an interface-shaped dependency with a NestJS Symbol token.\n\n• I can test business logic with a fake repository.\n\n• I know why repository integration tests still need PostgreSQL.\n\n• I can identify the generic-repository trap.\n\n• I can protect transaction correctness even when the abstraction is imperfect.\n\nSources used in this phase\nSource                                              Use in this phase\n\nNestJS - Custom providers                           Interfaces are erased at runtime; custom string/symbol\nhttps://docs.nestjs.com/fundamentals/custom-pr      tokens can bind an interface contract to a concrete provider.\noviders\n\nNestJS - Testing                                    TestingModule can replace/override providers so business\nhttps://docs.nestjs.com/fundamentals/testing        services can be tested against doubles.\n\nPrisma ORM v7 - Unit testing                        Prisma documents dependency injection and mocking as\nhttps://docs.prisma.io/docs/orm/prisma-client/tes   valid unit-testing approaches.\nting/unit-testing\n\nPrisma ORM v7 - Best practices                      Current Prisma guidance separates unit tests with mocks\nhttps://www.prisma.io/docs/orm/v7/more/best-pr      from integration tests against a resettable database.\nactices\n\nPrisma ORM v7 - Transactions                        Nested writes, batch transactions, and interactive\nhttps://docs.prisma.io/docs/orm/v7/prisma-client/   transactions remain persistence-specific concerns.\nqueries/transactions",
+      "wordCount": 395,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mapping everything into duplicate types without a domain need",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nIntroduce repository boundaries only where they improve persistence isolation, domain language, testing, or future changeability.",
+      "body": "Guided Build Lab — Phase 24: Repository Pattern\n\nPurpose\nIntroduce repository boundaries only where they improve persistence isolation, domain language, testing, or future changeability.\n\nDeliverable\nOne TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nservice/use case -> repository interface -> Prisma implementation -> database -> mapped domain/application result\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Choose a service whose persistence queries are complex enough to justify a boundary.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Write repository methods in application language rather than generic findAll/create/update/delete.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Move Prisma-specific selection/query details into the implementation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Decide whether persistence types may cross the boundary or need mapping and document the trade-off.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Unit-test service behavior with a fake only where it proves useful behavior.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Integration-test the real repository against PostgreSQL so fake and implementation do not drift.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 636,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "GenericRepository<T> mirroring ORM methods",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 24: Repository Pattern\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nservice/use case -> repository interface -> Prisma implementation -> database -> mapped domain/application result\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — GenericRepository<T> mirroring ORM methods\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Repository wrapping every trivial Prisma call with no value\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Mocks proving an imaginary database behavior\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Mapping everything into duplicate types without a domain need\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 448,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Repository wrapping every trivial Prisma call with no value",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 24 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Repository Pattern\n\nMission\nRebuild the capability of Phase 24 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nIntroduce repository boundaries only where they improve persistence isolation, domain language, testing, or future changeability.\n\nRequired artifact\nOne TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain when not to use a repository.\n• Can design task-specific repository methods.\n• Can test both service and real persistence.\n• Can identify ORM leakage tradeoffs.\n\nIndependent build sequence\n1. Choose a service whose persistence queries are complex enough to justify a boundary.\n2. Write repository methods in application language rather than generic findAll/create/update/delete.\n3. Move Prisma-specific selection/query details into the implementation.\n4. Decide whether persistence types may cross the boundary or need mapping and document the trade-off.\n5. Unit-test service behavior with a fake only where it proves useful behavior.\n6. Integration-test the real repository against PostgreSQL so fake and implementation do not drift.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 371,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocks proving an imaginary database behavior",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 24 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 24: Repository Pattern. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nOne TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 201,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Introduce repository boundaries only where they improve persistence isolation, domain language, testing, or future changeability.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "service/use case",
+          "repository interface",
+          "Prisma implementation",
+          "database",
+          "mapped domain/application result"
+        ],
+        "steps": [
+          "Choose a service whose persistence queries are complex enough to justify a boundary.",
+          "Write repository methods in application language rather than generic findAll/create/update/delete.",
+          "Move Prisma-specific selection/query details into the implementation.",
+          "Decide whether persistence types may cross the boundary or need mapping and document the trade-off.",
+          "Unit-test service behavior with a fake only where it proves useful behavior.",
+          "Integration-test the real repository against PostgreSQL so fake and implementation do not drift.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain when not to use a repository",
+          "Can design task-specific repository methods",
+          "Can test both service and real persistence",
+          "Can identify ORM leakage tradeoffs"
+        ],
+        "breakIt": [
+          "GenericRepository<T> mirroring ORM methods",
+          "Repository wrapping every trivial Prisma call with no value"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/ARCHITECTURE_DECISION.md",
+      "preview": "# ADR - Introduce TaskRepository incrementally\n\n## Decision\nIntroduce TaskRepository for complex/scoped Task persistence queries and straightforward writes. Do not create GenericRepository<T>. Do not force all cross-feature transactions behind repositories yet.\n\n## Why now\nTasksService now contains enough persistence-specific query construction that it obscures business intent and complicates unit testing.\n\n## Consequences\n- Service unit tests can use a fake repository.\n- Prisma query behavior moves into integration-tested adapter code.\n- Some direct Prisma orchestration may remain temporarily where transaction correctness would otherwise become less clear."
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 24 - Repository Pattern\n\nThis snapshot introduces a focused TaskRepository boundary without converting the entire application into a generic repository architecture.\n\nDefault architecture:\n- TasksService owns business policy and workflow meaning.\n- TaskRepository defines persistence operations the service actually needs.\n- PrismaTaskRepository implements those operations with Prisma 7.9.1.\n- Cross-feature transaction abstraction is intentionally deferred until repeated pressure justifies it."
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/SOURCES.md",
+      "preview": "# Sources\n\n- NestJS - Custom providers: https://docs.nestjs.com/fundamentals/custom-providers - Interfaces are erased at runtime; custom string/symbol tokens can bind an interface contract to a concrete provider.\n- NestJS - Testing: https://docs.nestjs.com/fundamentals/testing - TestingModule can replace/override providers so business services can be tested against doubles.\n- Prisma ORM v7 - Unit testing: https://docs.prisma.io/docs/orm/prisma-client/testing/unit-testing - Prisma documents dependency injection and mocking as valid unit-testing approaches.\n- Prisma ORM v7 - Best practices: https://www.prisma.io/docs/orm/v7/more/best-practices - Current Prisma guidance separates unit tests with mocks from integration tests against a resettable database.\n- Prisma ORM v7 - Transactions: https://docs.prisma.io/docs/orm/v7/prisma-client/queries/transactions - Nested writes, batch transactions, and interactive transactions remain persistence-specific concerns."
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/apps/api/src/tasks/repositories/prisma-task.repository.ts",
+      "preview": "import { Injectable } from \"@nestjs/common\"\nimport { PrismaService } from \"../../prisma/prisma.service\"\nimport type { Prisma } from \"../../generated/prisma/client\"\nimport type { PaginatedTasks, TaskListQuery, TaskRepository, CreateTaskRecord, UpdateTaskRecord } from \"./task.repository\"\n\n@Injectable()\nexport class PrismaTaskRepository implements TaskRepository {\n  constructor(private readonly prisma: PrismaService) {}\n\n  findById(id: string) {\n    return this.prisma.task.findUnique({ where: { id } })\n  }\n\n  findScopedById(taskId: string, userId: string) {\n    return this.prisma.task.findFirst({\n      where: {\n        id: taskId,\n        project: {\n          workspace: {\n            memberships: { some: { userId } },"
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/apps/api/src/tasks/repositories/task.repository.ts",
+      "preview": "import type { TaskPriority, TaskStatus } from \"../../generated/prisma/client\"\n\nexport const TASK_REPOSITORY = Symbol(\"TASK_REPOSITORY\")\n\nexport type TaskRecord = {\n  id: string\n  projectId: string\n  assigneeId: string | null\n  title: string\n  description: string | null\n  status: TaskStatus\n  priority: TaskPriority\n  dueAt: Date | null\n  completedAt: Date | null\n  createdAt: Date\n  updatedAt: Date\n}\n\nexport type TaskListQuery = {\n  projectId?: string"
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/apps/api/src/tasks/tasks.module.phase24.ts",
+      "preview": "import { Module } from \"@nestjs/common\"\nimport { TasksController } from \"./tasks.controller\"\nimport { TasksService } from \"./tasks.service.phase24\"\nimport { TASK_REPOSITORY } from \"./repositories/task.repository\"\nimport { PrismaTaskRepository } from \"./repositories/prisma-task.repository\"\n\n@Module({\n  controllers: [TasksController],\n  providers: [\n    TasksService,\n    {\n      provide: TASK_REPOSITORY,\n      useClass: PrismaTaskRepository,\n    },\n  ],\n  exports: [TasksService],\n})\nexport class TasksModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/apps/api/src/tasks/tasks.service.phase24.ts",
+      "preview": "import { Inject, Injectable } from \"@nestjs/common\"\nimport { TASK_REPOSITORY, type TaskRepository } from \"./repositories/task.repository\"\n\n@Injectable()\nexport class TasksService {\n  constructor(\n    @Inject(TASK_REPOSITORY)\n    private readonly tasks: TaskRepository,\n  ) {}\n\n  async findOneForUser(taskId: string, userId: string) {\n    const task = await this.tasks.findScopedById(taskId, userId)\n    if (!task) {\n      // Reuse the Phase 13/19 application exception contract.\n      throw new Error(\"Task not found in authorized scope\")\n    }\n    return task\n  }\n\n  async listForUser(userId: string, query: Parameters<TaskRepository[\"listScoped\"]>[1]) {"
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/tests/fake-task.repository.ts",
+      "preview": "import type { CreateTaskRecord, PaginatedTasks, TaskListQuery, TaskRecord, TaskRepository, UpdateTaskRecord } from \"../apps/api/src/tasks/repositories/task.repository\"\n\nexport class FakeTaskRepository implements TaskRepository {\n  readonly items = new Map<string, TaskRecord>()\n\n  async findById(id: string) { return this.items.get(id) ?? null }\n  async findScopedById(id: string, _userId: string) { return this.items.get(id) ?? null }\n\n  async listScoped(_userId: string, query: TaskListQuery): Promise<PaginatedTasks> {\n    const all = [...this.items.values()]\n    const start = (query.page - 1) * query.pageSize\n    const data = all.slice(start, start + query.pageSize)\n    const totalItems = all.length\n    const totalPages = Math.ceil(totalItems / query.pageSize)\n    return { data, meta: { page: query.page, pageSize: query.pageSize, totalItems, totalPages, hasPreviousPage: query.page > 1, hasNextPage: query.page < totalPages } }\n  }\n\n  async create(input: CreateTaskRecord) {\n    const now = new Date()\n    const task = { id: crypto.randomUUID(), projectId: input.projectId, assigneeId: null, title: input.title, description: input.description ?? null, status: \"TODO\" as const, priority: \"MEDIUM\" as const, dueAt: null, completedAt: null, createdAt: now, updatedAt: now }"
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/tests/prisma-task.repository.integration-checklist.md",
+      "preview": "# PrismaTaskRepository integration checklist\n\nUse a dedicated resettable PostgreSQL test database.\n\n- Apply the same Prisma migrations used by development.\n- Seed two Users, two Workspaces, Memberships, Projects and Tasks.\n- listScoped(userA) never returns Workspace B data.\n- findScopedById(userA, taskB) returns null.\n- status/priority/search filters produce the expected rows.\n- page metadata and row query share the same filter.\n- stable sort uses id as a tiebreaker.\n- nullable assignee and dueAt values map correctly.\n- database errors are translated at the appropriate boundary."
+    },
+    {
+      "path": "reference/TaskFlow_Repository_Pattern_Snapshot/tests/tasks.service.repository.spec.ts",
+      "preview": "import { Test } from \"@nestjs/testing\"\nimport { TASK_REPOSITORY } from \"../apps/api/src/tasks/repositories/task.repository\"\nimport { TasksService } from \"../apps/api/src/tasks/tasks.service.phase24\"\nimport { FakeTaskRepository } from \"./fake-task.repository\"\n\ndescribe(\"TasksService repository boundary\", () => {\n  it(\"can replace persistence without starting PostgreSQL\", async () => {\n    const fake = new FakeTaskRepository()\n    const moduleRef = await Test.createTestingModule({\n      providers: [\n        TasksService,\n        { provide: TASK_REPOSITORY, useValue: fake },\n      ],\n    }).compile()\n\n    const service = moduleRef.get(TasksService)\n    expect(service).toBeDefined()\n  })\n})"
+    }
+  ],
+  "exercises": [
+    "Guided: Choose a service whose persistence queries are complex enough to justify a boundary.",
+    "Practice: Move Prisma-specific selection/query details into the implementation.",
+    "Debugging: reproduce and diagnose — GenericRepository<T> mirroring ORM methods.",
+    "Independent: deliver One TaskFlow aggregate/use case refactored behind a purposeful repository interface with real database integration tests.",
+    "Explain-back: Can explain when not to use a repository and Can design task-specific repository methods."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 24's engineering goal?",
+      "options": [
+        "Introduce a repository only when separating persistence behavior creates a real testing or architecture benefit.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Introduce a repository only when separating persistence behavior creates a real testing or architecture benefit."
+    },
+    {
+      "question": "Which practice best matches Phase 24's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "A repository should express persistence operations in application terms rather than mirror every ORM method."
+      ],
+      "answer": 3,
+      "explanation": "A repository should express persistence operations in application terms rather than mirror every ORM method."
+    },
+    {
+      "question": "Which practice best matches Phase 24's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Keep Prisma-specific details from leaking through layers if the repository is intended to create a meaningful boundary.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Keep Prisma-specific details from leaking through layers if the repository is intended to create a meaningful boundary."
+    },
+    {
+      "question": "Which practice best matches Phase 24's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Do not add repository abstractions to trivial CRUD solely because the pattern exists.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Do not add repository abstractions to trivial CRUD solely because the pattern exists."
+    },
+    {
+      "question": "You are working through the Phase 24 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: GenericRepository<T> mirroring ORM methods.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose a service whose persistence queries are complex enough to justify a boundary."
+      ],
+      "answer": 3,
+      "explanation": "Choose a service whose persistence queries are complex enough to justify a boundary."
+    },
+    {
+      "question": "You are working through the Phase 24 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Repository wrapping every trivial Prisma call with no value.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write repository methods in application language rather than generic findAll/create/update/delete.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write repository methods in application language rather than generic findAll/create/update/delete."
+    },
+    {
+      "question": "You are working through the Phase 24 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Move Prisma-specific selection/query details into the implementation.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Mocks proving an imaginary database behavior."
+      ],
+      "answer": 1,
+      "explanation": "Move Prisma-specific selection/query details into the implementation."
+    },
+    {
+      "question": "You are working through the Phase 24 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Decide whether persistence types may cross the boundary or need mapping and document the trade-off.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Mapping everything into duplicate types without a domain need.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Decide whether persistence types may cross the boundary or need mapping and document the trade-off."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3802
+}

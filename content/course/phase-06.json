@@ -1,0 +1,1058 @@
+{
+  "number": 6,
+  "slug": "phase-06",
+  "title": "Next.js <-> NestJS Communication",
+  "volume": 2,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 02 - Frontend + Backend Foundations\nPhase 06 - Next.js <-> NestJS Communication\n\nThis package contains 10 focused Phase 06 PDFs, one combined complete book, and a reference end-to-end TaskFlow snapshot.\n\nPhase boundaries:\n- Next.js and NestJS are now connected end to end.\n- Server Component fetch and browser Client Component fetch are both taught.\n- Browser CORS is configured intentionally for local frontend origins.\n- JSON POST preflight behavior is demonstrated.\n- Raw fetch remains visible; TanStack Query is intentionally later.\n- Todo data remains in memory.\n- No Prisma/PostgreSQL yet.\n- No authentication/authorization yet.\n\nPrimary references:\n- Next.js App Router Fetching Data / fetch documentation\n- Next.js Environment Variables documentation\n- NestJS CORS documentation\n- MDN CORS, preflight and Fetch API documentation\n\nNext: Volume 03, Phase 07 - PostgreSQL Fundamentals for Application Developers.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "from-two-apps-to-one-system",
+      "title": "From Two Apps to One System",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 From Two Apps to One System VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS From Two Apps to One System Execution environments, network paths and the first full-stack mental model Phase 06 turns two working applications into one full-stack system. Browser Next.js…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                 From Two Apps to One System\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nFrom Two Apps to One System\nExecution environments, network paths and the first full-stack mental model\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 1 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                       From Two Apps to One System\n\nTwo working applications are not automatically one system\nAt the end of Phase 05, the browser can render Next.js and PowerShell can call NestJS. That proves both halves work, but the\nproduct still has a missing link: the frontend has not consumed the backend contract. Phase 06 creates that link deliberately.\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                     Next.js                                  NestJS API\n\nhttp://localhost:3000                            apps/web                              http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nWhere fetch executes changes the architecture\nSame API URL, different execution environment.\n\nBrowser                              Next.js Server        SERVER FETCH           NestJS API\n\nrenders page / runs client JS                Server Components                               port 4000\n\nBROWSER FETCH\n\nClient Component\n\nbrowser JavaScript\n\nCORS is a browser security policy. A server-to-server fetch is not blocked by the browser CORS enforcement model.\n\nFigure - Server Component fetch versus browser Client Component fetch. Knowing where code executes explains when CORS\nbecomes relevant.\n\nIn the App Router, a Server Component can await fetch directly. That request originates from the Next.js server process. A\nClient Component runs JavaScript in the browser after hydration; its fetch originates from the browser. Both can target the\nsame NestJS URL, but the security and observability characteristics differ.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                       From Two Apps to One System\n\nServer-side request path\nMental model\n\nBrowser -> Next.js Server -> HTTP -> NestJS API -> Next.js renders result -> Browser\n\nBrowser-side request path\nMental model\n\nBrowser -> Client Component JavaScript -> HTTP -> NestJS API -> Browser updates UI\n\nWhy both are worth learning\nDimension                       Server Component fetch                            Client Component fetch\n\nRuns in                         Next.js server runtime                            Browser\n\nCan read server-only env?       Yes                                               No\n\nSubject to browser CORS         No                                                Yes\nenforcement?\n\nUseful for                      Initial page data, server rendering               Interactive refresh/mutations\n\nVisible in browser Network      Usually no - browser requests Next.js page        Yes\nas direct API call?\n\nDo not turn this into dogma\n\nThe course is not saying all reads must be server-side or all mutations must be client-side. The point is to understand the\nexecution environment first. Later architecture decisions can then be made intentionally.\n\nThe browser is not the Next.js server\nThis distinction becomes one of the most important full-stack debugging skills. If a server-side fetch fails, browser CORS\nsettings are irrelevant. If a browser-side fetch is blocked by CORS, changing Prisma or React rendering will not fix it.\nAlways identify where the failing code executed.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 582,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "communication",
+        "objectives": [
+          "Explain From Two Apps to One System in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this communication concept.",
+          "Diagnose one representative communication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "From Two Apps to One System matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "Next.js UI",
+          "typed request",
+          "NestJS endpoint",
+          "service",
+          "response state"
+        ],
+        "steps": [
+          "Restate the goal of “From Two Apps to One System” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: Next.js UI → typed request → NestJS endpoint → service → response state. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using the browser-only URL from server-to-server code in deployment",
+          "Change one assumption in the communication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “From Two Apps to One System” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does From Two Apps to One System solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the communication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "api-urls-and-environment-boundaries",
+      "title": "API URLs and Environment Boundaries",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 API URLs and Environment Boundaries VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS API URLs and Environment Boundaries Configuration, NEXT_PUBLIC_ and protecting server-only values Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API http://localhost:3000 apps/web http://localhost:4000 HTTP…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                         API URLs and Environment Boundaries\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nAPI URLs and Environment Boundaries\nConfiguration, NEXT_PUBLIC_ and protecting server-only values\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 2 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                        API URLs and Environment Boundaries\n\nURLs are configuration, not component content\nDuring local development, Next.js listens on port 3000 and NestJS on port 4000. It is tempting to paste http://localhost:4000\ninto every component. That works for ten minutes and becomes painful as soon as staging or production exists. We introduce\nthe smallest useful configuration boundary now.\n\napps/web/.env.local\n.env.local - local file, do not commit\n\nAPI_BASE_URL=http://127.0.0.1:4000\nNEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:4000\n\napps/web/.env.example\n.env.example - safe contract, commit this\n\nAPI_BASE_URL=\nNEXT_PUBLIC_API_BASE_URL=\n\nWhy two variables?\nVariable                                Available where?                   Purpose\n\nAPI_BASE_URL                            Server runtime only                Server Components and server-only code\n\nNEXT_PUBLIC_API_BASE_URL                Browser bundle + server            Browser/client code that must know the public API\nURL\n\nNext.js only exposes environment values to browser code when they are explicitly prefixed with NEXT_PUBLIC_. Those\npublic values are inlined into browser JavaScript at build time, so they must never contain secrets.\n\nSECURITY BOUNDARY\n\nA value being called an environment variable does not make it secret. NEXT_PUBLIC_* means the value is intentionally public\nto the browser. API URLs are normally fine; database passwords and service-role keys are not.\n\nEnvironment variable location\nWhen a Next.js project uses a src/ directory, environment files still belong at the project root, such as apps/web/.env.local,\nnot inside apps/web/src.\n\nNormalize one development hostname\nUse either localhost consistently or 127.0.0.1 consistently while learning. Browsers treat origin as scheme + host + port.\nhttp://localhost:3000 and http://127.0.0.1:3000 are different origins even though both reach the same machine. Our Nest\nCORS example allows both to reduce accidental local friction, but consistency remains a good habit.\n\nFail early when required configuration is absent\nServer-side example\n\nconst apiBaseUrl = process.env.API_BASE_URL;\n\nif (!apiBaseUrl) {\nthrow new Error('API_BASE_URL is not configured');\n}\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                             API URLs and Environment Boundaries\n\nREAL-WORLD NOTE\n\nLater deployments may use different internal and public API addresses. Keeping the server and browser configuration concepts\nseparate now prepares the architecture for that difference without adding deployment complexity yet.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 500,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "communication",
+        "objectives": [
+          "Explain API URLs and Environment Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this communication concept.",
+          "Diagnose one representative communication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "API URLs and Environment Boundaries matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "Next.js UI",
+          "typed request",
+          "NestJS endpoint",
+          "service",
+          "response state"
+        ],
+        "steps": [
+          "Restate the goal of “API URLs and Environment Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: Next.js UI → typed request → NestJS endpoint → service → response state. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Wildcard CORS with credentials",
+          "Change one assumption in the communication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “API URLs and Environment Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does API URLs and Environment Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the communication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "server-side-fetch-with-next-js",
+      "title": "Server Side Fetch with Next.js",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 Server-Side Fetch with Next.js VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS Server-Side Fetch with Next.js Server Component -> NestJS before browser CORS enters the picture Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API http://localhost:3000 apps/web…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                  Server-Side Fetch with Next.js\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nServer-Side Fetch with Next.js\nServer Component -> NestJS before browser CORS enters the picture\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 3 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                        Server-Side Fetch with Next.js\n\nFirst connection: fetch from a Server Component\nWe start with the quieter request path because it proves Next.js can consume NestJS without introducing browser CORS at\nthe same moment. The page is a Server Component by default, so it can be async and await the API response directly.\n\nSame API URL, different execution environment.\n\nBrowser                              Next.js Server        SERVER FETCH           NestJS API\n\nrenders page / runs client JS                Server Components                               port 4000\n\nBROWSER FETCH\n\nClient Component\n\nbrowser JavaScript\n\nCORS is a browser security policy. A server-to-server fetch is not blocked by the browser CORS enforcement model.\n\nFigure - Server Component fetch versus browser Client Component fetch. Knowing where code executes explains when CORS\nbecomes relevant.\n\nStep 1 - create one small HTTP helper\napps/web/src/lib/api/todos.ts\n\nexport interface Todo {\nid: number;\ntitle: string;\ncompleted: boolean;\n}\n\nexport async function fetchTodos(baseUrl: string): Promise<Todo[]> {\nconst response = await fetch(`${baseUrl}/todos`, { cache: 'no-store' });\n\nif (!response.ok) {\nthrow new Error(`GET /todos failed: ${response.status}`);\n}\n\nreturn response.json() as Promise<Todo[]>;\n}\n\nWe pass the base URL into the helper. That keeps the helper usable from both server and browser code without importing a\nserver-only environment variable into a client bundle.\n\nStep 2 - call it from the page\napps/web/src/app/todos/page.tsx\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                         Server-Side Fetch with Next.js\n\nimport { fetchTodos } from '@/lib/api/todos';\n\nexport default async function TodosPage() {\nconst apiBaseUrl = process.env.API_BASE_URL;\nif (!apiBaseUrl) throw new Error('API_BASE_URL is not configured');\n\nconst todos = await fetchTodos(apiBaseUrl);\n\nreturn (\n<main>\n<h1>Todos from NestJS</h1>\n<ul>\n{todos.map((todo) => (\n<li key={todo.id}>{todo.title}</li>\n))}\n</ul>\n</main>\n);\n}\n\nWhat just happened?\nBrowser\nrequests /todos page\n\nNext.js Server Component\ncalls fetchTodos()\n\nNestJS GET /todos\nreturns JSON\n\nNext.js\nrenders HTML/RSC payload\n\nBrowser\nshows Todo list\n\nFigure - The first end-to-end request is server-to-server. The browser receives rendered application output rather than directly calling\nport 4000.\n\nWhy check response.ok?\nThe Fetch API does not reject its promise merely because a server returned 404 or 500. It still produced an HTTP response.\nWe therefore check response.ok and convert an unsuccessful HTTP outcome into an application error intentionally.\n\nTEMPORARY CACHING CHOICE\n\nWe use cache: no-store to make the learning behavior obvious while our Todo data is in memory and changes frequently. This is\nnot a claim that every production request should disable caching. Next.js caching strategy gets its own treatment later.\n\nVerification\n1         Start NestJS from apps/api and verify http://127.0.0.1:4000/todos.\n2         Start Next.js from apps/web.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                         Server-Side Fetch with Next.js\n\n3       Open the Next.js /todos route.\n4       Confirm the Todo titles come from the NestJS in-memory array.\n5       Stop the API and reload the page; observe that the error is reported by the Next.js server path, not by browser CORS.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 636,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Server Side Fetch with Next.js in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Server Side Fetch with Next.js” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Ignoring non-2xx fetch responses because fetch did not throw",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server Side Fetch with Next.js” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server Side Fetch with Next.js solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "browser-fetch-and-cors",
+      "title": "Browser Fetch and CORS",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 Browser Fetch and CORS VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS Browser Fetch and CORS Client Component -> NestJS and the browser security boundary Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API http://localhost:3000 apps/web http://localhost:4000…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                      Browser Fetch and CORS\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nBrowser Fetch and CORS\nClient Component -> NestJS and the browser security boundary\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 4 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                           Browser Fetch and CORS\n\nSecond connection: let browser JavaScript call NestJS\nNow we intentionally move the request into a Client Component. The browser page is served from port 3000 while the API is\non port 4000. Those are different origins, so the browser begins enforcing Cross-Origin Resource Sharing rules.\n\nBrowser Origin                           GET /todos                            API Origin\n\nhttp://localhost:3000                                                      http://localhost:4000\n\ndifferent port = different origin\n\nBrowser checks                                                     Nest CORS config\n\nresponse CORS headers                                                    allowed origins\n\nIf the server does not grant the browser origin, JavaScript cannot read the cross-origin response.\n\nFigure - CORS is permission communicated through HTTP headers and enforced by browsers. It is not a replacement for authentication\nor authorization.\n\nWhat counts as an origin?\nOrigin mental model\n\norigin = scheme + host + port\n\nhttp://localhost:3000\nhttp://localhost:4000   <- different port, different origin\nhttp://127.0.0.1:3000 <- different host from localhost\n\nEnable only the frontend origins we need\napps/api/src/main.ts - before app.listen(...)\n\napp.enableCors({\norigin: [\n'http://localhost:3000',\n'http://127.0.0.1:3000',\n],\n});\n\nNestJS exposes enableCors() on the application object. With the Fastify platform, Nest uses the platform-appropriate CORS\nintegration under the hood. The important part for the learner is the policy: the API tells browsers which origins may read\ncross-origin responses.\n\nCORS IS NOT AUTH\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                             Browser Fetch and CORS\n\nAllowing http://localhost:3000 through CORS does not prove who the user is, does not protect a Todo from another\nauthenticated user, and does not make the API private. Authentication and authorization arrive later.\n\nTemporary Client Component\napps/web/src/app/todos-browser/browser-todos.tsx\n\n'use client';\n\nimport { useEffect, useState } from 'react';\nimport { fetchTodos, type Todo } from '@/lib/api/todos';\n\nexport function BrowserTodos() {\nconst [todos, setTodos] = useState<Todo[]>([]);\nconst [error, setError] = useState<string | null>(null);\n\nuseEffect(() => {\nconst baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;\nif (!baseUrl) {\nsetError('NEXT_PUBLIC_API_BASE_URL is not configured');\nreturn;\n}\n\nfetchTodos(baseUrl).then(setTodos).catch((err: unknown) => {\nsetError(err instanceof Error ? err.message : 'Unknown error');\n});\n}, []);\n\nif (error) return <p role=\"alert\">{error}</p>;\nreturn <ul>{todos.map((todo) => <li key={todo.id}>{todo.title}</li>)}</ul>;\n}\n\nEDUCATIONAL SCAFFOLDING\n\nThis useEffect data-fetching example is intentionally temporary. Later, TanStack Query will own browser server-state fetching,\ncaching, retries and mutation synchronization. We use raw fetch now so the network mechanics remain visible.\n\nHow to verify CORS instead of guessing\n1         Temporarily comment out app.enableCors(...) and restart the API.\n2         Open the browser route that performs the client fetch.\n3         Use DevTools -> Network and Console. Observe that the API may receive a request while browser JavaScript is\nprevented from using a disallowed response.\n4         Restore the exact development-origin CORS policy and retry.\n5         Confirm the response is readable by the Client Component.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 598,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "cors",
+        "objectives": [
+          "Explain Browser Fetch and CORS in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this cors concept.",
+          "Diagnose one representative cors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Browser Fetch and CORS matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Browser Fetch and CORS” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Inspect the browser preflight contract",
+          "code": "OPTIONS /tasks HTTP/1.1\nOrigin: http://localhost:3000\nAccess-Control-Request-Method: POST\nAccess-Control-Request-Headers: authorization,content-type\n\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:3000"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating fetch/error logic in every component",
+          "Change one assumption in the cors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Browser Fetch and CORS” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Browser Fetch and CORS solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the cors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "cors-preflight-and-fetch-error-semantics",
+      "title": "CORS Preflight and Fetch Error Semantics",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 CORS Preflight and Fetch Error Semantics VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS CORS Preflight and Fetch Error Semantics OPTIONS, JSON POST, response.ok and network-vs-HTTP failures Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API http://localhost:3000…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                     CORS Preflight and Fetch Error Semantics\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nCORS Preflight and Fetch Error\nSemantics\nOPTIONS, JSON POST, response.ok and network-vs-HTTP failures\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 5 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                    CORS Preflight and Fetch Error Semantics\n\nWhy GET may work while POST suddenly shows OPTIONS\nA simple cross-origin GET can often proceed without an OPTIONS preflight. A browser POST that sends Content-Type:\napplication/json is different: application/json is not a CORS-safelisted content type, so the browser commonly checks\npermission first.\n\nBrowser wants POST /todos\nContent-Type: application/json\n\nOPTIONS /todos\nCORS preflight\n\nNestJS CORS response\nAccess-Control-Allow-*\n\nPOST /todos\nactual JSON request\n\n201 Created\nTodo representation\n\nFigure - A JSON cross-origin POST commonly triggers an automatic browser preflight. The frontend normally does not hand-code the\nOPTIONS request.\n\nCreate helper\nAdd to apps/web/src/lib/api/todos.ts\n\nexport async function createTodo(baseUrl: string, title: string): Promise<Todo> {\nconst response = await fetch(`${baseUrl}/todos`, {\nmethod: 'POST',\nheaders: { 'Content-Type': 'application/json' },\nbody: JSON.stringify({ title }),\n});\n\nif (!response.ok) {\nthrow new Error(`POST /todos failed: ${response.status}`);\n}\n\nreturn response.json() as Promise<Todo>;\n}\n\nThe browser owns the preflight\nThe frontend normally does not write an OPTIONS request manually. The browser decides that a cross-origin request\nrequires preflight, sends OPTIONS with the intended method/headers, inspects the server CORS response, and only then\nsends the actual request if policy allows it.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                          CORS Preflight and Fetch Error Semantics\n\nNetwork error vs HTTP error\nSituation                     fetch promise                  Response available?              What to inspect\n\nAPI process stopped           Rejects                        No                               catch / network error\n\nDNS or malformed URL          Rejects                        No                               URL/configuration\n\nCORS blocked browser          Typically rejects to JS as a   No usable response               Console + Network + CORS headers\naccess                        network-style failure\n\n404 Not Found                 Resolves                       Yes, ok=false                    status + response body\n\n500 Server Error              Resolves                       Yes, ok=false                    status + server logs\n\nIMPORTANT FETCH RULE\n\nA try/catch around fetch is not enough to detect HTTP failures. Check response.ok or response.status because 404 and 500 are\nstill valid HTTP responses.\n\nPreflight debugging checklist\n●     Was the browser request actually cross-origin?\n●     Did the Network panel show OPTIONS before the actual method?\n●     What Origin header did the browser send?\n●     Did the API return Access-Control-Allow-Origin for that exact origin?\n●     Did Access-Control-Allow-Methods include the intended method?\n●     Did Access-Control-Allow-Headers permit non-safelisted headers?\n●     Did the actual request run after OPTIONS?\n\nDo not \"fix\" CORS with no-cors\nSetting fetch mode to no-cors is not a general solution. It produces an opaque response whose useful status/body are not\navailable to application JavaScript. The correct fix is an intentional server CORS policy when the browser should be allowed\nto call the API.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 561,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "cors",
+        "objectives": [
+          "Explain CORS Preflight and Fetch Error Semantics in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this cors concept.",
+          "Diagnose one representative cors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CORS Preflight and Fetch Error Semantics matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “CORS Preflight and Fetch Error Semantics” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Inspect the browser preflight contract",
+          "code": "OPTIONS /tasks HTTP/1.1\nOrigin: http://localhost:3000\nAccess-Control-Request-Method: POST\nAccess-Control-Request-Headers: authorization,content-type\n\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:3000"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using the browser-only URL from server-to-server code in deployment",
+          "Change one assumption in the cors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “CORS Preflight and Fetch Error Semantics” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does CORS Preflight and Fetch Error Semantics solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the cors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "clean-api-client-boundary",
+      "title": "Clean API Client Boundary",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 A Clean API Client Boundary VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS A Clean API Client Boundary Centralize transport details without premature abstractions Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API http://localhost:3000 apps/web http://localhost:4000 HTTP…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                   A Clean API Client Boundary\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nA Clean API Client Boundary\nCentralize transport details without premature abstractions\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 6 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                 A Clean API Client Boundary\n\nThe first useful frontend boundary: a tiny API client\nAfter the first successful fetch, a common mistake is to copy URLs, headers, response.ok checks and JSON parsing into\nevery page. We now have a concrete duplication problem, so a small HTTP-client module has earned its place.\n\nPage / Client Component\nasks for Todos\n\nlib/api/todos.ts\nHTTP contract in one place\n\nfetch()\nRequest + Response\n\nNestJS /todos\nresource API\n\nFigure - A small API-client module prevents URLs and HTTP parsing logic from spreading across UI components. It is not yet a\nrepository abstraction.\n\nWhat belongs in lib/api/todos.ts\n●   The Todo response type used by this phase.\n●   URL construction relative to a supplied base URL.\n●   HTTP method and headers.\n●   JSON serialization/deserialization.\n●   response.ok checks and useful HTTP error messages.\n\nWhat does not belong there yet\n●   React state or JSX.\n●   TanStack Query configuration.\n●   Repository interfaces.\n●   MobX stores.\n●   Prisma or database code.\n●   Authentication tokens before auth exists.\napps/web/src/lib/api/todos.ts - phase-end shape\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                       A Clean API Client Boundary\n\nexport interface Todo {\nid: number;\ntitle: string;\ncompleted: boolean;\n}\n\nasync function expectJson<T>(response: Response): Promise<T> {\nif (!response.ok) {\nthrow new Error(`HTTP ${response.status} for ${response.url}`);\n}\nreturn response.json() as Promise<T>;\n}\n\nexport async function fetchTodos(baseUrl: string) {\nreturn expectJson<Todo[]>(await fetch(`${baseUrl}/todos`, { cache: 'no-store' }));\n}\n\nexport async function createTodo(baseUrl: string, title: string) {\nreturn expectJson<Todo>(await fetch(`${baseUrl}/todos`, {\nmethod: 'POST',\nheaders: { 'Content-Type': 'application/json' },\nbody: JSON.stringify({ title }),\n}));\n}\n\nWhy pass baseUrl instead of reading process.env inside\nthe helper?\nThe same pure HTTP helper can run in a Server Component with API_BASE_URL and in a Client Component with\nNEXT_PUBLIC_API_BASE_URL. If the helper itself imported a server-only variable, it would become unsafe to reuse\nfrom client code. Passing configuration makes the execution boundary explicit.\n\nNOT A REPOSITORY YET\n\nThis module is a small transport helper. It does not pretend HTTP is interchangeable with memory/database implementations,\nand it does not introduce interfaces merely for architecture style. Repository Pattern arrives only after the course has a concrete\nreason for it.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 504,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Clean API Client Boundary in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Clean API Client Boundary matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Clean API Client Boundary” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Wildcard CORS with credentials",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Clean API Client Boundary” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Clean API Client Boundary solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "loading-error-empty-and-success-states",
+      "title": "Loading Error Empty and Success States",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 Loading, Error, Empty and Success States VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS Loading, Error, Empty and Success States Make network dependency visible in the user experience Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                      Loading, Error, Empty and Success States\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nLoading, Error, Empty and Success\nStates\nMake network dependency visible in the user experience\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 7 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                          Loading, Error, Empty and Success States\n\nA real network creates more than data\nOnce the frontend depends on another process, the UI must represent time and failure. A professional interface does not\nassume data appears instantly. Even before TanStack Query, the learner should recognize the four basic remote-data states.\n\nState                     Meaning                                       UI responsibility\n\nLoading                   Request in progress                           Communicate activity without pretending data exists\n\nError                     Request failed or HTTP outcome rejected       Show actionable feedback; preserve diagnostics\n\nEmpty                     Request succeeded with zero items             Explain that nothing exists yet\n\nSuccess                   Request succeeded with data                   Render the actual resource\n\nServer Component states\nFor server rendering, route-level loading.tsx and error.tsx can provide structured loading/error behavior around segments.\nPhase 03 introduced those files; Phase 06 gives them a real network reason to exist.\n\nClient Component states\nState rendering mental model\n\nif (loading) return <p>Loading Todos...</p>;\nif (error) return <p role=\"alert\">{error}</p>;\nif (todos.length === 0) return <p>No Todos yet.</p>;\n\nreturn <TodoList todos={todos} />;\n\nAvoid false success\nDo not initialize an empty array and immediately render \"No Todos\" while a request is still pending. That tells the user the\nserver returned an empty collection when the server has not answered yet. Loading and empty are different states.\n\nMinimal browser mutation flow\nUser clicks Create demo Todo\nClient event\n\ncreateTodo()\nPOST JSON\n\nNestJS\n201 Created\n\nClient refreshes Todos\nGET /todos\n\nUI shows new item\nsuccess state\n\nFigure - Phase 06 keeps mutation synchronization manual so the learner sees the work that TanStack Query will later automate.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                           Loading, Error, Empty and Success States\n\nFUTURE CONNECTION\n\nWhen TanStack Query appears, query status, caching, invalidation, retries and mutations will replace much of this manual\nbrowser server-state code. Understanding the manual lifecycle first prevents the library from becoming magic.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 453,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Loading Error Empty and Success States in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Loading Error Empty and Success States matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Loading Error Empty and Success States” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Ignoring non-2xx fetch responses because fetch did not throw",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Loading Error Empty and Success States” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Loading Error Empty and Success States solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "devtools-and-end-to-end-debugging",
+      "title": "DevTools and End to End Debugging",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 DevTools and End-to-End Debugging VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS DevTools and End-to-End Debugging Trace browser, Next.js and NestJS failures with observable evidence Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS API http://localhost:3000 apps/web http://localhost:4000…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                           DevTools and End-to-End Debugging\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nDevTools and End-to-End Debugging\nTrace browser, Next.js and NestJS failures with observable evidence\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 8 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                         DevTools and End-to-End Debugging\n\nDebug the path, not the symptom\n\"The page is blank\" is not a diagnosis. End-to-end development becomes manageable when every failure is located on the\nactual request path.\n\nIs Next.js running?\nport 3000\n\nIs NestJS running?\nport 4000\n\nWhat exact URL did fetch use?\nenvironment variable\n\nDid the request leave the browser?\nNetwork tab\n\nWas there OPTIONS first?\npreflight\n\nWhat status + headers returned?\nHTTP evidence\n\nDid fetch code check response.ok?\napplication handling\n\nFigure - Phase 06 debugging follows the network path instead of guessing from the UI symptom.\n\nBrowser Network panel workflow\n1      Open DevTools -> Network.\n2      Clear previous entries.\n3      Trigger exactly one operation.\n4      Select the request to port 4000.\n5      Inspect Request URL and Request Method.\n6      Inspect Status Code.\n7      Inspect Request Headers, especially Origin and Content-Type.\n8      Inspect Response Headers, especially Access-Control-Allow-* when cross-origin.\n9      Inspect Response/Preview body.\n10     If OPTIONS exists, inspect it separately from the actual request.\n\nTerminal evidence still matters\nA Server Component fetch runs in the Next.js server process, so its stack trace and fetch error appear in the Next.js terminal.\nA NestJS handler failure appears in the API terminal. A browser Client Component failure can appear in browser\nConsole/Network. Good debugging follows the process that executed the failing code.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                               DevTools and End-to-End Debugging\n\nFailure matrix\nSymptom                                               Likely layer to inspect first\n\nNext /todos page throws when API is stopped           Next.js server fetch / API process\n\nBrowser says CORS policy blocked request              Browser + API CORS headers\n\nGET returns 404                                       Exact method/path and Nest route\n\nPOST shows OPTIONS 204 but no POST                    Preflight policy / requested headers or method\n\nPOST returns 400                                      Request JSON + API input check\n\nfetch catch runs with Failed to fetch                 Network/CORS rather than HTTP 4xx/5xx\n\nresponse.ok is false with 500                         Nest logs / application failure\n\nPublic API URL changed but browser still uses old     NEXT_PUBLIC_ build-time inlining / restart-build context\nvalue\n\nSmallest-correction discipline\n\nDo not change CORS, fetch, controllers, service logic and environment files simultaneously. Preserve one failing request, make\none hypothesis, change one layer, rerun the same request, then observe whether the evidence changed.\n\nA powerful test: bypass the browser\nIf a browser call fails, repeat the equivalent request with PowerShell. If PowerShell succeeds while browser JavaScript fails,\nthat strongly narrows the problem toward browser-only policy/configuration such as CORS. It does not prove CORS\nautomatically, but it prevents pointless database or controller rewrites.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 563,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "communication",
+        "objectives": [
+          "Explain DevTools and End to End Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this communication concept.",
+          "Diagnose one representative communication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "DevTools and End to End Debugging matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "Next.js UI",
+          "typed request",
+          "NestJS endpoint",
+          "service",
+          "response state"
+        ],
+        "steps": [
+          "Restate the goal of “DevTools and End to End Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: Next.js UI → typed request → NestJS endpoint → service → response state. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating fetch/error logic in every component",
+          "Change one assumption in the communication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “DevTools and End to End Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does DevTools and End to End Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the communication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06 Hands-On Lab and Phase Exit VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS Hands-On Lab and Phase Exit Build, break, debug and explain the first complete TaskFlow request path Phase 06 turns two working applications into one full-stack system. Browser Next.js NestJS…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                  Hands-On Lab and Phase Exit\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nHands-On Lab and Phase Exit\nBuild, break, debug and explain the first complete TaskFlow request path\n\nPhase 06 turns two working applications into one full-stack system.\n\nBrowser                                    Next.js                                NestJS API\n\nhttp://localhost:3000                         apps/web                             http://localhost:4000\n\nHTTP fetch\n\nLater phases replace in-memory Todos with Prisma + PostgreSQL.\n\nFigure - TaskFlow Phase 06 architecture. The browser sees Next.js on port 3000 while the independent NestJS API listens on port 4000.\n\nBook 9 of Phase 06\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                             Hands-On Lab and Phase Exit\n\nHands-on lab - make TaskFlow genuinely full stack\nThis lab should be completed with two terminals and one browser. Keep the API and frontend independent processes. The\ngoal is not merely to see Todos on screen; the goal is to explain every network hop that made them appear.\n\nLevel 1 - Follow\n1      Create apps/web/.env.local with API_BASE_URL and NEXT_PUBLIC_API_BASE_URL.\n2      Create src/lib/api/todos.ts with Todo, fetchTodos and response.ok handling.\n3      Build /todos as an async Server Component that reads API_BASE_URL.\n4      Start apps/api on 4000 and apps/web on 3000; verify server-side Todo rendering.\n5      Enable NestJS CORS for localhost:3000 and 127.0.0.1:3000.\n6      Build /todos-browser with a Client Component that fetches via NEXT_PUBLIC_API_BASE_URL.\n7      Use DevTools Network to prove the direct browser request reaches port 4000.\n\nLevel 2 - Modify\nAdd a Refresh Todos button to the Client Component. Keep the implementation simple. Disable the button while a refresh is\nrunning and clearly separate loading from empty state.\n\nLevel 3 - Implement\nAdd a Create demo Todo button that POSTs JSON using createTodo(). After creation, refresh the collection. In DevTools,\nidentify the OPTIONS preflight and the subsequent POST. Explain why GET did not necessarily require the same preflight.\n\nLevel 4 - Engineer\nAssume production will host the frontend at https://app.taskflow.example and the API at https://api.taskflow.example.\nWrite the environment-variable and CORS configuration plan for development, staging and production. Do not use wildcard\nCORS as a shortcut. Explain which values are public and which must never enter a browser bundle.\n\nFailure drills\nBreak this                                   Expected lesson\n\nStop NestJS                                  Differentiate network/process failure from HTTP error\n\nChange NEXT_PUBLIC_API_BASE_URL to           Trace exact browser Request URL\nport 4999\n\nRemove CORS config                           Observe browser-only policy failure\n\nAllow only localhost but open Next through   Understand exact origin matching\n127.0.0.1\n\nCall /todo instead of /todos                 See normal HTTP 404, not CORS\n\nRemove response.ok check then call missing   See why fetch promise success != HTTP success\nroute\n\nPOST JSON with CORS disabled                 Observe preflight/actual-request behavior\n\nOral architecture exam\n●      Where does a Server Component fetch execute?\n●      Why does a browser Client Component fetch care about CORS?\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 06                                                                      Hands-On Lab and Phase Exit\n\n●    Why is port part of an origin?\n●    What is NEXT_PUBLIC_ telling Next.js to do?\n●    Why can no secret ever live in NEXT_PUBLIC_API_BASE_URL?\n●    What does an OPTIONS preflight prove?\n●    Why does fetch need response.ok checking?\n●    How can PowerShell help isolate a browser-only failure?\n●    Why is lib/api/todos.ts useful but not yet Repository Pattern?\n●    Why are we deliberately not using TanStack Query yet?\n\nPhase 06 exit checklist\n●    [ ] both apps start independently from their own workspace directories.\n●    [ ] server-side /todos renders data returned by NestJS.\n●    [ ] browser-side /todos-browser can read the API through CORS.\n●    [ ] API URLs come from environment configuration, not repeated literals.\n●    [ ] no secret is stored in NEXT_PUBLIC_* variables.\n●    [ ] browser POST JSON can be observed with its preflight when applicable.\n●    [ ] fetch helpers check response.ok.\n●    [ ] loading, error, empty and success states are distinct.\n●    [ ] you can use Network + terminal evidence to locate the failing layer.\n●    [ ] frontend and API production builds still succeed.\n\nNEXT: VOLUME 03 - DATABASE ENGINEERING\n\nThe system can finally communicate end to end, but its Todos still disappear when the API restarts. That is now a real,\nobservable persistence problem. Phase 07 teaches PostgreSQL fundamentals before Prisma is allowed to solve it.\n\nOfficial source notes\nPrimary framework references: Next.js App Router Fetching Data and fetch API documentation; Next.js Environment Variables\ndocumentation; NestJS CORS documentation. Browser protocol references: MDN CORS, preflight request, and Fetch API documentation.\n\nThe course remains version-locked to the versions established in Phase 00. These sources are used to verify concepts and current API\nbehavior, not to silently upgrade the course midstream.",
+      "wordCount": 726,
+      "workshop": {
+        "topic": "communication",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this communication concept.",
+          "Diagnose one representative communication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "Next.js UI",
+          "typed request",
+          "NestJS endpoint",
+          "service",
+          "response state"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: Next.js UI → typed request → NestJS endpoint → service → response state. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using the browser-only URL from server-to-server code in deployment",
+          "Change one assumption in the communication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the communication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nConnect Next.js and NestJS through an explicit, debuggable HTTP boundary with environment-safe base URLs and correct CORS behavior.",
+      "body": "Guided Build Lab — Phase 06: Next.js <-> NestJS Communication\n\nPurpose\nConnect Next.js and NestJS through an explicit, debuggable HTTP boundary with environment-safe base URLs and correct CORS behavior.\n\nDeliverable\nA typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nNext.js component/action -> API client -> HTTP request -> CORS/origin rules -> NestJS -> HTTP response -> UI state\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Define API base URLs per environment instead of hard-coding localhost throughout components.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Call a public endpoint from a Server Component and inspect where the request originates.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Call an endpoint from a Client Component and observe browser CORS behavior.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Configure NestJS CORS for the exact development origin and credentials policy required.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Centralize response parsing and non-2xx error handling in one API helper.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Use Network tab plus API logs to trace one failing request end-to-end.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npnpm --filter web dev\npnpm --filter api start:dev\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 697,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Wildcard CORS with credentials",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 06: Next.js <-> NestJS Communication\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nNext.js component/action -> API client -> HTTP request -> CORS/origin rules -> NestJS -> HTTP response -> UI state\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Using the browser-only URL from server-to-server code in deployment\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Wildcard CORS with credentials\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Ignoring non-2xx fetch responses because fetch did not throw\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Duplicating fetch/error logic in every component\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 454,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "communication",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this communication concept.",
+          "Diagnose one representative communication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "Next.js UI",
+          "typed request",
+          "NestJS endpoint",
+          "service",
+          "response state"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: Next.js UI → typed request → NestJS endpoint → service → response state. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Ignoring non-2xx fetch responses because fetch did not throw",
+          "Change one assumption in the communication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the communication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 06 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Next.js <-> NestJS Communication\n\nMission\nRebuild the capability of Phase 06 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nConnect Next.js and NestJS through an explicit, debuggable HTTP boundary with environment-safe base URLs and correct CORS behavior.\n\nRequired artifact\nA typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can locate a failure on frontend, network, or API side.\n• Can explain CORS as a browser policy.\n• Can configure environment-specific API URLs.\n• Can build one reusable request helper.\n\nIndependent build sequence\n1. Define API base URLs per environment instead of hard-coding localhost throughout components.\n2. Call a public endpoint from a Server Component and inspect where the request originates.\n3. Call an endpoint from a Client Component and observe browser CORS behavior.\n4. Configure NestJS CORS for the exact development origin and credentials policy required.\n5. Centralize response parsing and non-2xx error handling in one API helper.\n6. Use Network tab plus API logs to trace one failing request end-to-end.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 383,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "communication",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this communication concept.",
+          "Diagnose one representative communication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "Next.js UI",
+          "typed request",
+          "NestJS endpoint",
+          "service",
+          "response state"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: Next.js UI → typed request → NestJS endpoint → service → response state. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating fetch/error logic in every component",
+          "Change one assumption in the communication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the communication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 06 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 06: Next.js <-> NestJS Communication. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 207,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Connect Next.js and NestJS through an explicit, debuggable HTTP boundary with environment-safe base URLs and correct CORS behavior.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Next.js component/action",
+          "API client",
+          "HTTP request",
+          "CORS/origin rules",
+          "NestJS",
+          "HTTP response",
+          "UI state"
+        ],
+        "steps": [
+          "Define API base URLs per environment instead of hard-coding localhost throughout components.",
+          "Call a public endpoint from a Server Component and inspect where the request originates.",
+          "Call an endpoint from a Client Component and observe browser CORS behavior.",
+          "Configure NestJS CORS for the exact development origin and credentials policy required.",
+          "Centralize response parsing and non-2xx error handling in one API helper.",
+          "Use Network tab plus API logs to trace one failing request end-to-end.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can locate a failure on frontend, network, or API side",
+          "Can explain CORS as a browser policy",
+          "Can configure environment-specific API URLs",
+          "Can build one reusable request helper"
+        ],
+        "breakIt": [
+          "Using the browser-only URL from server-to-server code in deployment",
+          "Wildcard CORS with credentials"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/package.json",
+      "preview": "{\n  \"name\": \"api\",\n  \"private\": true,\n  \"scripts\": {\n    \"build\": \"nest build\",\n    \"start\": \"nest start\",\n    \"start:dev\": \"nest start --watch\"\n  },\n  \"dependencies\": {\n    \"@nestjs/common\": \"12.0.3\",\n    \"@nestjs/core\": \"12.0.3\",\n    \"@nestjs/platform-fastify\": \"12.0.3\",\n    \"reflect-metadata\": \"^0.2.2\",\n    \"rxjs\": \"^7.8.2\"\n  },\n  \"devDependencies\": {\n    \"@nestjs/cli\": \"12.0.3\",\n    \"@nestjs/schematics\": \"12.0.3\",\n    \"@nestjs/testing\": \"12.0.3\",\n    \"typescript\": \"~6.0.2\""
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/app.module.ts",
+      "preview": "import { Module } from '@nestjs/common';\nimport { HealthModule } from './health/health.module.js';\nimport { TodosModule } from './todos/todos.module.js';\n\n@Module({\n  imports: [HealthModule, TodosModule],\n})\nexport class AppModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/health/health.controller.ts",
+      "preview": "import { Controller, Get } from '@nestjs/common';\nimport { HealthService } from './health.service.js';\n\n@Controller('health')\nexport class HealthController {\n  constructor(private readonly healthService: HealthService) {}\n\n  @Get()\n  getHealth() {\n    return this.healthService.getStatus();\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/health/health.module.ts",
+      "preview": "import { Module } from '@nestjs/common';\nimport { HealthController } from './health.controller.js';\nimport { HealthService } from './health.service.js';\n\n@Module({\n  controllers: [HealthController],\n  providers: [HealthService],\n})\nexport class HealthModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/health/health.service.ts",
+      "preview": "import { Injectable } from '@nestjs/common';\n\n@Injectable()\nexport class HealthService {\n  getStatus() {\n    return {\n      status: 'ok',\n      service: 'taskflow-api',\n    };\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/main.ts",
+      "preview": "import { NestFactory } from '@nestjs/core';\nimport { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';\nimport { AppModule } from './app.module.js';\n\nasync function bootstrap() {\n  const app = await NestFactory.create<NestFastifyApplication>(\n    AppModule,\n    new FastifyAdapter(),\n  );\n\n  app.enableCors({\n    origin: [\n      'http://localhost:3000',\n      'http://127.0.0.1:3000',\n    ],\n  });\n\n  app.enableShutdownHooks();\n\n  const port = Number(process.env.PORT ?? 4000);"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/todos/todos.controller.ts",
+      "preview": "import {\n  BadRequestException,\n  Body,\n  Controller,\n  Delete,\n  Get,\n  HttpCode,\n  Param,\n  Patch,\n  Post,\n} from '@nestjs/common';\nimport { TodosService } from './todos.service.js';\n\n@Controller('todos')\nexport class TodosController {\n  constructor(private readonly todosService: TodosService) {}\n\n  @Get()\n  findAll() {\n    return this.todosService.findAll();"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/todos/todos.module.ts",
+      "preview": "import { Module } from '@nestjs/common';\nimport { TodosController } from './todos.controller.js';\nimport { TodosService } from './todos.service.js';\n\n@Module({\n  controllers: [TodosController],\n  providers: [TodosService],\n})\nexport class TodosModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/api/src/todos/todos.service.ts",
+      "preview": "import { Injectable, NotFoundException } from '@nestjs/common';\n\ninterface Todo {\n  id: number;\n  title: string;\n  completed: boolean;\n}\n\n@Injectable()\nexport class TodosService {\n  private nextId = 3;\n  private readonly todos: Todo[] = [\n    { id: 1, title: 'Learn HTTP', completed: false },\n    { id: 2, title: 'Build the API contract', completed: false },\n  ];\n\n  findAll() {\n    return this.todos;\n  }\n"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/.env.example",
+      "preview": "API_BASE_URL=\nNEXT_PUBLIC_API_BASE_URL="
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/package.json",
+      "preview": "{\n  \"name\": \"web\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": {\n    \"dev\": \"next dev\",\n    \"build\": \"next build\",\n    \"start\": \"next start\",\n    \"lint\": \"eslint\"\n  },\n  \"dependencies\": {\n    \"next\": \"16.3.3\",\n    \"react\": \"19.3.0\",\n    \"react-dom\": \"19.3.0\"\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/globals.css",
+      "preview": ":root {\n  --background: #f6f8fa;\n  --surface: #ffffff;\n  --text: #17212b;\n  --border: #d8e0e6;\n}\n\n* { box-sizing: border-box; }\n\nbody {\n  margin: 0;\n  background: var(--background);\n  color: var(--text);\n  font-family: Arial, sans-serif;\n}\n\nmain {\n  width: min(1100px, calc(100% - 2rem));\n  margin: 0 auto;\n  padding: 2rem 0;"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/layout.tsx",
+      "preview": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport \"./globals.css\";\n\nexport const metadata: Metadata = {\n  title: \"TaskFlow\",\n  description: \"Project and task management for focused teams\",\n};\n\nexport default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <header>\n          <Link href=\"/\">TaskFlow</Link>\n          <nav aria-label=\"Primary navigation\">\n            <Link href=\"/projects\">Projects</Link>\n            <Link href=\"/settings\">Settings</Link>\n          </nav>\n        </header>"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/page.tsx",
+      "preview": "export default function HomePage() {\n  return (\n    <section>\n      <p>TaskFlow</p>\n      <h1>Keep work visible and moving.</h1>\n      <p>Projects, tasks, ownership, and progress will grow here throughout the course.</p>\n    </section>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/projects/page.tsx",
+      "preview": "const projects = [\n  { id: 1, name: \"Website refresh\", status: \"Active\" },\n  { id: 2, name: \"Inventory rollout\", status: \"Planning\" },\n];\n\nexport default function ProjectsPage() {\n  return (\n    <section>\n      <h1>Projects</h1>\n      {projects.map((project) => (\n        <article key={project.id}>\n          <h2>{project.name}</h2>\n          <p>{project.status}</p>\n        </article>\n      ))}\n    </section>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/settings/density-toggle.tsx",
+      "preview": "\"use client\";\n\nimport { useState } from \"react\";\n\nexport function DensityToggle() {\n  const [compact, setCompact] = useState(false);\n  return (\n    <button onClick={() => setCompact((value) => !value)}>\n      Density: {compact ? \"Compact\" : \"Comfortable\"}\n    </button>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/settings/page.tsx",
+      "preview": "import { DensityToggle } from \"./density-toggle\";\n\nexport default function SettingsPage() {\n  return (\n    <section>\n      <h1>Settings</h1>\n      <DensityToggle />\n    </section>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/todos/page.tsx",
+      "preview": "import { fetchTodos } from '@/lib/api/todos';\n\nexport default async function TodosPage() {\n  const apiBaseUrl = process.env.API_BASE_URL;\n\n  if (!apiBaseUrl) {\n    throw new Error('API_BASE_URL is not configured');\n  }\n\n  const todos = await fetchTodos(apiBaseUrl);\n\n  return (\n    <main>\n      <h1>Todos from NestJS</h1>\n      {todos.length === 0 ? (\n        <p>No Todos yet.</p>\n      ) : (\n        <ul>\n          {todos.map((todo) => (\n            <li key={todo.id}>"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/todos-browser/browser-todos.tsx",
+      "preview": "'use client';\n\nimport { useCallback, useEffect, useState } from 'react';\nimport { createTodo, fetchTodos, type Todo } from '@/lib/api/todos';\n\nexport function BrowserTodos() {\n  const [todos, setTodos] = useState<Todo[]>([]);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n\n  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;\n\n  const loadTodos = useCallback(async () => {\n    if (!baseUrl) {\n      setError('NEXT_PUBLIC_API_BASE_URL is not configured');\n      setLoading(false);\n      return;\n    }\n\n    setLoading(true);"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/app/todos-browser/page.tsx",
+      "preview": "import { BrowserTodos } from './browser-todos';\n\nexport default function TodosBrowserPage() {\n  return (\n    <main>\n      <h1>Browser-to-API Todos</h1>\n      <BrowserTodos />\n    </main>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_End_to_End_Snapshot/apps/web/src/lib/api/todos.ts",
+      "preview": "export interface Todo {\n  id: number;\n  title: string;\n  completed: boolean;\n}\n\nasync function expectJson<T>(response: Response): Promise<T> {\n  if (!response.ok) {\n    throw new Error(`HTTP ${response.status} for ${response.url}`);\n  }\n\n  return response.json() as Promise<T>;\n}\n\nexport async function fetchTodos(baseUrl: string): Promise<Todo[]> {\n  const response = await fetch(`${baseUrl}/todos`, { cache: 'no-store' });\n  return expectJson<Todo[]>(response);\n}\n\nexport async function createTodo(baseUrl: string, title: string): Promise<Todo> {"
+    }
+  ],
+  "exercises": [
+    "Guided: Define API base URLs per environment instead of hard-coding localhost throughout components.",
+    "Practice: Call an endpoint from a Client Component and observe browser CORS behavior.",
+    "Debugging: reproduce and diagnose — Using the browser-only URL from server-to-server code in deployment.",
+    "Independent: deliver A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.",
+    "Explain-back: Can locate a failure on frontend, network, or API side and Can explain CORS as a browser policy."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Keep the browser dependent on a stable API contract rather than importing backend implementation details.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Keep the browser dependent on a stable API contract rather than importing backend implementation details."
+    },
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Configure CORS narrowly for the origins that should call the API.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Configure CORS narrowly for the origins that should call the API."
+    },
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Centralize base URLs and environment-specific configuration instead of hard-coding localhost throughout components.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Centralize base URLs and environment-specific configuration instead of hard-coding localhost throughout components."
+    },
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Trace failures across browser network tools, API logs, and server responses rather than guessing from UI symptoms."
+      ],
+      "answer": 3,
+      "explanation": "Trace failures across browser network tools, API logs, and server responses rather than guessing from UI symptoms."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Define API base URLs per environment instead of hard-coding localhost throughout components.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using the browser-only URL from server-to-server code in deployment."
+      ],
+      "answer": 1,
+      "explanation": "Define API base URLs per environment instead of hard-coding localhost throughout components."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Call a public endpoint from a Server Component and inspect where the request originates.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Wildcard CORS with credentials.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Call a public endpoint from a Server Component and inspect where the request originates."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Ignoring non-2xx fetch responses because fetch did not throw.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Call an endpoint from a Client Component and observe browser CORS behavior."
+      ],
+      "answer": 3,
+      "explanation": "Call an endpoint from a Client Component and observe browser CORS behavior."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicating fetch/error logic in every component.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Configure NestJS CORS for the exact development origin and credentials policy required.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Configure NestJS CORS for the exact development origin and credentials policy required."
+    }
+  ],
+  "lessonCount": 13,
+  "wordCount": 6864
+}

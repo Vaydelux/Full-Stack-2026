@@ -1,0 +1,1214 @@
+{
+  "number": 26,
+  "slug": "phase-26",
+  "title": "Realtime",
+  "volume": 7,
+  "readme": "Phase 26 - Realtime\n\nThis package teaches Supabase Realtime as an optional freshness layer for TaskFlow.\nThe production direction uses database-triggered private Broadcast events scoped by Workspace Membership, then TanStack Query invalidation/refetch on clients.\n\nThe reference snapshot is illustrative and should be reconciled with the exact TaskFlow repository before copy/paste.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "realtime-mental-model-and-when-it-earns-its-place",
+      "title": "Realtime Mental Model and When It Earns Its Place",
+      "summary": "Realtime Mental Model and When It Earns Its Place Volume 07 - Advanced Application Architecture The problem Realtime solves • User A changes a Task while User B is looking at the same Workspace. • Without Realtime, User B sees the change only after manual…",
+      "body": "Realtime Mental Model and When It\nEarns Its Place\nVolume 07 - Advanced Application Architecture\n\nThe problem Realtime solves\n• User A changes a Task while User B is looking at the same Workspace.\n\n• Without Realtime, User B sees the change only after manual refresh, navigation, focus refetch, or\npolling.\n\n• Realtime reduces the time between committed server truth and another client learning that it\nchanged.\n\nDo not confuse freshness with authority\nThe event does not become the database. The browser uses the event as a hint that cached server\nstate may now be stale. HTTP/API reads still reconstruct authoritative state.\n\nWhen Realtime earns its cost\n• Collaborative task boards where changes from coworkers should appear quickly.\n\n• Live operations consoles where stale state has real workflow cost.\n\n• Notifications or activity streams where delay matters.\n\n• Presence/typing/cursor indicators for collaborative experiences.\n\nWhen normal refetch is enough\n• Rarely changed settings pages.\n\n• Forms mostly edited by one person.\n\n• Admin reports where refresh every 30-60 seconds is acceptable.\n\n• Screens where realtime complexity would exceed UX value.\n\nDecision rule\nStart with HTTP + TanStack Query. Add Realtime only to flows where stale data is an actual product\nproblem.",
+      "wordCount": 190,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Realtime Mental Model and When It Earns Its Place in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Realtime Mental Model and When It Earns Its Place matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Realtime Mental Model and When It Earns Its Place” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Realtime treated as database authority",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Realtime Mental Model and When It Earns Its Place” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Realtime Mental Model and When It Earns Its Place solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "broadcast-presence-and-postgres-changes",
+      "title": "Broadcast Presence and Postgres Changes",
+      "summary": "Broadcast, Presence and Postgres Changes Volume 07 - Advanced Application Architecture Three capabilities Three Realtime capabilities - three different jobs Broadcast Postgres Changes Presence Low-latency app/database events Direct row-change stream Ephemeral online/activity state Recommended for scalable DB changes Simpler setup Who is here? Private channel…",
+      "body": "Broadcast, Presence and Postgres\nChanges\nVolume 07 - Advanced Application Architecture\n\nThree capabilities\nThree Realtime capabilities - three different jobs\n\nBroadcast                            Postgres Changes                             Presence\n\nLow-latency app/database events               Direct row-change stream            Ephemeral online/activity state\nRecommended for scalable DB changes                   Simpler setup                          Who is here?\nPrivate channel authorization          Less scalable under many subscribers        Not durable business data\n\nTaskFlow choice: Broadcast for persistent Task changes; Presence only for future ephemeral collaboration.\n\nBroadcast\nBroadcast sends low-latency messages to channel subscribers. For database changes, Supabase\nrecommends Broadcast as the scalable and secure approach, typically emitted by a database trigger\nusing realtime.broadcast_changes().\n\nPostgres Changes\nPostgres Changes streams table changes directly and is easy to start with. Its authorization/scaling\nmodel becomes more expensive as subscriber counts grow because changes may need\nper-subscriber access checks.\n\nPresence\nPresence synchronizes ephemeral connected-client state such as “online”, “viewing this board”, or\ncursor metadata. It is not a durable source of business truth.\n\nTaskFlow decision\nPersistent Task                   Use database-triggered private Broadcast.\nchanges\n\nPrototype / simple                Postgres Changes is acceptable for learning or small use cases.\nlow-scale CDC\n\nWho is online?                    Presence, if/when TaskFlow develops a real collaboration requirement.",
+      "wordCount": 188,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain Broadcast Presence and Postgres Changes in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “Broadcast Presence and Postgres Changes” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Subscriptions never cleaned up",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Broadcast Presence and Postgres Changes” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Broadcast Presence and Postgres Changes solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "taskflow-broadcast-architecture",
+      "title": "TaskFlow Broadcast Architecture",
+      "summary": "TaskFlow Broadcast Architecture Volume 07 - Advanced Application Architecture End-to-end path TaskFlow Realtime data path User A NestJS Postgres DB trigger Realtime mutation rules + auth commit broadcast WebSocket User B browser TanStack Query private channel invalidate/refetch Realtime is a freshness signal. NestJS + PostgreSQL…",
+      "body": "TaskFlow Broadcast Architecture\nVolume 07 - Advanced Application Architecture\n\nEnd-to-end path\nTaskFlow Realtime data path\n\nUser A                 NestJS                    Postgres      DB trigger          Realtime\nmutation              rules + auth                commit        broadcast              WebSocket\n\nUser B browser                TanStack Query\nprivate channel               invalidate/refetch\n\nRealtime is a freshness signal. NestJS + PostgreSQL remain authoritative.\n\nWhy the event begins after commit\nThe Task write still goes through NestJS, authorization, business rules, Repository/Prisma and\nPostgreSQL. A Postgres AFTER trigger emits an event only when the database change actually\nhappens.\n\nTopic granularity\nTaskFlow uses one private topic per Workspace Task stream: workspace:<workspaceId>:tasks. This\navoids one channel per Task while still keeping tenant boundaries explicit.\n\nWhy the browser subscribes directly to Supabase\nRealtime\nNestJS remains the write/API authority, but the WebSocket freshness path can go directly from\nSupabase Realtime to the authenticated browser. We are not duplicating business logic in Realtime;\nwe are delivering change notifications.\n\nFailure philosophy\nIf Realtime is unavailable, the app degrades to normal TanStack Query behavior: initial fetch,\ninvalidation from local mutations, focus/reconnect refetch, manual refresh. That is a healthy\narchitecture.",
+      "wordCount": 177,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain TaskFlow Broadcast Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TaskFlow Broadcast Architecture matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “TaskFlow Broadcast Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Events for other tenants visible to a client",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TaskFlow Broadcast Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TaskFlow Broadcast Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "database-trigger-and-workspace-topic-design",
+      "title": "Database Trigger and Workspace Topic Design",
+      "summary": "Database Trigger and Workspace Topic Design Volume 07 - Advanced Application Architecture Trigger function CREATE OR REPLACE FUNCTION public.broadcast_task_changes() RETURNS trigger SECURITY DEFINER SET search_path = '' LANGUAGE plpgsql AS $$ DECLARE project_id uuid; workspace_id uuid; BEGIN project_id := CASE WHEN TG_OP = 'DELETE' THEN…",
+      "body": "Database Trigger and Workspace Topic\nDesign\nVolume 07 - Advanced Application Architecture\n\nTrigger function\nCREATE OR REPLACE FUNCTION public.broadcast_task_changes()\nRETURNS trigger\nSECURITY DEFINER\nSET search_path = ''\nLANGUAGE plpgsql\nAS $$\nDECLARE\nproject_id uuid;\nworkspace_id uuid;\nBEGIN\nproject_id := CASE\nWHEN TG_OP = 'DELETE' THEN OLD.\"projectId\"\nELSE NEW.\"projectId\"\nEND;\n\nSELECT p.\"workspaceId\"\nINTO workspace_id\nFROM public.\"Project\" p\nWHERE p.id = project_id;\n\nIF workspace_id IS NOT NULL THEN\nPERFORM realtime.broadcast_changes(\n'workspace:' || workspace_id::text || ':tasks',\nTG_OP,\nTG_OP,\nTG_TABLE_NAME,\nTG_TABLE_SCHEMA,\nNEW,\nOLD\n);\nEND IF;\n\nRETURN NULL;\nEND;\n$$;\n\nAttach the trigger\nDROP TRIGGER IF EXISTS task_realtime_broadcast\nON public.\"Task\";\n\nCREATE TRIGGER task_realtime_broadcast\nAFTER INSERT OR UPDATE OR DELETE\nON public.\"Task\"\nFOR EACH ROW\nEXECUTE FUNCTION public.broadcast_task_changes();\n\nWhy use an AFTER trigger\n• The event describes a database change that has actually been accepted.\n\n• The browser should not be notified about a write that later fails.\n\n• The topic is derived from persisted Task -> Project -> Workspace relationships, not browser input.\n\nProduction note\nIf Workspace lookup becomes a hot path, measure it before denormalizing. A later schema could\nstore workspaceId directly on Task, but Phase 26 does not change the data model merely for\nconvenience.",
+      "wordCount": 188,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Database Trigger and Workspace Topic Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Database Trigger and Workspace Topic Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicate optimistic + realtime updates",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Database Trigger and Workspace Topic Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Database Trigger and Workspace Topic Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "private-channels-and-realtime-authorization",
+      "title": "Private Channels and Realtime Authorization",
+      "summary": "Private Channels and Realtime Authorization Volume 07 - Advanced Application Architecture Authorization path Private workspace channel authorization Supabase JWT Realtime join RLS policy Membership Topic: workspace:<workspaceId>:tasks Policy allows SELECT on realtime.messages only when the JWT subject maps to a Workspace Membership. This RLS protects the…",
+      "body": "Private Channels and Realtime\nAuthorization\nVolume 07 - Advanced Application Architecture\n\nAuthorization path\nPrivate workspace channel authorization\n\nSupabase JWT                  Realtime join                  RLS policy             Membership\n\nTopic: workspace:<workspaceId>:tasks\n\nPolicy allows SELECT on realtime.messages only when the JWT subject maps to a Workspace Membership.\n\nThis RLS protects the Realtime channel. NestJS still owns business authorization for writes.\n\nMembership helper\nCREATE OR REPLACE FUNCTION public.can_receive_task_topic(\nrequested_topic text\n)\nRETURNS boolean\nLANGUAGE sql STABLE\nSECURITY DEFINER\nSET search_path = ''\nAS $$\nSELECT EXISTS (\nSELECT 1\nFROM public.\"Membership\" m\nJOIN public.\"User\" u\nON u.id = m.\"userId\"\nWHERE u.\"authSubject\" = (SELECT auth.uid())::text\nAND requested_topic =\n'workspace:' || m.\"workspaceId\"::text || ':tasks'\n);\n$$;\n\nRealtime SELECT policy\nCREATE POLICY\n\"workspace members receive task broadcasts\"\nON realtime.messages\nFOR SELECT TO authenticated\nUSING (\nrealtime.messages.extension = 'broadcast'\nAND public.can_receive_task_topic(\n(SELECT realtime.topic())\n)\n);\n\nFunction permissions\nThe full reference migration revokes public execution and grants the helper only to the authenticated\nrole.\n\nImportant architectural distinction\nThis RLS authorizes the Realtime topic; NestJS still authorizes Task reads and writes.\n\nProject setting\n\nFor production, disable public channel access and join with private: true so the Realtime policy is\nenforced.",
+      "wordCount": 188,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Private Channels and Realtime Authorization in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Private Channels and Realtime Authorization” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Realtime treated as database authority",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Private Channels and Realtime Authorization” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Private Channels and Realtime Authorization solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "next-js-subscription-lifecycle",
+      "title": "Next.js Subscription Lifecycle",
+      "summary": "Next.js Subscription Lifecycle Volume 07 - Advanced Application Architecture Client hook export function useWorkspaceTaskRealtime( workspaceId: string, ) { const queryClient = useQueryClient() const supabase = useMemo( () => createBrowserSupabaseClient(), [], ) useEffect(() => { let channel: RealtimeChannel | undefined let disposed = false const connect…",
+      "body": "Next.js Subscription Lifecycle\nVolume 07 - Advanced Application Architecture\n\nClient hook\nexport function useWorkspaceTaskRealtime(\nworkspaceId: string,\n) {\nconst queryClient = useQueryClient()\nconst supabase = useMemo(\n() => createBrowserSupabaseClient(),\n[],\n)\n\nuseEffect(() => {\nlet channel: RealtimeChannel | undefined\nlet disposed = false\n\nconst connect = async () => {\nawait supabase.realtime.setAuth()\nif (disposed) return\n\nchannel = supabase\n.channel(`workspace:${workspaceId}:tasks`, {\nconfig: { private: true },\n})\n.on('broadcast', { event: 'INSERT' }, refresh)\n.on('broadcast', { event: 'UPDATE' }, refresh)\n.on('broadcast', { event: 'DELETE' }, refresh)\n.subscribe((status, error) => {\nif (status === 'SUBSCRIBED') refresh()\nif (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {\nconsole.error('Realtime channel failure', error)\n}\n})\n}\n\nconst refresh = () => {\nvoid queryClient.invalidateQueries({\nqueryKey: taskKeys.all,\n})\n}\n\nvoid connect()\n\nreturn () => {\ndisposed = true\nif (channel) void supabase.removeChannel(channel)\n}\n}, [queryClient, supabase, workspaceId])\n}\n\nWhy cleanup matters\n• Route/workspace changes can otherwise leave unused subscriptions alive.\n\n• Unused channels consume Realtime resources and make duplicate handlers more likely.\n\n• Supabase exposes removeChannel() specifically to tear down a channel.\n\nReconnect recovery\nOn a successful subscription/re-subscription, TaskFlow invalidates Task queries. This closes the\n“missed events while disconnected” gap by asking the HTTP API for current truth.\n\nToken refresh\nRealtime Authorization uses the authenticated JWT. Supabase Realtime supports in-band\naccess-token updates; the browser Supabase client is the source of the session, and setAuth()\n\nestablishes the token used for the private channel.",
+      "wordCount": 198,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Next.js Subscription Lifecycle in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js Subscription Lifecycle matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Next.js Subscription Lifecycle” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Subscriptions never cleaned up",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Next.js Subscription Lifecycle” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Next.js Subscription Lifecycle solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "tanstack-query-integration",
+      "title": "TanStack Query Integration",
+      "summary": "TanStack Query Integration: Invalidate First, Patch Selectively Volume 07 - Advanced Application Architecture Default strategy Realtime event + TanStack Query Broadcast event Handler invalidateQueries API INSERT/UPDATE/DELETE small + idempotent taskKeys.all refetch Why invalidate first? The backend already owns authorization, filters, pagination and derived state. Patch…",
+      "body": "TanStack Query Integration: Invalidate\nFirst, Patch Selectively\nVolume 07 - Advanced Application Architecture\n\nDefault strategy\nRealtime event + TanStack Query\n\nBroadcast event                       Handler                     invalidateQueries                       API\nINSERT/UPDATE/DELETE               small + idempotent                   taskKeys.all                     refetch\n\nWhy invalidate first? The backend already owns authorization, filters, pagination and derived state.\n\nPatch the cache directly only when the event contract is stable and the update is easy to prove correct.\n\nWhy invalidate is the safe default\n• NestJS already owns authorization and business rules.\n\n• Phase 15 already owns search, filters, sorting, pagination and metadata.\n\n• Phase 25 already owns optimistic local UX for the current user.\n\n• A Realtime event can simply mark cached Task data stale and let the API rebuild the correct view.\n\nTargeted invalidation options\n// Simple and safe:\nqueryClient.invalidateQueries({\nqueryKey: taskKeys.all,\n})\n\n// Narrower when the event contract gives a reliable Task id:\nqueryClient.invalidateQueries({\nqueryKey: taskKeys.detail(taskId),\n})\nqueryClient.invalidateQueries({\nqueryKey: taskKeys.lists(),\n})\n\nWhen direct cache patching is justified\nPatch with setQueryData only when the event schema is stable, the update is easy to prove correct,\nand you are not rebuilding authorization/filter/pagination logic in the browser. Otherwise invalidate.\n\nBurst events\nA later optimization may debounce/coalesce invalidations for high-frequency streams. Start correct\nfirst, then measure network churn before adding complexity.",
+      "wordCount": 206,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain TanStack Query Integration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “TanStack Query Integration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Events for other tenants visible to a client",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TanStack Query Integration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TanStack Query Integration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "realtime-with-optimistic-updates",
+      "title": "Realtime with Optimistic Updates",
+      "summary": "Realtime with Optimistic Updates Volume 07 - Advanced Application Architecture The same mutation can generate two signals User A clicks DONE -> optimistic UI predicts DONE -> HTTP PATCH /tasks/:id -> Postgres commits DONE -> Broadcast event arrives -> mutation response arrives -> onSettled invalidates…",
+      "body": "Realtime with Optimistic Updates\nVolume 07 - Advanced Application Architecture\n\nThe same mutation can generate two signals\nUser A clicks DONE\n-> optimistic UI predicts DONE\n-> HTTP PATCH /tasks/:id\n-> Postgres commits DONE\n-> Broadcast event arrives\n-> mutation response arrives\n-> onSettled invalidates too\n\nIs duplicate invalidation wrong?\nUsually no. Invalidation is idempotent from the application point of view: both signals say “the cache\nmay be stale.” The cost is extra refetch work, not data corruption. Optimize only if measurements\nshow meaningful churn.\n\nDo not suppress every self-originated event\nTrying to perfectly identify “my own” database broadcast adds correlation state and can accidentally\nignore a server-side change you still need. TaskFlow first accepts harmless duplicate freshness\nsignals.\n\nConflict behavior\n• If another user changes the Task while your optimistic mutation is pending, the server remains the\nauthority.\n\n• Serial mutation scopes from Phase 25 still protect same-Task mutation order in the local client.\n\n• Realtime invalidation helps surface remote commits quickly.\n\n• A 409/403 response still rolls back the local optimistic prediction.\n\nRule\nOptimistic UI improves perceived latency. Realtime improves cross-client freshness.\nNeither becomes the source of truth.",
+      "wordCount": 181,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Realtime with Optimistic Updates in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Realtime with Optimistic Updates matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Realtime with Optimistic Updates” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicate optimistic + realtime updates",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Realtime with Optimistic Updates” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Realtime with Optimistic Updates solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "multi-tenant-channel-strategy",
+      "title": "Multi Tenant Channel Strategy",
+      "summary": "Multi-Tenant Workspace Channel Strategy Volume 07 - Advanced Application Architecture Topic design workspace:<workspaceId>:tasks Examples: workspace:11111111-...:tasks workspace:22222222-...:tasks Why Workspace scope • One channel can cover all Task changes visible within the current Workspace. • Changing Workspace naturally tears down the old channel and joins the new…",
+      "body": "Multi-Tenant Workspace Channel\nStrategy\nVolume 07 - Advanced Application Architecture\n\nTopic design\nworkspace:<workspaceId>:tasks\n\nExamples:\nworkspace:11111111-...:tasks\nworkspace:22222222-...:tasks\n\nWhy Workspace scope\n• One channel can cover all Task changes visible within the current Workspace.\n\n• Changing Workspace naturally tears down the old channel and joins the new one.\n\n• The Realtime Authorization policy maps the JWT subject to TaskFlow Membership.\n\n• The topic itself contains no secret; authorization decides whether the subscriber may receive it.\n\nAvoid one global Task channel\nA global tasks channel would force every tenant event through one topic and make tenant isolation\nharder to reason about. Multi-tenant systems benefit from a topic boundary that mirrors authorization\nscope.\n\nAvoid one channel per row by default\nA channel for every Task can create excessive joins and cleanup pressure. Use fine-grained topics\nonly when the interaction genuinely needs them, such as a deeply collaborative Task detail view.\n\nWorkspace switching\nWorkspace URL/context changes -> remove old Realtime channel -> set current auth -> join new\nprivate channel -> invalidate Task queries after SUBSCRIBED.",
+      "wordCount": 169,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Multi Tenant Channel Strategy in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Multi Tenant Channel Strategy matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Multi Tenant Channel Strategy” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Realtime treated as database authority",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Multi Tenant Channel Strategy” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Multi Tenant Channel Strategy solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "presence-and-ephemeral-collaboration",
+      "title": "Presence and Ephemeral Collaboration",
+      "summary": "Presence and Ephemeral Collaboration Volume 07 - Advanced Application Architecture Presence is not Task persistence Presence answers questions like “Who is viewing this board?” or “Who is online?” It should not represent Task status, approvals, payroll totals, inventory quantities, or other durable business facts. Possible…",
+      "body": "Presence and Ephemeral Collaboration\nVolume 07 - Advanced Application Architecture\n\nPresence is not Task persistence\nPresence answers questions like “Who is viewing this board?” or “Who is online?” It should not\nrepresent Task status, approvals, payroll totals, inventory quantities, or other durable business facts.\n\nPossible future use\nchannel\n.on('presence', { event: 'sync' }, () => {\nconst viewers = channel.presenceState()\n// Render \"3 people viewing this board\"\n})\n.subscribe(async status => {\nif (status === 'SUBSCRIBED') {\nawait channel.track({\nuserId,\ndisplayName,\nviewing: 'tasks-board',\nonlineAt: new Date().toISOString(),\n})\n}\n})\n\nGood presence payloads\n• display name/avatar reference\n\n• current collaborative surface\n\n• cursor/selection metadata if needed\n\n• ephemeral online timestamp\n\nBad presence payloads\n• access token\n\n• sensitive HR/payroll data\n\n• database truth that must survive disconnects\n\n• large user profile objects\n\nTaskFlow decision\nPhase 26 teaches Presence but does not ship it as a required TaskFlow feature. We only add it later if\ncollaboration UX needs it.",
+      "wordCount": 141,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Presence and Ephemeral Collaboration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Presence and Ephemeral Collaboration matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Presence and Ephemeral Collaboration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Subscriptions never cleaned up",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Presence and Ephemeral Collaboration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Presence and Ephemeral Collaboration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "reliability-scaling-and-troubleshooting",
+      "title": "Reliability Scaling and Troubleshooting",
+      "summary": "Reliability, Scaling and Troubleshooting Volume 07 - Advanced Application Architecture Realtime is lossy from the app perspective Clients can sleep, lose Wi-Fi, change networks, suspend background tabs, or disconnect during token expiry. Therefore TaskFlow never assumes it observed every event. Reconnect means: rejoin + refetch…",
+      "body": "Reliability, Scaling and\nTroubleshooting\nVolume 07 - Advanced Application Architecture\n\nRealtime is lossy from the app perspective\nClients can sleep, lose Wi-Fi, change networks, suspend background tabs, or disconnect during token\nexpiry. Therefore TaskFlow never assumes it observed every event. Reconnect means: rejoin +\nrefetch authoritative state.\n\nSubscription statuses\n• SUBSCRIBED - channel is joined; refresh current data.\n\n• CHANNEL_ERROR - inspect the full error payload.\n\n• TIMED_OUT - connectivity/join problem.\n\n• CLOSED - channel ended; determine whether expected cleanup or unexpected disconnect.\n\nBuilt-in reconnection\nThe Realtime protocol/client supports reconnection with backoff. Application code should still make\nrecovery idempotent and refresh server state after re-subscription.\n\nScaling lesson\nSupabase currently recommends Broadcast for database-change subscriptions because Postgres\nChanges can become costly under many subscribers; each database change can require\nauthorization work across subscribers. Measure your own workload and plan limits.\n\nTroubleshooting order\n• Confirm the user has a valid Supabase session/JWT.\n\n• Confirm setAuth() occurs before joining a private channel.\n\n• Confirm topic string exactly matches the policy.\n\n• Confirm Membership/authSubject mapping.\n\n• Confirm Realtime public-access/private-channel setting.\n\n• Confirm trigger exists and fires.\n\n• Check Realtime logs and browser WebSocket frames.\n\n• Confirm removeChannel cleanup to avoid duplicate subscriptions.\n\nObservability\nLog channel topic (not token), status, Workspace id, reconnect count, error category and request/user\ncorrelation where policy allows. Never log access tokens.",
+      "wordCount": 209,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Reliability Scaling and Troubleshooting in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Reliability Scaling and Troubleshooting matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Reliability Scaling and Troubleshooting” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Events for other tenants visible to a client",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Reliability Scaling and Troubleshooting” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Reliability Scaling and Troubleshooting solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Volume 07 - Advanced Application Architecture Lab A - Enable database-triggered Broadcast • Apply the Task trigger migration. • Create the Realtime authorization helper/policy. • Disable public channel access in a production-like project or ensure private channels are required by…",
+      "body": "Hands-On Lab and Phase Exit\nVolume 07 - Advanced Application Architecture\n\nLab A - Enable database-triggered Broadcast\n• Apply the Task trigger migration.\n\n• Create the Realtime authorization helper/policy.\n\n• Disable public channel access in a production-like project or ensure private channels are required\nby your policy.\n\n• Use two authenticated users who belong to the same Workspace.\n\nLab B - Connect two browsers\n• Open User A and User B in separate browser profiles.\n\n• Both join the same Workspace Task channel.\n\n• User A changes a Task through NestJS.\n\n• Verify User B refetches and sees the committed change without manual refresh.\n\nLab C - Prove tenant isolation\n• Create Workspace B.\n\n• Ensure User B is not a member.\n\n• Attempt to subscribe User B to Workspace B topic.\n\n• Verify the private channel cannot deliver Task broadcasts to the unauthorized user.\n\nLab D - Disconnect recovery\n• Take User B offline.\n\n• Change several Tasks from User A.\n\n• Reconnect User B.\n\n• Verify SUBSCRIBED triggers an authoritative Task refetch so missed events do not matter.\n\nLab E - Realtime + optimism\n• Make a status change from User A with optimistic UI.\n\n• Observe local optimistic update plus database Broadcast.\n\n• Verify final state equals the server response.\n\n• Force a 409 or 403 and verify rollback still works.\n\nExit criteria\nYou can explain Broadcast vs Postgres Changes vs Presence, secure a private Workspace channel,\nemit database-triggered events, clean up subscriptions, synchronize TanStack Query, recover after\nreconnect, and explain why Realtime is a freshness layer rather than the source of truth.\n\nPhase 27 preview\n\nNext: File Uploads & Supabase Storage - secure object paths, signed/public access, metadata, upload\nvalidation, progress, replacement/deletion, authorization, and keeping file records consistent with\napplication data.\n\nSources\nSource                                                   Use in this phase\n\nSupabase - Subscribing to Database                       Broadcast is the recommended database-change method for\nChanges                                                  scalability and security; Postgres Changes is simpler but scales less\nhttps://supabase.com/docs/guides/realtime/subscribing-   well. Includes realtime.broadcast_changes trigger pattern.\nto-database-changes\n\nSupabase - Realtime Authorization                        Private channels use RLS policies on realtime.messages;\nhttps://supabase.com/docs/guides/realtime/authorizatio   permissions are evaluated when the client joins a topic.\nn\n\nSupabase - Realtime Concepts                             Defines Channels, topics, Broadcast, Presence and Postgres\nhttps://supabase.com/docs/guides/realtime/concepts       Changes.\n\nSupabase - Realtime Architecture                         Describes Broadcast from Postgres, WAL/replication behavior and\nhttps://supabase.com/docs/guides/realtime/architecture   Realtime internals.\n\nSupabase - Broadcast                                     Documents database-triggered Broadcast, private channels, replay\nhttps://supabase.com/docs/guides/realtime/broadcast      and broadcast payloads.\n\nSupabase - Realtime Protocol                             Documents access-token refresh, server events, reconnection\nhttps://supabase.com/docs/guides/realtime/protocol       behavior and broadcast protocol.\n\nSupabase JS - removeChannel                              Documents explicit channel teardown and removal.\nhttps://supabase.com/docs/reference/javascript/remove\nchannel\n\nSupabase JS - setAuth                                    Documents the JWT used for Realtime authorization and RLS.\nhttps://supabase.com/docs/reference/javascript/setauth\n\nSupabase - Realtime Limits                               Documents connection/message limits and Postgres Changes\nhttps://supabase.com/docs/guides/realtime/limits         scaling considerations.\n\nTanStack Query - QueryClient                             Provides invalidateQueries and setQueryData used to synchronize\nhttps://tanstack.com/query/latest/docs/reference/Query   Realtime events with query cache.\nClient",
+      "wordCount": 494,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicate optimistic + realtime updates",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nAdd realtime synchronization without creating a second source of truth or leaking unauthorized events.",
+      "body": "Guided Build Lab — Phase 26: Realtime\n\nPurpose\nAdd realtime synchronization without creating a second source of truth or leaking unauthorized events.\n\nDeliverable\nRealtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\ndatabase/event source -> Supabase Realtime channel -> authorized/scoped subscription -> event handler -> query cache reconcile -> UI\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Choose the exact collaborative event that benefits from realtime rather than subscribing to everything.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create a channel scoped to workspace/board context and define subscription lifecycle.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Feed events into query cache updates or invalidation instead of a parallel global store.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Deduplicate events that echo the current user's own mutation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Test disconnect/reconnect and ensure a fresh server query repairs any missed events.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Verify authorization/data exposure boundaries for every subscription filter/channel.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 634,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Realtime treated as database authority",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 26: Realtime\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\ndatabase/event source -> Supabase Realtime channel -> authorized/scoped subscription -> event handler -> query cache reconcile -> UI\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Realtime treated as database authority\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Subscriptions never cleaned up\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Events for other tenants visible to a client\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Duplicate optimistic + realtime updates\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 442,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Subscriptions never cleaned up",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 26 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Realtime\n\nMission\nRebuild the capability of Phase 26 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nAdd realtime synchronization without creating a second source of truth or leaking unauthorized events.\n\nRequired artifact\nRealtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can scope subscriptions.\n• Can reconcile realtime with server cache.\n• Can recover after disconnect.\n• Can explain presence/broadcast/database-change differences.\n\nIndependent build sequence\n1. Choose the exact collaborative event that benefits from realtime rather than subscribing to everything.\n2. Create a channel scoped to workspace/board context and define subscription lifecycle.\n3. Feed events into query cache updates or invalidation instead of a parallel global store.\n4. Deduplicate events that echo the current user's own mutation.\n5. Test disconnect/reconnect and ensure a fresh server query repairs any missed events.\n6. Verify authorization/data exposure boundaries for every subscription filter/channel.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 360,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this realtime concept.",
+          "Diagnose one representative realtime failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "database change",
+          "event stream",
+          "subscription",
+          "cache reconciliation",
+          "UI"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: database change → event stream → subscription → cache reconciliation → UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Treat realtime as another cache signal",
+          "code": "channel.on(\"postgres_changes\", filter, payload => {\n  queryClient.invalidateQueries({ queryKey: taskKeys.all });\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Events for other tenants visible to a client",
+          "Change one assumption in the realtime example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the realtime boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 26 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 26: Realtime. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nRealtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 199,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "realtime",
+        "objectives": [
+          "Add realtime synchronization without creating a second source of truth or leaking unauthorized events.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "database/event source",
+          "Supabase Realtime channel",
+          "authorized/scoped subscription",
+          "event handler",
+          "query cache reconcile",
+          "UI"
+        ],
+        "steps": [
+          "Choose the exact collaborative event that benefits from realtime rather than subscribing to everything.",
+          "Create a channel scoped to workspace/board context and define subscription lifecycle.",
+          "Feed events into query cache updates or invalidation instead of a parallel global store.",
+          "Deduplicate events that echo the current user's own mutation.",
+          "Test disconnect/reconnect and ensure a fresh server query repairs any missed events.",
+          "Verify authorization/data exposure boundaries for every subscription filter/channel.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can scope subscriptions",
+          "Can reconcile realtime with server cache",
+          "Can recover after disconnect",
+          "Can explain presence/broadcast/database-change differences"
+        ],
+        "breakIt": [
+          "Realtime treated as database authority",
+          "Subscriptions never cleaned up"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/POSTGRES_CHANGES_ALTERNATIVE.md",
+      "preview": "# Postgres Changes alternative\n\nFor a small prototype you can subscribe directly:\n\n```ts\nconst channel = supabase\n  .channel(\"task-postgres-changes\")\n  .on(\n    \"postgres_changes\",\n    {\n      event: \"*\",\n      schema: \"public\",\n      table: \"Task\",\n    },\n    () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),\n  )\n  .subscribe();\n```\n\nTaskFlow Phase 26 prefers Broadcast for database-change delivery because Supabase currently recommends Broadcast for scalability/security. Keep this alternative for comparison and troubleshooting, not as the production default."
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 26 Realtime Snapshot\n\nThis reference implements Realtime as a freshness layer, not as a new backend.\n\n- Writes still go Browser -> NestJS -> business rules -> repository -> PostgreSQL.\n- PostgreSQL trigger emits private Supabase Broadcast events after Task changes.\n- Browser subscribes to one private Workspace Task channel.\n- Realtime Authorization checks existing TaskFlow Membership.\n- Realtime events invalidate TanStack Query Task keys.\n- Reconnect/subscription success triggers an authoritative refetch.\n- No direct browser Task writes are introduced."
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/REALTIME_DECISION_TABLE.md",
+      "preview": "# Realtime Decision Table\n\n| Need | Default |\n|---|---|\n| Coworker Task changes should appear quickly | Private Broadcast + query invalidation |\n| Tiny prototype / simplest DB CDC | Postgres Changes |\n| Who is online / viewing board | Presence |\n| Rare settings changes | Normal query refetch only |\n| Payroll finalization | HTTP mutation + explicit confirmation; Realtime only as notification |\n| High-frequency cursor movement | Broadcast, not database persistence |\n\nRealtime is optional. HTTP correctness must remain intact without it."
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/SOURCES.md",
+      "preview": "# Sources\n\n- [Supabase - Subscribing to Database Changes](https://supabase.com/docs/guides/realtime/subscribing-to-database-changes) - Broadcast is the recommended database-change method for scalability and security; Postgres Changes is simpler but scales less well. Includes realtime.broadcast_changes trigger pattern.\n- [Supabase - Realtime Authorization](https://supabase.com/docs/guides/realtime/authorization) - Private channels use RLS policies on realtime.messages; permissions are evaluated when the client joins a topic.\n- [Supabase - Realtime Concepts](https://supabase.com/docs/guides/realtime/concepts) - Defines Channels, topics, Broadcast, Presence and Postgres Changes.\n- [Supabase - Realtime Architecture](https://supabase.com/docs/guides/realtime/architecture) - Describes Broadcast from Postgres, WAL/replication behavior and Realtime internals.\n- [Supabase - Broadcast](https://supabase.com/docs/guides/realtime/broadcast) - Documents database-triggered Broadcast, private channels, replay and broadcast payloads.\n- [Supabase - Realtime Protocol](https://supabase.com/docs/guides/realtime/protocol) - Documents access-token refresh, server events, reconnection behavior and broadcast protocol.\n- [Supabase JS - removeChannel](https://supabase.com/docs/reference/javascript/removechannel) - Documents explicit channel teardown and removal.\n- [Supabase JS - setAuth](https://supabase.com/docs/reference/javascript/setauth) - Documents the JWT used for Realtime authorization and RLS.\n- [Supabase - Realtime Limits](https://supabase.com/docs/guides/realtime/limits) - Documents connection/message limits and Postgres Changes scaling considerations.\n- [TanStack Query - QueryClient](https://tanstack.com/query/latest/docs/reference/QueryClient) - Provides invalidateQueries and setQueryData used to synchronize Realtime events with query cache."
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/apps/web/src/app/(app)/w/[workspaceSlug]/layout.phase26.tsx",
+      "preview": "import type { ReactNode } from \"react\";\nimport { WorkspaceTaskRealtimeProvider } from \"@/components/realtime/workspace-task-realtime-provider\";\nimport { getAuthorizedWorkspace } from \"@/lib/workspaces/get-authorized-workspace\";\n\nexport default async function WorkspaceLayout({\n  children,\n  params,\n}: {\n  children: ReactNode;\n  params: Promise<{ workspaceSlug: string }>;\n}) {\n  const { workspaceSlug } = await params;\n  const workspace = await getAuthorizedWorkspace(workspaceSlug);\n\n  return (\n    <WorkspaceTaskRealtimeProvider workspaceId={workspace.id}>\n      {children}\n    </WorkspaceTaskRealtimeProvider>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/apps/web/src/components/realtime/workspace-task-realtime-provider.tsx",
+      "preview": "\"use client\";\n\nimport type { ReactNode } from \"react\";\nimport { useWorkspaceTaskRealtime } from \"@/hooks/use-workspace-task-realtime\";\n\nexport function WorkspaceTaskRealtimeProvider({\n  workspaceId,\n  children,\n}: {\n  workspaceId: string;\n  children: ReactNode;\n}) {\n  useWorkspaceTaskRealtime(workspaceId);\n  return children;\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/apps/web/src/hooks/use-workspace-task-realtime.ts",
+      "preview": "\"use client\";\n\nimport { useEffect, useMemo } from \"react\";\nimport type { RealtimeChannel } from \"@supabase/supabase-js\";\nimport { useQueryClient } from \"@tanstack/react-query\";\nimport { createBrowserSupabaseClient } from \"@/lib/supabase/client\";\nimport { taskKeys } from \"@/lib/query/task-keys\";\n\nexport function useWorkspaceTaskRealtime(workspaceId: string) {\n  const queryClient = useQueryClient();\n  const supabase = useMemo(() => createBrowserSupabaseClient(), []);\n\n  useEffect(() => {\n    let channel: RealtimeChannel | undefined;\n    let disposed = false;\n\n    const refresh = () => {\n      void queryClient.invalidateQueries({\n        queryKey: taskKeys.all,\n      });"
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/database/realtime/01_task_broadcast.sql",
+      "preview": "-- Phase 26: broadcast committed Task changes to Workspace-scoped private topics.\n\nCREATE OR REPLACE FUNCTION public.broadcast_task_changes()\nRETURNS trigger\nSECURITY DEFINER\nSET search_path = ''\nLANGUAGE plpgsql\nAS $$\nDECLARE\n  project_id uuid;\n  workspace_id uuid;\nBEGIN\n  project_id := CASE\n    WHEN TG_OP = 'DELETE' THEN OLD.\"projectId\"\n    ELSE NEW.\"projectId\"\n  END;\n\n  SELECT p.\"workspaceId\"\n  INTO workspace_id\n  FROM public.\"Project\" p"
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/database/realtime/02_realtime_authorization.sql",
+      "preview": "-- Phase 26: authorize private Workspace Task topics from TaskFlow membership.\n-- This policy protects Realtime channel joins/reads. NestJS still authorizes API writes.\n\nCREATE OR REPLACE FUNCTION public.can_receive_task_topic(\n  requested_topic text\n)\nRETURNS boolean\nLANGUAGE sql\nSTABLE\nSECURITY DEFINER\nSET search_path = ''\nAS $$\n  SELECT EXISTS (\n    SELECT 1\n    FROM public.\"Membership\" m\n    JOIN public.\"User\" u\n      ON u.id = m.\"userId\"\n    WHERE u.\"authSubject\" = (SELECT auth.uid())::text\n      AND requested_topic =\n        'workspace:' || m.\"workspaceId\"::text || ':tasks'"
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/database/realtime/03_postgres_changes_learning_alternative.sql",
+      "preview": "-- Learning-only alternative: Postgres Changes requires the table in the publication.\n-- TaskFlow production direction in Phase 26 prefers Broadcast for database changes.\n\nALTER PUBLICATION supabase_realtime\nADD TABLE public.\"Task\";\n\n-- If you require old row values for UPDATE/DELETE payloads:\n-- ALTER TABLE public.\"Task\" REPLICA IDENTITY FULL;"
+    },
+    {
+      "path": "reference/TaskFlow_Realtime_Snapshot/tests/realtime-test-matrix.md",
+      "preview": "# Phase 26 Realtime Test Matrix\n\n| Scenario | Expected |\n|---|---|\n| User A and B belong to same Workspace | Both can subscribe to private Task topic |\n| User B does not belong to Workspace | User B cannot receive Workspace Task broadcasts |\n| User A updates Task through NestJS | DB trigger emits UPDATE after commit |\n| User B is online | Task query invalidates/refetches automatically |\n| User B offline during several changes | Reconnect/SUBSCRIBED refetch catches current state |\n| Local optimistic update succeeds | Realtime + mutation invalidations still converge to server truth |\n| Local optimistic update gets 409 | Local rollback works; Realtime does not override business error semantics |\n| Workspace switch | Old channel removed; new Workspace channel joined |\n| Component unmount | removeChannel called |\n| Bad topic / no membership | subscription denied / no data delivered |\n| CHANNEL_ERROR or TIMED_OUT | full error logged without token |\n| Realtime disabled | normal HTTP query/mutation flow still works |"
+    }
+  ],
+  "exercises": [
+    "Guided: Choose the exact collaborative event that benefits from realtime rather than subscribing to everything.",
+    "Practice: Feed events into query cache updates or invalidation instead of a parallel global store.",
+    "Debugging: reproduce and diagnose — Realtime treated as database authority.",
+    "Independent: deliver Realtime task updates that merge into TanStack Query state with scoped subscriptions and reconnect behavior.",
+    "Explain-back: Can scope subscriptions and Can reconcile realtime with server cache."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 26's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Realtime is a synchronization mechanism, not the authoritative database.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Realtime is a synchronization mechanism, not the authoritative database."
+    },
+    {
+      "question": "Which practice best matches Phase 26's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Subscribe only to events relevant to the current user and resource scope.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Subscribe only to events relevant to the current user and resource scope."
+    },
+    {
+      "question": "Which practice best matches Phase 26's engineering goal?",
+      "options": [
+        "Design reconnect and duplicate-event behavior so clients can recover after temporary disconnection.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Design reconnect and duplicate-event behavior so clients can recover after temporary disconnection."
+    },
+    {
+      "question": "Which practice best matches Phase 26's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Reconcile realtime events with cached server state rather than maintaining an unrelated second data model."
+      ],
+      "answer": 3,
+      "explanation": "Reconcile realtime events with cached server state rather than maintaining an unrelated second data model."
+    },
+    {
+      "question": "You are working through the Phase 26 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose the exact collaborative event that benefits from realtime rather than subscribing to everything.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Realtime treated as database authority."
+      ],
+      "answer": 1,
+      "explanation": "Choose the exact collaborative event that benefits from realtime rather than subscribing to everything."
+    },
+    {
+      "question": "You are working through the Phase 26 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Create a channel scoped to workspace/board context and define subscription lifecycle.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Subscriptions never cleaned up.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Create a channel scoped to workspace/board context and define subscription lifecycle."
+    },
+    {
+      "question": "You are working through the Phase 26 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Events for other tenants visible to a client.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Feed events into query cache updates or invalidation instead of a parallel global store."
+      ],
+      "answer": 3,
+      "explanation": "Feed events into query cache updates or invalidation instead of a parallel global store."
+    },
+    {
+      "question": "You are working through the Phase 26 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicate optimistic + realtime updates.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Deduplicate events that echo the current user's own mutation.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Deduplicate events that echo the current user's own mutation."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4164
+}

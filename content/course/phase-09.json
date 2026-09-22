@@ -1,0 +1,1068 @@
+{
+  "number": 9,
+  "slug": "phase-09",
+  "title": "Prisma 7.9.1 Architecture, Configuration & Migrations",
+  "volume": 3,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 03 - Database Engineering\nPhase 09 - Prisma 7.9.1 Architecture, Configuration & Migrations\n\nThis phase continues after Phase 08 Supabase PostgreSQL.\n\nLearning progression:\nPostgreSQL fundamentals -> Supabase PostgreSQL -> Prisma infrastructure -> relational data modeling -> persistent CRUD\n\nPrisma hard lock:\n- prisma 7.9.1\n- @prisma/client 7.9.1\n- @prisma/adapter-pg 7.9.1\n\nStart with 00_Phase_09_Guide.pdf, then proceed in numeric order.\nThe combined book is 11_Phase_09_Complete_Book.pdf.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "prisma-mental-model-and-architecture",
+      "title": "Prisma Mental Model and Architecture",
+      "summary": "PHASE 09 / BOOK 01 Prisma Mental Model & Architecture Understand every Prisma layer before installing it NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked…",
+      "body": "PHASE 09 / BOOK 01\n\nPrisma Mental Model & Architecture\nUnderstand every Prisma layer before installing it\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Why Add an ORM Now?\nWe deliberately waited. If Prisma had appeared before SQL, keys, constraints, joins and transactions, database\nbehavior would look like framework magic. Phase 07 and 08 removed that mystery. Prisma can now be understood as\na typed programming interface over relational database work.\n\nNestJS service asks for data\n\nPrisma Client builds a typed query\n\nPrismaPg sends PostgreSQL protocol\ntraffic\n\nPostgreSQL executes the query\n\nPlain JavaScript data returns\n\nFigure 1 - Runtime query lifecycle\n\n2. Prisma Is Several Things, Not One Thing\nPiece                       Responsibility                                           Not responsible for\n\nprisma CLI                  init, validate, generate, migrate, studio                Serving HTTP requests\n\nschema.prisma               Data models + generator + DB provider                    Storing credentials in Prisma 7\n\nprisma.config.ts            CLI configuration and datasource URL                     Runtime NestJS DI\n\nPrisma Client               Generated type-safe query API                            Hosting PostgreSQL\n\nPrismaPg                    Driver adapter using pg                                  Business rules\n\nPrismaService               NestJS provider wrapping one client instance             HTTP route design\n\nPostgreSQL                  Actual persistent relational database                    TypeScript types\n\n3. Runtime vs Tooling Paths\n\nRuntime path                                                             Tooling path\nNestJS                                                                   pnpm exec prisma\nPrismaService                                                            prisma.config.ts\nPrisma Client                                                            DIRECT_URL\nPrismaPg                                                                 Migrate / Studio / introspection\nDATABASE_URL                                                             PostgreSQL\nPostgreSQL\n\nFigure 2 - Two connection purposes in the same project\n\nThis distinction matters with Supabase. The long-running application can use a pooled runtime connection while\nmigration tooling uses a session-capable or direct connection. The same database may be targeted, but the\nconnection behavior and privilege requirements differ.\n\n4. The NestJS Boundary\nControllers should still handle HTTP. Services still own business rules. PrismaService is infrastructure: it gives\napplication services a reusable database client. A controller should not become a place where authentication,\nownership, query construction and response formatting are all mixed together.\n\nTodosController\n\nTodosService\n\nPrismaService\n\nPrisma Client\n\nPostgreSQL\n\nFigure 3 - Database access stays below application logic\n\n5. What Prisma Does Not Replace\n• Database constraints: PostgreSQL remains the final integrity boundary.\n\n• Authorization: Prisma will execute a query you ask for; it does not decide whether a user should be allowed to make it.\n\n• Business logic: status transitions, approvals, payroll rules and domain policies still belong in application services.\n\n• SQL understanding: indexes, transactions, joins and query shape still matter.\n\n• Migrations review: generated SQL must still be inspected, especially for destructive changes.\n\nCheckpoint\nYou are ready for installation when you can describe Prisma as a typed database access layer rather than as \"the\ndatabase\".",
+      "wordCount": 439,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Mental Model and Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Mental Model and Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CLI/client version mismatch",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Mental Model and Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Mental Model and Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "install-and-lock-prisma-7-9-1",
+      "title": "Install and Lock Prisma 7 9 1",
+      "summary": "PHASE 09 / BOOK 02 Install & Lock Prisma 7.9.1 Exact dependencies, local CLI and reproducible tooling NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked…",
+      "body": "PHASE 09 / BOOK 02\n\nInstall & Lock Prisma 7.9.1\nExact dependencies, local CLI and reproducible tooling\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Work From the API Package\nAll Prisma database tooling stays inside apps/api for now. We do not create packages/database merely because the\nrepository has a packages folder. The backend is currently the only owner of database access.\nPowerShell - verify location\n\nGet-Location\n# Expected path ends with: taskflow\\apps\\api\n\n2. Install Exact Versions\nPowerShell - install the locked Prisma stack\n\n# From: taskflow\\apps\\api\npnpm add -D prisma@7.9.1 @types/pg\npnpm add @prisma/client@7.9.1 @prisma/adapter-pg@7.9.1 pg dotenv @nestjs/config\n\nThe CLI is a development dependency. The generated client runtime, adapter and pg driver are runtime dependencies\nbecause the NestJS API uses them while running.\n\nPackage responsibilities\nPackage                             Type              Why it exists\n\nprisma@7.9.1                        dev               CLI: init, validate, generate, migrate, studio\n\n@prisma/client@7.9.1                runtime           Runtime package used by generated Prisma Client\n\n@prisma/adapter-pg@7.9.1            runtime           Prisma 7 PostgreSQL driver adapter\n\npg                                  runtime           Underlying PostgreSQL driver\n\ndotenv                              runtime/tooling   Loads .env for Prisma config/scripts\n\n@nestjs/config                      runtime           Loads trusted backend configuration into Nest DI\n\n@types/pg                           dev               TypeScript declarations for pg when needed\n\n3. Verify the Local CLI\nPowerShell - use the project-local CLI\n\n# From: taskflow\\apps\\api\npnpm exec prisma version\n\nDo not rely on a globally installed prisma executable. pnpm exec resolves the version declared by this project, which is\nexactly the reproducibility we want in a long course.\n\nEXPECTED\nThe Prisma CLI line and @prisma/client line should report 7.9.1. Stop if one package reports a different version.\n\n4. pnpm Build Approval\nIf pnpm reports ignored dependency build scripts, treat that as a supply-chain security decision rather than a broken\ninstall.\nPowerShell - only if pnpm tells you builds were ignored\n\npnpm approve-builds\n\nApprove only packages that are actually required by this project. Do not globally disable script protection.\n\n5. Why Exact Versions Matter\n• Generated Client code is tied to the Prisma generation toolchain.\n\n• Breaking CLI/config behavior can change across major releases.\n\n• A course that silently upgrades becomes impossible to debug because two learners can follow the same page and get\ndifferent generated output.\n\n• Locking versions turns documentation into a reproducible engineering artifact.\n\nCheckpoint\nVerify all three course-critical packages\n\npnpm exec prisma version\npnpm list prisma @prisma/client @prisma/adapter-pg",
+      "wordCount": 441,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Install and Lock Prisma 7 9 1 in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Install and Lock Prisma 7 9 1” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Editing generated client code",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Install and Lock Prisma 7 9 1” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Install and Lock Prisma 7 9 1 solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "prisma-init-and-file-anatomy",
+      "title": "Prisma Init and File Anatomy",
+      "summary": "PHASE 09 / BOOK 03 prisma init & File Anatomy Understand the files before editing them NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to…",
+      "body": "PHASE 09 / BOOK 03\n\nprisma init & File Anatomy\nUnderstand the files before editing them\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Initialize Prisma\nInitialization creates the Prisma workspace inside apps/api. It does not create your production architecture, and it does\nnot replace the database you already created in Supabase.\nPowerShell - initialize Prisma inside apps/api\n\n# From: taskflow\\apps\\api\npnpm exec prisma init\n\n2. What prisma init Creates\napps/api/.env\n\napps/api/prisma.config.ts\n\napps/api/prisma/schema.prisma\n\nFigure 1 - The three pieces to inspect after initialization\n\n.env\nStores local environment values. It must never be committed with real secrets.\n\nprisma.config.ts\nConfigures Prisma CLI behavior in Prisma 7, including the schema path, migration directory and the connection URL\nused by CLI commands.\n\nprisma/schema.prisma\nDefines the database provider, generated client and data models. In Prisma 7, the datasource URL no longer belongs\nhere for this course.\n\n3. Project Structure After Initialization\nRelevant paths only\n\napps/api/\n|-- .env\n|-- prisma.config.ts\n|-- prisma/\n|   `-- schema.prisma\n|-- src/\n|-- package.json\n`-- ...\n\n4. Do Not Re-run init as a Fix\nOnce these files exist, errors should be diagnosed in place. Re-running initialization can overwrite assumptions or\nencourage deleting the evidence you need to debug.\n\n5. Update the Example Environment File\napps/api/.env.example\n\n# Runtime application connection (Phase 08 recommends a session-capable pooled URL for local NestJS).\nDATABASE_URL=\n\n# Prisma CLI / migration connection. Prefer a direct URL when reachable.\nDIRECT_URL=\n\n# Optional only if migrate dev cannot create an automatic shadow database.\n# NEVER point this at the same database as DIRECT_URL.\nSHADOW_DATABASE_URL=\n\nSECRET RULE\nReal DATABASE_URL, DIRECT_URL and SHADOW_DATABASE_URL values belong only in .env or a secure\ndeployment secret store. They never belong in screenshots, documentation, Git commits or NEXT_PUBLIC_*\nvariables.\n\nCheckpoint\n• prisma.config.ts exists.\n\n• prisma/schema.prisma exists.\n\n• .env exists locally and is ignored.\n\n• .env.example documents variable names but contains no credentials.",
+      "wordCount": 351,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Init and File Anatomy in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Init and File Anatomy” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using db push as a substitute for migration history in team environments",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Init and File Anatomy” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Init and File Anatomy solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "schema-generator-and-first-model",
+      "title": "Schema Generator and First Model",
+      "summary": "PHASE 09 / BOOK 04 Schema, Generator & First Model Prisma Schema Language without hiding the relational model NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are…",
+      "body": "PHASE 09 / BOOK 04\n\nSchema, Generator & First Model\nPrisma Schema Language without hiding the relational model\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. The Prisma Schema Has Three Responsibilities\nAt this point schema.prisma describes: the client generator, the database provider and the first minimal application\nmodel. Credentials stay outside this file.\napps/api/prisma/schema.prisma\n\ngenerator client {\nprovider     = \"prisma-client\"\noutput       = \"../src/generated/prisma\"\nmoduleFormat = \"cjs\"\n}\n\ndatasource db {\nprovider = \"postgresql\"\n}\n\nmodel Todo {\nid         String  @id @default(cuid())\ntitle      String\ncompleted Boolean @default(false)\ncreatedAt DateTime @default(now())\nupdatedAt DateTime @updatedAt\n}\n\n2. Generator Block\nprovider = \"prisma-client\" selects Prisma 7's generated TypeScript client. output is required in Prisma 7 and places\ngenerated code under src/generated/prisma so Nest's TypeScript build can see it.\n\nNESTJS MODULE FORMAT\nThis course keeps the existing NestJS CommonJS build. moduleFormat = \"cjs\" aligns the generated Prisma\nClient with that build instead of converting the entire backend to ESM midway through the course.\n\n3. Datasource Block\nThe datasource says only that PostgreSQL is the database provider. The connection URL is handled by\nprisma.config.ts in Prisma 7.\n\n4. First Minimal Todo Model\nThis model exists only to teach the migration and client-generation workflow. Phase 10 will revisit the relational design\nbefore the production CRUD phase.\n\nField                    Meaning                                           Database concept\n\nid                       Application identifier generated as a cuid        Primary key\n\ntitle                    Required task title                               NOT NULL text\n\ncompleted                Defaults false                                    Boolean + default\n\ncreatedAt                Creation timestamp                                Default now()\n\nupdatedAt                Updated by Prisma on writes                       Application-managed timestamp\n\n5. Validate Before Migrating\nFrom: taskflow\\apps\\api\n\npnpm exec prisma validate\n\nValidation checks Prisma configuration/schema correctness. It is not a substitute for reviewing migration SQL and it\ndoes not prove that every runtime query works.\n\nCheckpoint\nDo not continue until prisma validate succeeds and you can explain why moduleFormat, output and datasource\nprovider are separate decisions.",
+      "wordCount": 342,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Schema Generator and First Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Schema Generator and First Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Creating a new PrismaClient per request",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Schema Generator and First Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Schema Generator and First Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "prisma-config-supabase-urls-and-shadow-database",
+      "title": "Prisma Config Supabase URLs and Shadow Database",
+      "summary": "PHASE 09 / BOOK 05 Prisma Config, Supabase URLs & Shadow Database Separate runtime traffic from migration tooling NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are…",
+      "body": "PHASE 09 / BOOK 05\n\nPrisma Config, Supabase URLs &\nShadow Database\nSeparate runtime traffic from migration tooling\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Prisma CLI and NestJS Runtime Have Different\nConnection Jobs\n\nNestJS runtime                                                         Prisma CLI\nUses DATABASE_URL                                                      Uses DIRECT_URL\nLong-running application traffic                                       Migrations / introspection / Studio\nPrismaPg / pg pool                                                     Needs session semantics\nSession-capable pooled URL works                                       migrate dev also needs shadow DB\nwell locally\n\nFigure 1 - Separate the runtime and tooling connection roles\n\n2. Configure prisma.config.ts\napps/api/prisma.config.ts\n\nimport \"dotenv/config\";\nimport { defineConfig, env } from \"prisma/config\";\n\nexport default defineConfig({\nschema: \"prisma/schema.prisma\",\nmigrations: {\npath: \"prisma/migrations\",\n},\ndatasource: {\n// CLI / migrations: direct or session-capable connection.\nurl: env(\"DIRECT_URL\"),\n},\n});\n\nThe CLI now reads DIRECT_URL. For Supabase, prefer the direct database URL when your network can reach it. A\nsession pooler connection on port 5432 is an alternative when direct IPv6 connectivity is unavailable. Do not use\ntransaction pooling for migration tooling.\n\n3. Environment Variables\napps/api/.env.example\n\n# Runtime application connection (Phase 08 recommends a session-capable pooled URL for local NestJS).\nDATABASE_URL=\n\n# Prisma CLI / migration connection. Prefer a direct URL when reachable.\nDIRECT_URL=\n\n# Optional only if migrate dev cannot create an automatic shadow database.\n# NEVER point this at the same database as DIRECT_URL.\nSHADOW_DATABASE_URL=\n\n4. Why migrate dev Needs a Shadow Database\nPrisma Migrate replays migration history in a temporary shadow database to detect drift and evaluate the next\nmigration. That means migrate dev needs either permission to create/drop a shadow database automatically or a\nseparately configured shadow database.\n\nMigration history\n\nShadow database replay\n\nDetect drift / evaluate changes\n\nGenerate SQL migration\n\nApply to development database\n\nFigure 2 - migrate dev uses a shadow database before changing your dev schema\n\nDANGER\nSHADOW_DATABASE_URL must never point to the same database as DIRECT_URL. A shadow database is\nreset during migrate dev and can destroy data if misconfigured.\n\n5. Supabase Privileges\nSupabase's current Prisma guidance recommends a dedicated Prisma database user with the privileges required for\nmigrations, including CREATEDB when automatic shadow-database creation is used. Keep this as a\ndevelopment/migration concern; application runtime access should still follow least privilege as the course matures.\n\n6. If Automatic Shadow Creation Fails\nDo not immediately switch to db push and ignore migration history. First diagnose whether the database user has\nCREATEDB. If cloud restrictions prevent automatic shadow creation, create a dedicated shadow database and set\nSHADOW_DATABASE_URL in prisma.config.ts.\nOptional prisma.config.ts change\n\ndatasource: {\nurl: env(\"DIRECT_URL\"),\nshadowDatabaseUrl: env(\"SHADOW_DATABASE_URL\"),\n},\n\nCheckpoint\n• DATABASE_URL is reserved for runtime PrismaPg.\n\n• DIRECT_URL is used by Prisma CLI/migrations.\n\n• Transaction pooler 6543 is not used for migration tooling.\n\n• Shadow DB configuration is understood before migrate dev is run.",
+      "wordCount": 480,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Config Supabase URLs and Shadow Database in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Config Supabase URLs and Shadow Database” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CLI/client version mismatch",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Config Supabase URLs and Shadow Database” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Config Supabase URLs and Shadow Database solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "prisma-client-adapter-and-nestjs-prismaservice",
+      "title": "Prisma Client Adapter and NestJS PrismaService",
+      "summary": "PHASE 09 / BOOK 06 Prisma Client, PrismaPg & NestJS PrismaService Turn generated types into reusable backend infrastructure NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are…",
+      "body": "PHASE 09 / BOOK 06\n\nPrisma Client, PrismaPg & NestJS\nPrismaService\nTurn generated types into reusable backend infrastructure\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Generate Prisma Client\nFrom: taskflow\\apps\\api\n\npnpm exec prisma generate\n\nGeneration reads schema.prisma and emits a client tailored to the current models. Whenever the schema or generator\nconfiguration changes, regenerate explicitly. This course does not depend on migrate dev implicitly generating it.\n\nschema.prisma\n\npnpm exec prisma generate\n\nsrc/generated/prisma\n\nPrismaClient type-safe API\n\nFigure 1 - Client generation is a build step, not a database migration\n\n2. Prisma 7 Requires a Driver Adapter\nFor direct PostgreSQL connections, Prisma 7 uses a database driver adapter. PrismaPg is the bridge between the\ngenerated Prisma Client and the pg driver connection pool.\n\nPrisma Client\n\nPrismaPg adapter\n\npg driver/pool\n\nPostgreSQL\n\nFigure 2 - Runtime connectivity in Prisma 7\n\n3. Wrap the Client in a NestJS Provider\napps/api/src/prisma/prisma.service.ts\n\nimport { Injectable, OnModuleDestroy, OnModuleInit } from \"@nestjs/common\";\nimport { ConfigService } from \"@nestjs/config\";\nimport { PrismaPg } from \"@prisma/adapter-pg\";\nimport { PrismaClient } from \"../generated/prisma/client\";\n\n@Injectable()\nexport class PrismaService\nextends PrismaClient\nimplements OnModuleInit, OnModuleDestroy\n{\nconstructor(config: ConfigService) {\nconst connectionString = config.getOrThrow<string>(\"DATABASE_URL\");\nconst adapter = new PrismaPg({ connectionString });\nsuper({ adapter });\n}\n\nasync onModuleInit() {\nawait this.$connect();\n}\n\nasync onModuleDestroy() {\nawait this.$disconnect();\n}\n}\n\nThe constructor reads DATABASE_URL through ConfigService, creates the adapter, and passes it to PrismaClient.\nThe service then participates in Nest lifecycle hooks.\n\n4. Export the Provider\napps/api/src/prisma/prisma.module.ts\n\nimport { Global, Module } from \"@nestjs/common\";\nimport { PrismaService } from \"./prisma.service\";\n\n@Global()\n@Module({\nproviders: [PrismaService],\nexports: [PrismaService],\n})\nexport class PrismaModule {}\n\nMarking PrismaModule global avoids repetitive imports as features grow, but the important design point is still one\nshared PrismaService instance rather than creating a new PrismaClient in each request or service.\n\n5. Load Trusted Backend Configuration\napps/api/src/app.module.ts\n\nimport { Module } from \"@nestjs/common\";\nimport { ConfigModule } from \"@nestjs/config\";\nimport { HealthModule } from \"./health/health.module\";\nimport { TodosModule } from \"./todos/todos.module\";\nimport { PrismaModule } from \"./prisma/prisma.module\";\n\n@Module({\nimports: [\nConfigModule.forRoot({ isGlobal: true }),\nPrismaModule,\nHealthModule,\nTodosModule,\n],\n})\nexport class AppModule {}\n\n6. Why One Client Instance Matters\nEach Prisma Client with a PostgreSQL adapter can own a connection pool. Creating clients repeatedly can exhaust\ndatabase connections. NestJS dependency injection gives us a natural process-wide provider.\n\nANTI-PATTERN\nDo not put new PrismaClient({ adapter }) inside every controller method. That mixes infrastructure with HTTP\nlogic and can create many connection pools.\n\n7. Connectivity Probe Without Building CRUD Yet\nUse only as a connectivity check\n\n// Temporary diagnostic inside a service or one-off script\nconst result = await prisma.$queryRaw`SELECT 1 AS ok`;\nconsole.log(result);\n\nA raw SELECT 1 verifies runtime connectivity without skipping ahead into Phase 11 CRUD architecture.\n\nCheckpoint\n• Generated client exists.\n\n• NestJS imports the generated client from the configured path.\n\n• PrismaPg receives DATABASE_URL.\n\n• PrismaService is injectable and uses one client instance.\n\n• The API can connect and disconnect cleanly.",
+      "wordCount": 520,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Client Adapter and NestJS PrismaService in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Client Adapter and NestJS PrismaService” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Editing generated client code",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Client Adapter and NestJS PrismaService” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Client Adapter and NestJS PrismaService solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "migration-lifecycle-and-first-migration",
+      "title": "Migration Lifecycle and First Migration",
+      "summary": "PHASE 09 / BOOK 07 Migration Lifecycle & First Migration Create schema history you can inspect, commit and deploy NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg…",
+      "body": "PHASE 09 / BOOK 07\n\nMigration Lifecycle & First Migration\nCreate schema history you can inspect, commit and deploy\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Migration Is Schema History, Not a Magic Sync Button\nThe Prisma schema is the desired model. A migration is an ordered SQL change that moves a database from one\nknown state to another. Keeping that history in Git is what makes team and deployment workflows reproducible.\n\nEdit schema.prisma\n\nValidate\n\nmigrate dev creates SQL\n\nReview migration.sql\n\nApply to development DB\n\nRun prisma generate\n\nCommit schema + migration\n\nFigure 1 - Safe development migration workflow\n\n2. Create the First Migration\nFrom: taskflow\\apps\\api\n\npnpm exec prisma migrate dev --name init_todo\n\nIf Prisma asks to reset a database containing data you care about, stop. Do not confirm reflexively. A reset is\ndestructive and should be understood before proceeding.\n\n3. Inspect the Generated SQL\nGenerated migration directory\n\nprisma/\n`-- migrations/\n`-- <timestamp>_init_todo/\n`-- migration.sql\n\nOpen migration.sql. Compare it with the SQL concepts learned in Phase 07: CREATE TABLE, primary key, required\ncolumns and defaults. Prisma migrations are not opaque binary files; they are reviewable SQL.\n\n4. The _prisma_migrations Table\nPrisma records applied migration metadata in the database so tooling can compare migration history with the actual\ndevelopment database.\n\n5. Explicit Client Generation\nRun after migration/schema changes\n\npnpm exec prisma generate\n\nPRISMA 7 COURSE RULE\nRun prisma generate explicitly. This avoids relying on version-specific assumptions about migrate dev side\neffects and makes the build step obvious to the learner.\n\n6. Migration Status\nFrom: taskflow\\apps\\api\n\npnpm exec prisma migrate status\n\n7. Development vs Production\nEnvironment                           Command                    Purpose\n\nDevelopment                           prisma migrate dev         Create + apply migrations, detect drift, uses shadow DB\n\nProduction / staging                  prisma migrate deploy      Apply already-committed pending migrations; do not generate new schema de\n\nAny stage                             prisma migrate status      Inspect migration state\n\n8. Never Edit an Applied Shared Migration Casually\nOnce a migration has been applied and shared with teammates or environments, rewriting it changes history. Fix\nforward with a new migration unless you are deliberately resetting an isolated development database.\n\nCheckpoint\n• The migration directory exists.\n\n• migration.sql was manually inspected.\n\n• The migration applied only to the intended development database.\n\n• prisma migrate status reports a clean state.\n\n• The generated client was refreshed.",
+      "wordCount": 411,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Migration Lifecycle and First Migration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Migration Lifecycle and First Migration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using db push as a substitute for migration history in team environments",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Migration Lifecycle and First Migration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Migration Lifecycle and First Migration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "prisma-cli-workflow-development-and-production",
+      "title": "Prisma CLI Workflow Development and Production",
+      "summary": "PHASE 09 / BOOK 08 Prisma CLI Workflow: Development & Production Use the smallest correct command for each stage NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg…",
+      "body": "PHASE 09 / BOOK 08\n\nPrisma CLI Workflow: Development &\nProduction\nUse the smallest correct command for each stage\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. The CLI Commands You Should Actually Remember\nCommand                                                       When to use it\n\npnpm exec prisma version                                      Confirm exact local toolchain\n\npnpm exec prisma validate                                     Check config/schema syntax\n\npnpm exec prisma generate                                     Regenerate typed client\n\npnpm exec prisma migrate dev --name ...                       Create/apply development migration\n\npnpm exec prisma migrate status                               Inspect migration state\n\npnpm exec prisma migrate deploy                               Apply committed migrations in production/staging\n\npnpm exec prisma studio                                       Inspect/edit data interactively in development\n\n2. A Normal Schema Change Loop\nEdit                   Validate                  Migrate                    Review                 Generate                  Build\n\nChange schema.prisma     Catch schema/config       Generate/apply SQL        Read migration.sql       Refresh client types   Nest production build\nmistakes\n\nFigure 1 - Repeat this loop as the model evolves\n\nExample development sequence\n\npnpm exec prisma validate\npnpm exec prisma migrate dev --name add_due_date\npnpm exec prisma generate\npnpm run build\n\n3. Prisma Studio\nStudio is a developer inspection tool, not an application admin panel. It is useful for confirming that tables and rows\nlook as expected while learning, but production business operations still belong behind application authorization and\naudit rules.\nFrom: taskflow\\apps\\api\n\npnpm exec prisma studio\n\n4. db push Has a Different Job\ndb push synchronizes a schema without creating migration history. It can be useful for disposable prototypes, but\nTaskFlow is a course about production-style development, so migrations remain the default once schema history\nmatters.\n\nDO NOT NORMALIZE DESTRUCTIVE FLAGS\nAvoid treating --accept-data-loss or reset confirmations as routine. Destructive operations require understanding\nthe target environment and the data being discarded.\n\n5. Build Pipeline Implication\nBecause Prisma 7 generates client code to a project directory, deployments must ensure generate runs before the\nTypeScript build if generated output is not committed. A later CI/CD phase will make that automated and repeatable.\n\n6. Production Rule\nProduction should receive migration files that were created and reviewed during development. Production is not where\nyou improvise a new migration by running migrate dev.\n\nCheckpoint\nYou should be able to decide which Prisma command to use without searching for a random tutorial each time.",
+      "wordCount": 397,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Prisma CLI Workflow Development and Production in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma CLI Workflow Development and Production” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Creating a new PrismaClient per request",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma CLI Workflow Development and Production” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma CLI Workflow Development and Production solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "debugging-prisma-and-common-failures",
+      "title": "Debugging Prisma and Common Failures",
+      "summary": "PHASE 09 / BOOK 09 Debugging Prisma & Common Failures Diagnose the failing layer instead of replacing the project NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg…",
+      "body": "PHASE 09 / BOOK 09\n\nDebugging Prisma & Common Failures\nDiagnose the failing layer instead of replacing the project\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\n1. Debug Prisma by Layer\nWorking directory / local package\n\nPrisma config\n\nSchema + generator\n\nGenerated client\n\nDriver adapter\n\nConnection URL / network\n\nPostgreSQL privileges / schema\n\nFigure 1 - Start at the failing layer instead of rewriting the project\n\n2. Wrong Version or Global CLI\nUse the project-local CLI\n\npnpm exec prisma version\n\nIf versions differ from 7.9.1, inspect package.json and the lockfile. Do not \"fix\" the docs to match a newer package\naccidentally installed.\n\n3. Generated Client Module Error\nSymptoms may mention exports, require, ESM or module scope. In this NestJS CommonJS course, confirm the\ngenerator contains moduleFormat = \"cjs\" and regenerate the client.\nRegenerate after generator changes\n\npnpm exec prisma generate\n\n4. PrismaClient Requires an Adapter\nPrisma 7 direct database connections require a driver adapter. If the code constructs PrismaClient without PrismaPg,\nfix the construction path instead of downgrading packages.\n\n5. DATABASE_URL vs DIRECT_URL Confusion\nSymptom                                                 Likely layer\n\nNest API cannot query but CLI works                     DATABASE_URL / runtime adapter\n\nmigrate/status fails but API query works                DIRECT_URL / Prisma CLI path\n\nBrowser fetch fails before API query                    HTTP/CORS, not Prisma\n\nP1001 / connection timeout                              Network/host/port/SSL\n\nShadow database permission error                        CREATEDB or SHADOW_DATABASE_URL\n\n6. Shadow Database Failure\nIf migrate dev reports permission denied to create database, verify the migration user privileges. If automatic creation\nis not allowed, configure a dedicated shadow database. Never reuse the development database as the shadow target.\n\n7. Pooled Connection Mistakes\nTransaction pooling is optimized for different workloads and does not preserve all session behavior migration tools\nexpect. Use a direct or session-capable connection for Prisma CLI migration workflows.\n\n8. Schema Changed but TypeScript Did Not\nThe generated client is stale. Run prisma generate and rebuild. Schema changes do not magically rewrite TypeScript\nimports already produced on disk.\n\n9. \"Relation Does Not Exist\"\nCheck migration status and target database/schema. A perfectly typed generated client can still point at a database\nwhere the migration was never applied.\n\n10. Common Anti-Patterns\n• Creating new PrismaClient instances in controller methods.\n\n• Putting DATABASE_URL into NEXT_PUBLIC_* variables.\n\n• Using migrate dev in production.\n\n• Ignoring migration SQL without review.\n\n• Using db push to avoid learning migrations in a production-style project.\n\n• Deleting the migrations directory whenever drift appears.\n\n• Mixing Prisma 8 docs into this locked 7.9.1 course.\n\n• Treating Prisma validation as authorization or business validation.\n\nCheckpoint\nWhen a Prisma failure appears, identify whether it is tooling, generated code, adapter/runtime, network, privilege or\ndatabase state before changing anything.",
+      "wordCount": 466,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Debugging Prisma and Common Failures in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Prisma and Common Failures” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CLI/client version mismatch",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Prisma and Common Failures” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Prisma and Common Failures solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "PHASE 09 / BOOK 10 Hands-On Lab & Phase Exit Install, configure, integrate, migrate and explain the system NestJS PrismaService Prisma Client PrismaPg driver adapter Supabase PostgreSQL Figure - The database access stack introduced in Phase 09 Course rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are…",
+      "body": "PHASE 09 / BOOK 10\n\nHands-On Lab & Phase Exit\nInstall, configure, integrate, migrate and explain the system\n\nNestJS\n\nPrismaService\n\nPrisma Client\n\nPrismaPg driver adapter\n\nSupabase PostgreSQL\n\nFigure - The database access stack introduced in Phase 09\n\nCourse rule: Prisma CLI, @prisma/client and @prisma/adapter-pg are locked to 7.9.1. Newer Prisma releases are not\nsubstituted halfway through the course.\n\nPhase 09 Hands-On Lab\nThe lab intentionally walks from installation to a working migration and injectable PrismaService. Perform the steps in\norder and stop on the first failed checkpoint.\n\nLevel 1 - Follow\nA. Verify the API workspace\nFrom: taskflow\\apps\\api\n\nGet-Location\nnode -v\npnpm -v\n\nB. Install exact dependencies\n# From: taskflow\\apps\\api\npnpm add -D prisma@7.9.1 @types/pg\npnpm add @prisma/client@7.9.1 @prisma/adapter-pg@7.9.1 pg dotenv @nestjs/config\n\nC. Verify exact versions\n# From: taskflow\\apps\\api\npnpm exec prisma version\n\nD. Initialize and inspect\n# From: taskflow\\apps\\api\npnpm exec prisma init\n\nIdentify .env, prisma.config.ts and prisma/schema.prisma and explain one responsibility for each.\n\nLevel 2 - Configure\nA. Add safe environment placeholders\n.env.example\n\n# Runtime application connection (Phase 08 recommends a session-capable pooled URL for local NestJS).\nDATABASE_URL=\n\n# Prisma CLI / migration connection. Prefer a direct URL when reachable.\nDIRECT_URL=\n\n# Optional only if migrate dev cannot create an automatic shadow database.\n# NEVER point this at the same database as DIRECT_URL.\nSHADOW_DATABASE_URL=\n\nB. Configure Prisma CLI\nprisma.config.ts\n\nimport \"dotenv/config\";\nimport { defineConfig, env } from \"prisma/config\";\n\nexport default defineConfig({\nschema: \"prisma/schema.prisma\",\nmigrations: {\npath: \"prisma/migrations\",\n},\ndatasource: {\n// CLI / migrations: direct or session-capable connection.\nurl: env(\"DIRECT_URL\"),\n},\n});\n\nC. Define the minimal model\nprisma/schema.prisma\n\ngenerator client {\nprovider     = \"prisma-client\"\noutput       = \"../src/generated/prisma\"\nmoduleFormat = \"cjs\"\n}\n\ndatasource db {\nprovider = \"postgresql\"\n}\n\nmodel Todo {\nid         String  @id @default(cuid())\ntitle      String\ncompleted Boolean @default(false)\ncreatedAt DateTime @default(now())\nupdatedAt DateTime @updatedAt\n}\n\nD. Validate and generate\npnpm exec prisma validate\npnpm exec prisma generate\n\nLevel 3 - Integrate\nA. Add PrismaService\nsrc/prisma/prisma.service.ts\n\nimport { Injectable, OnModuleDestroy, OnModuleInit } from \"@nestjs/common\";\nimport { ConfigService } from \"@nestjs/config\";\nimport { PrismaPg } from \"@prisma/adapter-pg\";\nimport { PrismaClient } from \"../generated/prisma/client\";\n\n@Injectable()\nexport class PrismaService\nextends PrismaClient\nimplements OnModuleInit, OnModuleDestroy\n{\nconstructor(config: ConfigService) {\nconst connectionString = config.getOrThrow<string>(\"DATABASE_URL\");\nconst adapter = new PrismaPg({ connectionString });\nsuper({ adapter });\n}\n\nasync onModuleInit() {\nawait this.$connect();\n}\n\nasync onModuleDestroy() {\nawait this.$disconnect();\n}\n}\n\nB. Add PrismaModule\nsrc/prisma/prisma.module.ts\n\nimport { Global, Module } from \"@nestjs/common\";\nimport { PrismaService } from \"./prisma.service\";\n\n@Global()\n@Module({\nproviders: [PrismaService],\nexports: [PrismaService],\n})\nexport class PrismaModule {}\n\nC. Register configuration and PrismaModule\nsrc/app.module.ts\n\nimport { Module } from \"@nestjs/common\";\nimport { ConfigModule } from \"@nestjs/config\";\nimport { HealthModule } from \"./health/health.module\";\nimport { TodosModule } from \"./todos/todos.module\";\nimport { PrismaModule } from \"./prisma/prisma.module\";\n\n@Module({\nimports: [\nConfigModule.forRoot({ isGlobal: true }),\nPrismaModule,\nHealthModule,\nTodosModule,\n],\n})\nexport class AppModule {}\n\nD. Build\npnpm run build\n\nLevel 4 - Engineer\nCreate the first migration only after verifying that DIRECT_URL targets your development database and that\nshadow-database behavior is safe.\n\npnpm exec prisma migrate dev --name init_todo\npnpm exec prisma generate\npnpm exec prisma migrate status\n\nEngineer questions\n• Why does NestJS runtime use DATABASE_URL while Prisma CLI can use DIRECT_URL?\n\n• What failure would you expect if the generated client were ESM but NestJS output remained CommonJS?\n\n• Why is migration.sql worth reviewing if Prisma generated it?\n\n• Why is the shadow database dangerous when pointed at the same database as DIRECT_URL?\n\n• What changes in production: migrate dev or migrate deploy? Why?\n\nPhase Exit Checklist\n• [ ] prisma, @prisma/client and @prisma/adapter-pg are all 7.9.1.\n\n• [ ] pnpm exec prisma version confirms local versions.\n\n• [ ] schema.prisma uses prisma-client, a custom output, and moduleFormat = cjs.\n\n• [ ] prisma.config.ts reads the CLI datasource from DIRECT_URL.\n\n• [ ] Real secrets are absent from Git.\n\n• [ ] prisma validate passes.\n\n• [ ] prisma generate succeeds.\n\n• [ ] PrismaService uses PrismaPg and one shared PrismaClient instance.\n\n• [ ] NestJS production build passes.\n\n• [ ] migrate dev was run only against the intended development database.\n\n• [ ] migration.sql was inspected.\n\n• [ ] migrate status is clean.\n\nWhat You Should Understand Before Phase 10\nPrisma is now infrastructure you understand. Phase 10 will no longer ask \"how do I connect Prisma?\" It will ask the\nmore important question: \"what should the relational model actually be?\" That moves us from tooling into data design.\n\nWorking Prisma infrastructure\n\nPhase 10 relational model design\n\nProjects / tasks / relationships\n\nPhase 11 persistent CRUD API\n\nFigure - The database curriculum continues from infrastructure into modeling and behavior",
+      "wordCount": 732,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Editing generated client code",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nIntegrate Prisma 7.9.1 as a repeatable persistence layer with schema, generated client, adapter/configuration, migrations, and NestJS lifecycle.",
+      "body": "Guided Build Lab — Phase 09: Prisma 7.9.1 Architecture, Configuration & Migrations\n\nPurpose\nIntegrate Prisma 7.9.1 as a repeatable persistence layer with schema, generated client, adapter/configuration, migrations, and NestJS lifecycle.\n\nDeliverable\nPrisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nschema.prisma -> migration files -> database schema -> generated Prisma Client -> PrismaService -> feature service\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Pin Prisma packages to the course version contract and verify all Prisma package versions match.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Initialize Prisma with the intended generated-client output and PostgreSQL configuration.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Model one entity, create the first migration, and inspect the SQL before applying it.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Generate the client and wire a PrismaService into NestJS with controlled lifecycle.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Perform a smoke query through the service, then inspect the created database object independently.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Cause a safe migration/configuration failure and practice reading Prisma error codes instead of reinstalling randomly.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npnpm exec prisma version\npnpm exec prisma validate\npnpm exec prisma migrate dev --name <name>\npnpm exec prisma generate\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 707,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using db push as a substitute for migration history in team environments",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 09: Prisma 7.9.1 Architecture, Configuration & Migrations\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nschema.prisma -> migration files -> database schema -> generated Prisma Client -> PrismaService -> feature service\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — CLI/client version mismatch\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Editing generated client code\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Using db push as a substitute for migration history in team environments\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Creating a new PrismaClient per request\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 450,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Creating a new PrismaClient per request",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 09 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Prisma 7.9.1 Architecture, Configuration & Migrations\n\nMission\nRebuild the capability of Phase 09 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nIntegrate Prisma 7.9.1 as a repeatable persistence layer with schema, generated client, adapter/configuration, migrations, and NestJS lifecycle.\n\nRequired artifact\nPrisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain schema vs migration vs generated client.\n• Can create and inspect a migration.\n• Can wire Prisma to NestJS cleanly.\n• Can diagnose common connection/migration failures.\n\nIndependent build sequence\n1. Pin Prisma packages to the course version contract and verify all Prisma package versions match.\n2. Initialize Prisma with the intended generated-client output and PostgreSQL configuration.\n3. Model one entity, create the first migration, and inspect the SQL before applying it.\n4. Generate the client and wire a PrismaService into NestJS with controlled lifecycle.\n5. Perform a smoke query through the service, then inspect the created database object independently.\n6. Cause a safe migration/configuration failure and practice reading Prisma error codes instead of reinstalling randomly.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 385,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CLI/client version mismatch",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 09 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 09: Prisma 7.9.1 Architecture, Configuration & Migrations. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nPrisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 202,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Integrate Prisma 7.9.1 as a repeatable persistence layer with schema, generated client, adapter/configuration, migrations, and NestJS lifecycle.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "schema.prisma",
+          "migration files",
+          "database schema",
+          "generated Prisma Client",
+          "PrismaService",
+          "feature service"
+        ],
+        "steps": [
+          "Pin Prisma packages to the course version contract and verify all Prisma package versions match.",
+          "Initialize Prisma with the intended generated-client output and PostgreSQL configuration.",
+          "Model one entity, create the first migration, and inspect the SQL before applying it.",
+          "Generate the client and wire a PrismaService into NestJS with controlled lifecycle.",
+          "Perform a smoke query through the service, then inspect the created database object independently.",
+          "Cause a safe migration/configuration failure and practice reading Prisma error codes instead of reinstalling randomly.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain schema vs migration vs generated client",
+          "Can create and inspect a migration",
+          "Can wire Prisma to NestJS cleanly",
+          "Can diagnose common connection/migration failures"
+        ],
+        "breakIt": [
+          "CLI/client version mismatch",
+          "Editing generated client code"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/.env.example",
+      "preview": "# Runtime application connection (Phase 08 recommends a session-capable pooled URL for local NestJS).\nDATABASE_URL=\n\n# Prisma CLI / migration connection. Prefer a direct URL when reachable.\nDIRECT_URL=\n\n# Optional only if migrate dev cannot create an automatic shadow database.\n# NEVER point this at the same database as DIRECT_URL.\nSHADOW_DATABASE_URL="
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/README.txt",
+      "preview": "TaskFlow Phase 09 Prisma reference snapshot\n\nThese files are reference outputs for the end of Phase 09.\nDo not paste them blindly over an existing project. Compare responsibilities and adapt the existing files.\n\nImportant:\n- Prisma packages are locked to 7.9.1.\n- DATABASE_URL is for runtime PrismaPg.\n- DIRECT_URL is for Prisma CLI/migrations.\n- If SHADOW_DATABASE_URL is used, it must point to a separate disposable shadow database.\n- src/generated/prisma is generated by `pnpm exec prisma generate`; it is intentionally not included here."
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/install-prisma.ps1",
+      "preview": "pnpm add -D prisma@7.9.1 @types/pg\npnpm add @prisma/client@7.9.1 @prisma/adapter-pg@7.9.1 pg dotenv @nestjs/config"
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/prisma/schema.prisma",
+      "preview": "generator client {\n  provider     = \"prisma-client\"\n  output       = \"../src/generated/prisma\"\n  moduleFormat = \"cjs\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel Todo {\n  id        String   @id @default(cuid())\n  title     String\n  completed Boolean  @default(false)\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/prisma.config.ts",
+      "preview": "import \"dotenv/config\";\nimport { defineConfig, env } from \"prisma/config\";\n\nexport default defineConfig({\n  schema: \"prisma/schema.prisma\",\n  migrations: {\n    path: \"prisma/migrations\",\n  },\n  datasource: {\n    // CLI / migrations: direct or session-capable connection.\n    url: env(\"DIRECT_URL\"),\n  },\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/src/app.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\";\nimport { ConfigModule } from \"@nestjs/config\";\nimport { HealthModule } from \"./health/health.module\";\nimport { TodosModule } from \"./todos/todos.module\";\nimport { PrismaModule } from \"./prisma/prisma.module\";\n\n@Module({\n  imports: [\n    ConfigModule.forRoot({ isGlobal: true }),\n    PrismaModule,\n    HealthModule,\n    TodosModule,\n  ],\n})\nexport class AppModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/src/prisma/prisma.module.ts",
+      "preview": "import { Global, Module } from \"@nestjs/common\";\nimport { PrismaService } from \"./prisma.service\";\n\n@Global()\n@Module({\n  providers: [PrismaService],\n  exports: [PrismaService],\n})\nexport class PrismaModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Prisma_Snapshot/src/prisma/prisma.service.ts",
+      "preview": "import { Injectable, OnModuleDestroy, OnModuleInit } from \"@nestjs/common\";\nimport { ConfigService } from \"@nestjs/config\";\nimport { PrismaPg } from \"@prisma/adapter-pg\";\nimport { PrismaClient } from \"../generated/prisma/client\";\n\n@Injectable()\nexport class PrismaService\n  extends PrismaClient\n  implements OnModuleInit, OnModuleDestroy\n{\n  constructor(config: ConfigService) {\n    const connectionString = config.getOrThrow<string>(\"DATABASE_URL\");\n    const adapter = new PrismaPg({ connectionString });\n    super({ adapter });\n  }\n\n  async onModuleInit() {\n    await this.$connect();\n  }\n"
+    }
+  ],
+  "exercises": [
+    "Guided: Pin Prisma packages to the course version contract and verify all Prisma package versions match.",
+    "Practice: Model one entity, create the first migration, and inspect the SQL before applying it.",
+    "Debugging: reproduce and diagnose — CLI/client version mismatch.",
+    "Independent: deliver Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.",
+    "Explain-back: Can explain schema vs migration vs generated client and Can create and inspect a migration."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use Prisma migrations as the authoritative history of application schema changes."
+      ],
+      "answer": 3,
+      "explanation": "Use Prisma migrations as the authoritative history of application schema changes."
+    },
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Keep generated Prisma Client code derived from the schema instead of hand-editing it.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Keep generated Prisma Client code derived from the schema instead of hand-editing it."
+    },
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use a shared Prisma service in NestJS so connection lifecycle and access patterns remain controlled.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use a shared Prisma service in NestJS so connection lifecycle and access patterns remain controlled."
+    },
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Pin Prisma versions deliberately when the course architecture depends on a specific configuration model.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Pin Prisma versions deliberately when the course architecture depends on a specific configuration model."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: CLI/client version mismatch.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Pin Prisma packages to the course version contract and verify all Prisma package versions match.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Pin Prisma packages to the course version contract and verify all Prisma package versions match."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Initialize Prisma with the intended generated-client output and PostgreSQL configuration.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Editing generated client code."
+      ],
+      "answer": 1,
+      "explanation": "Initialize Prisma with the intended generated-client output and PostgreSQL configuration."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Model one entity, create the first migration, and inspect the SQL before applying it.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using db push as a substitute for migration history in team environments.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Model one entity, create the first migration, and inspect the SQL before applying it."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Creating a new PrismaClient per request.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Generate the client and wire a PrismaService into NestJS with controlled lifecycle."
+      ],
+      "answer": 3,
+      "explanation": "Generate the client and wire a PrismaService into NestJS with controlled lifecycle."
+    }
+  ],
+  "lessonCount": 14,
+  "wordCount": 6323
+}

@@ -1,0 +1,1223 @@
+{
+  "number": 34,
+  "slug": "phase-34",
+  "title": "Production Deployment",
+  "volume": 8,
+  "readme": "FULL STACK DEVELOPER 2026 - Phase 34\nProduction Deployment\n\nPrimary deployment topology:\n  Web  -> Vercel\n  API  -> Railway (immutable GHCR image)\n  Data/Auth/Storage/Realtime -> Supabase production project\n\nThe phase includes focused books, one combined book, environment templates, production runbooks, platform notes, and smoke-test assets.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "production-topology-environments-and-release-identity",
+      "title": "Production Topology Environments and Release Identity",
+      "summary": "Production Topology, Environments, and Release Identity Use distinct local, staging, and production environments so a preview does not accidentally point at production data. Keep the deployment identity visible everywhere: commit SHA, API image tag, Vercel deployment, migration batch, and monitoring release. local → staging →…",
+      "body": "Production Topology, Environments, and Release\nIdentity\nUse distinct local, staging, and production environments so a preview does not accidentally point at production data.\nKeep the deployment identity visible everywhere: commit SHA, API image tag, Vercel deployment, migration batch,\nand monitoring release.\n\nlocal\n→         staging\n→         production\n\nFigure 2 - Environment promotion, not environment sharing\n\nRecommended production addresses\n• https://app.taskflow.example.com -> Next.js on Vercel\n\n• https://api.taskflow.example.com -> NestJS on Railway\n\n• Supabase production project -> PostgreSQL, Auth, Storage, Realtime\n\nRelease identity\n• API image: ghcr.io/<org>/<repo>-api:sha-<commit>\n\n• Web deployment: verified main commit on Vercel\n\n• Sentry/release metadata: same Git commit SHA\n\n• Database migration: committed Prisma migration set from the same release\nA preview environment should use staging credentials and staging data. Do not solve preview convenience by giving\nevery preview URL production secrets.\n\nSource basis: platform environment/deployment models plus TaskFlow release architecture from Phases 32-33.",
+      "wordCount": 148,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Production Topology Environments and Release Identity in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Production Topology Environments and Release Identity” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Preview deployment points to production database",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Production Topology Environments and Release Identity” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Production Topology Environments and Release Identity solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "vercel-next-js-production-deployment",
+      "title": "Vercel Next.js Production Deployment",
+      "summary": "Vercel: Deploy the Next.js Application For the course topology, Vercel deploys the Next.js application natively from the verified repository commit. In a monorepo, point the Vercel project at apps/web and configure production, preview, and development variables deliberately. Preview/Prod Git main commit Vercel build Custom domain…",
+      "body": "Vercel: Deploy the Next.js Application\nFor the course topology, Vercel deploys the Next.js application natively from the verified repository commit. In a\nmonorepo, point the Vercel project at apps/web and configure production, preview, and development variables\ndeliberately.\n\nPreview/Prod\nGit main commit             Vercel build                                         Custom domain\n→                          →         deployment\n→\nFigure 3 - Native Next.js deployment path\n\nCore configuration\n• Root Directory: apps/web\n\n• Production branch: main\n\n• Production domain: app.taskflow.example.com\n\n• Preview deployments may point to staging services, not the production API/database\n\nPublic vs server-only configuration\n• NEXT_PUBLIC_SUPABASE_URL and the publishable key are browser configuration.\n\n• NEXT_PUBLIC_API_URL is safe only because it is a public endpoint address, not a credential.\n\n• Never expose service-role keys or database credentials through NEXT_PUBLIC_*.\nNEXT_PUBLIC_SITE_URL=https://app.taskflow.example.com\nNEXT_PUBLIC_API_URL=https://api.taskflow.example.com\nNEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<public-key>\nSENTRY_DSN=<server-side-if-used>\n\nNEXT_PUBLIC_* values are embedded into browser output at build time. Changing them normally requires a new web\ndeployment.\n\nSources: Vercel environment-variable scopes and Next.js deployment guidance; NEXT_PUBLIC values are build-time browser values.",
+      "wordCount": 173,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Vercel Next.js Production Deployment in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Vercel Next.js Production Deployment” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets copied into source or image",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Vercel Next.js Production Deployment” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Vercel Next.js Production Deployment solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "railway-nestjs-api-deployment",
+      "title": "Railway NestJS API Deployment",
+      "summary": "Railway: Deploy the NestJS API from GHCR The API follows the build-once path from Phase 33: Railway pulls the exact GHCR image tagged with the Git SHA. When Railway uses a Docker-image source, it skips its own source build so the artifact tested in CI…",
+      "body": "Railway: Deploy the NestJS API from GHCR\nThe API follows the build-once path from Phase 33: Railway pulls the exact GHCR image tagged with the Git SHA.\nWhen Railway uses a Docker-image source, it skips its own source build so the artifact tested in CI is the artifact that\nruns.\n\nGHCR sha image\n→      Railway service\n→       /health/ready\n→   Traffic switch\n\nFigure 4 - Immutable API promotion\n\nService rules\n• Source: exact GHCR image tag, not :latest\n\n• Listen on 0.0.0.0 and process.env.PORT\n\n• Healthcheck path: /health/ready\n\n• Custom domain: api.taskflow.example.com with automatic TLS\n\nRegistry credentials\n• Private GHCR images require Railway private-registry support and a read-only package token.\n\n• Do not reuse the CI token that has write:packages.\n\n• A public image avoids registry credentials but may not suit a proprietary application.\n# Container runtime concept\nHOST=0.0.0.0\nPORT=<injected by Railway>\nNODE_ENV=production\n\n# Image identity\nghcr.io/acme/taskflow-api:sha-<full-commit>\n\nRailway health checks gate the new deployment before traffic is switched, but Railway documents that this\nhealthcheck is deployment-time gating rather than continuous post-deploy monitoring.\n\nSources: Railway private registry deployment, service-source, domain, healthcheck, and rollback documentation.",
+      "wordCount": 191,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Railway NestJS API Deployment in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Railway NestJS API Deployment” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Code deploy occurs before required migration or vice versa without compatibility plan",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Railway NestJS API Deployment” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Railway NestJS API Deployment solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "supabase-production-project-and-database",
+      "title": "Supabase Production Project and Database",
+      "summary": "Supabase Production Project and Database Configuration Create a production Supabase project separate from local/staging. Production schema changes come from version-controlled migrations; the dashboard is not the authoritative migration tool after launch. Committed Migration job Production DB API release migration → → → Figure 5 -…",
+      "body": "Supabase Production Project and Database\nConfiguration\nCreate a production Supabase project separate from local/staging. Production schema changes come from\nversion-controlled migrations; the dashboard is not the authoritative migration tool after launch.\n\nCommitted\nMigration job               Production DB              API release\nmigration\n→                           →                              →\nFigure 5 - Database changes are part of the release\n\nProduction checklist\n• Review Security Advisor and Performance Advisor findings.\n\n• Use indexes that match measured query patterns and monitor connection usage.\n\n• Plan backups/PITR according to business requirements and database size.\n\n• Restrict who can change production and prefer migrations through CI/deployment workflows.\n\nConnection strategy\n• Application runtime uses the connection/pool mode appropriate to the always-on NestJS topology.\n\n• Migration tooling should use a connection mode that supports migration operations reliably.\n\n• Do not create one PrismaClient per request; retain the singleton service architecture from earlier phases.\nSupabase runs the managed platform; TaskFlow still owns query design, indexes, connection behavior, application\nauthorization, and safe production-change practices.\n\nSources: Supabase Production Checklist, maturity model, and shared-responsibility guidance.",
+      "wordCount": 161,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Supabase Production Project and Database in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Supabase Production Project and Database” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rollback plan assumes schema can always be downgraded",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Supabase Production Project and Database” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Supabase Production Project and Database solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "environment-secrets-domains-tls-and-cors",
+      "title": "Environment Secrets Domains TLS and CORS",
+      "summary": "Environment Variables, Secrets, Domains, TLS, and CORS Configuration is environment-specific; secrets are never browser configuration. Both Vercel and Railway can provision HTTPS for custom domains, but CORS still has to match the API trust model. Variable Location Purpose NEXT_PUBLIC_SITE_URL Vercel public Canonical web origin NEXT_PUBLIC_API_URL…",
+      "body": "Environment Variables, Secrets, Domains, TLS,\nand CORS\nConfiguration is environment-specific; secrets are never browser configuration. Both Vercel and Railway can\nprovision HTTPS for custom domains, but CORS still has to match the API trust model.\n\nVariable                             Location                         Purpose\n\nNEXT_PUBLIC_SITE_URL                 Vercel public                    Canonical web origin\n\nNEXT_PUBLIC_API_URL                  Vercel public                    Public API base URL\n\nDATABASE_URL                         Railway secret                   Production PostgreSQL connection\n\nSUPABASE_URL                         Railway config                   Production Supabase project URL\n\nSUPABASE_SERVICE_ROLE_KEY            Railway secret                   Server-only Storage/admin operations\n\nCORS_ORIGIN                          Railway config                   Exact production web origin\n\nSENTRY_DSN                           Both as needed                   Production error reporting\n\nDomain plan\n• app.taskflow.example.com -> Vercel\n\n• api.taskflow.example.com -> Railway\n\n• TLS is platform-managed after DNS verification\n\n• Production API CORS should prefer the exact production origin, not * with credentials\n\nPreview warning\n• Do not whitelist arbitrary *.vercel.app origins against production just to make previews convenient.\n\n• Use staging API/Supabase for previews, or explicitly enumerate controlled preview access if a product requirement truly\nneeds it.\nA URL is public configuration. A credential is secret. Keeping that distinction clear prevents many deployment leaks.\n\nSources: Vercel environment scopes; Railway custom domains/automatic SSL; TaskFlow Phase 29 security model.",
+      "wordCount": 181,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "cors",
+        "objectives": [
+          "Explain Environment Secrets Domains TLS and CORS in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this cors concept.",
+          "Diagnose one representative cors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Environment Secrets Domains TLS and CORS matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Environment Secrets Domains TLS and CORS” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Inspect the browser preflight contract",
+          "code": "OPTIONS /tasks HTTP/1.1\nOrigin: http://localhost:3000\nAccess-Control-Request-Method: POST\nAccess-Control-Request-Headers: authorization,content-type\n\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:3000"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Preview deployment points to production database",
+          "Change one assumption in the cors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Environment Secrets Domains TLS and CORS” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Environment Secrets Domains TLS and CORS solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the cors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "supabase-auth-redirects-cookies-and-sessions",
+      "title": "Supabase Auth Redirects Cookies and Sessions",
+      "summary": "Supabase Auth: Redirect URLs, Site URL, Cookies, and Sessions Authentication often breaks only after deployment because localhost redirect assumptions remain in the Auth project. Production Auth configuration must know the canonical web URL and every intentional callback. Sign in → Supabase Auth → Allowed redirect…",
+      "body": "Supabase Auth: Redirect URLs, Site URL,\nCookies, and Sessions\nAuthentication often breaks only after deployment because localhost redirect assumptions remain in the Auth project.\nProduction Auth configuration must know the canonical web URL and every intentional callback.\n\nSign in\n→      Supabase Auth\n→      Allowed redirect\n→        /auth/confirm\n→   Session cookie\n\nFigure 6 - Production authentication redirect chain\n\nProduction URL configuration\n• Site URL: https://app.taskflow.example.com\n\n• Add exact production redirect paths used by confirmation/OAuth/reset flows.\n\n• Use preview wildcards only for preview environments and keep production redirects exact where possible.\n\n• Verify email templates use the intended redirect value when redirectTo is used.\n\nSession checks\n• Cookies must be Secure over HTTPS.\n\n• Cross-site/cross-origin behavior must match the Phase 16-18 authentication model.\n\n• A successful web login does not replace NestJS bearer-token verification; the API still validates identity independently.\nA correct production domain is part of authentication correctness. Redirect allowlists are security configuration, not\ncosmetic routing.\n\nSource: Supabase Auth Redirect URLs and URL Configuration guidance.",
+      "wordCount": 160,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Supabase Auth Redirects Cookies and Sessions in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Supabase Auth Redirects Cookies and Sessions” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets copied into source or image",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Supabase Auth Redirects Cookies and Sessions” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Supabase Auth Redirects Cookies and Sessions solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "migration-order-backward-compatibility-and-release-sequence",
+      "title": "Migration Order Backward Compatibility and Release Sequence",
+      "summary": "Migration Order, Backward Compatibility, and Release Sequence Database deployment is where rollback gets difficult. Prefer expand-migrate-contract changes so the old application and the new application can coexist during rollout and rollback windows. Expand schema → Migrate data → Deploy code → Observe → Contract later…",
+      "body": "Migration Order, Backward Compatibility, and\nRelease Sequence\nDatabase deployment is where rollback gets difficult. Prefer expand-migrate-contract changes so the old application\nand the new application can coexist during rollout and rollback windows.\n\nExpand schema\n→       Migrate data\n→        Deploy code\n→           Observe\n→       Contract later\n\nFigure 7 - Safer database evolution\n\nRelease ordering\n• 1. Validate production configuration and backups/recovery posture.\n\n• 2. Run prisma migrate deploy as a one-off migration job.\n\n• 3. Deploy the API SHA image and wait for readiness.\n\n• 4. Deploy/promote the web application.\n\n• 5. Run smoke tests and watch telemetry.\n\nAvoid fragile migrations\n• Do not rename/drop a column in the same instant the old API might still use it.\n\n• Add new structures first, deploy compatible code, migrate data, then remove obsolete structures in a later release.\n\n• A code rollback cannot magically reverse destructive database changes.\n# Migration release step\npnpm --filter api exec prisma migrate deploy\n\n# Only after success:\n# - promote API image\n# - promote web deployment\n\nRollback-friendly deployment starts with rollback-friendly schema changes.\n\nSource basis: Prisma deployment workflow from earlier phases plus production-safe expand/migrate/contract release practice.",
+      "wordCount": 176,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Migration Order Backward Compatibility and Release Sequence in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Migration Order Backward Compatibility and Release Sequence” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Code deploy occurs before required migration or vice versa without compatibility plan",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Migration Order Backward Compatibility and Release Sequence” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Migration Order Backward Compatibility and Release Sequence solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "health-readiness-zero-downtime-and-graceful-shutdown",
+      "title": "Health Readiness Zero Downtime and Graceful Shutdown",
+      "summary": "Health, Readiness, Zero-Downtime Promotion, and Graceful Shutdown A process can be alive but not ready. Deployment platforms should route traffic only after the new version is ready, and the old version should have time to finish work during termination. Start new version → /health/ready 2xx…",
+      "body": "Health, Readiness, Zero-Downtime Promotion, and\nGraceful Shutdown\nA process can be alive but not ready. Deployment platforms should route traffic only after the new version is ready,\nand the old version should have time to finish work during termination.\n\nStart new version\n→     /health/ready 2xx\n→        Switch traffic\n→        SIGTERM old\n→       Graceful exit\n\nFigure 8 - Health-gated promotion\n\nEndpoints\n• /health/live: process is alive; avoid making it fail because PostgreSQL is briefly unavailable.\n\n• /health/ready: operation-critical dependencies such as PostgreSQL are available.\n\n• Never require user authentication for platform health probes.\n\nPlatform behavior\n• Railway waits for a successful 2xx healthcheck before making the new deployment active.\n\n• Render can also use HTTP health checks to decide whether a new web-service deployment is ready for traffic.\n\n• Phase 30 observability still monitors health after rollout; deployment probes are not a substitute for alerts.\nReadiness gates traffic. Liveness decides whether the process itself should be considered alive. Mixing them creates\nunnecessary restarts during dependency incidents.\n\nSources: Railway deployment healthchecks and Render HTTP healthchecks.",
+      "wordCount": 165,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "observability",
+        "objectives": [
+          "Explain Health Readiness Zero Downtime and Graceful Shutdown in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this observability concept.",
+          "Diagnose one representative observability failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Health Readiness Zero Downtime and Graceful Shutdown matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "correlation id",
+          "structured event",
+          "metric/trace",
+          "diagnosis"
+        ],
+        "steps": [
+          "Restate the goal of “Health Readiness Zero Downtime and Graceful Shutdown” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → correlation id → structured event → metric/trace → diagnosis. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Liveness and readiness answer different questions",
+          "code": "GET /health/live  -> process is running\nGET /health/ready -> required dependencies can serve traffic"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rollback plan assumes schema can always be downgraded",
+          "Change one assumption in the observability example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Health Readiness Zero Downtime and Graceful Shutdown” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Health Readiness Zero Downtime and Graceful Shutdown solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the observability boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "storage-realtime-and-production-service-configuration",
+      "title": "Storage Realtime and Production Service Configuration",
+      "summary": "Storage and Realtime Production Configuration The production Supabase project must carry the same security architecture already established for Storage and Realtime. Deployment is where local convenience policies must be removed. Storage • Create the private task-attachments bucket with production MIME/size restrictions. • Keep service-role access…",
+      "body": "Storage and Realtime Production Configuration\nThe production Supabase project must carry the same security architecture already established for Storage and\nRealtime. Deployment is where local convenience policies must be removed.\n\nStorage\n• Create the private task-attachments bucket with production MIME/size restrictions.\n\n• Keep service-role access server-only.\n\n• Signed download URLs stay short-lived.\n\n• Run orphan-cleanup/reconciliation jobs with explicit observability.\n\nRealtime\n• Deploy Broadcast triggers and Realtime authorization policies through version-controlled database changes.\n\n• Use private workspace topics and production user membership checks.\n\n• After reconnect, invalidate/refetch authoritative HTTP data as taught in Phase 26.\n\nProduction validation\n• Test a member and non-member against Realtime topics.\n\n• Test attachment upload/finalize/download/delete against real production-like configuration before public launch.\n\n• Confirm no public bucket or permissive channel policy was accidentally carried from development.\nSupabase services are infrastructure capabilities. NestJS/PostgreSQL remain the application source of truth and\nauthorization authority.\n\nSources: Supabase production/security guidance and Phase 26-27 architecture.",
+      "wordCount": 151,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Storage Realtime and Production Service Configuration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Storage Realtime and Production Service Configuration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Preview deployment points to production database",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Storage Realtime and Production Service Configuration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Storage Realtime and Production Service Configuration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "post-deploy-smoke-tests-and-observability",
+      "title": "Post Deploy Smoke Tests and Observability",
+      "summary": "Post-Deploy Smoke Tests and Observability A platform saying \"deployed\" means the platform started the artifact. It does not prove TaskFlow works end to end. Every release therefore ends with a small, repeatable smoke suite and an observation window. Metrics/logs/erro Decision: keep or Deploy success Smoke…",
+      "body": "Post-Deploy Smoke Tests and Observability\nA platform saying \"deployed\" means the platform started the artifact. It does not prove TaskFlow works end to end.\nEvery release therefore ends with a small, repeatable smoke suite and an observation window.\n\nMetrics/logs/erro             Decision: keep or\nDeploy success                Smoke tests\n→                            →             rs\n→         rollback\n\nFigure 9 - Deployment is not complete until verification passes\n\nUnauthenticated smoke checks\n• Web sign-in page returns successfully.\n\n• API /health/live returns 2xx.\n\n• API /health/ready returns 2xx.\n\n• Custom domains use HTTPS and expected certificates.\n\nAuthenticated smoke checks\n• Known test user can sign in.\n\n• GET /tasks returns only authorized data.\n\n• Create/update a disposable Task, then verify persistence.\n\n• Optional Storage/Realtime checks run with controlled production test data.\n\nObserve\n• Watch 5xx rate, p95 latency, readiness, database signals, and Sentry events.\n\n• Correlate failures with requestId and release SHA.\n\n• Do not wait for user reports if telemetry already proves the release is unhealthy.\n$Web = \"https://app.taskflow.example.com\"\n$Api = \"https://api.taskflow.example.com\"\n\nInvoke-WebRequest \"$Api/health/live\" -UseBasicParsing\nInvoke-WebRequest \"$Api/health/ready\" -UseBasicParsing\nInvoke-WebRequest \"$Web/sign-in\" -UseBasicParsing\n\nSource basis: Phase 28 testing + Phase 30 observability integrated into the release runbook.",
+      "wordCount": 189,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Post Deploy Smoke Tests and Observability in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Post Deploy Smoke Tests and Observability” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets copied into source or image",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Post Deploy Smoke Tests and Observability” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Post Deploy Smoke Tests and Observability solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "rollback-recovery-and-incident-decisions",
+      "title": "Rollback Recovery and Incident Decisions",
+      "summary": "Rollback, Recovery, and Incident Decisions A rollback plan must exist before the release. Roll back application code quickly when code/config is the cause; treat database/schema incidents separately because destructive migrations may not be reversible by restoring an old image. Investigate root Bad release Stop promotion…",
+      "body": "Rollback, Recovery, and Incident Decisions\nA rollback plan must exist before the release. Roll back application code quickly when code/config is the cause; treat\ndatabase/schema incidents separately because destructive migrations may not be reversible by restoring an old\nimage.\n\nInvestigate root\nBad release             Stop promotion              Rollback app              Verify health\n→                         →                          →                       →           cause\n\nFigure 10 - Recovery path\n\nAPI rollback\n• Railway can roll back to a previous successful deployment while restoring that deployment's image and custom variables\nwithin the platform retention window.\n\n• Use the last known-good immutable SHA, then rerun smoke checks.\n\nWeb rollback\n• Promote a known-good previous Vercel deployment or redeploy the known-good commit according to team policy.\n\n• Keep production environment variables version/change-controlled operationally even though they live outside Git.\n\nDatabase incident\n• Do not assume an application rollback fixes a destructive migration.\n\n• Use backup/PITR or a forward-fix migration according to the incident runbook.\n\n• This is why expand-contract and tested migrations are part of deployment design.\nRollback is a capability, not a strategy. Recovery decisions depend on whether the failure is code, configuration, data,\nmigration, dependency, or infrastructure.\n\nSources: Railway deployment rollback behavior; Vercel immutable deployment model; Supabase backup/PITR production guidance.",
+      "wordCount": 192,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Rollback Recovery and Incident Decisions in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Rollback Recovery and Incident Decisions” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Code deploy occurs before required migration or vice versa without compatibility plan",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Rollback Recovery and Incident Decisions” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Rollback Recovery and Incident Decisions solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "production-launch-runbook-and-phase-exit",
+      "title": "Production Launch Runbook and Phase Exit",
+      "summary": "Production Launch Runbook and Phase Exit The final lab turns the deployment architecture into a checklist a team can actually follow. The release is complete only when application behavior, infrastructure health, security configuration, and recovery paths have all been verified. Before release • CI green…",
+      "body": "Production Launch Runbook and Phase Exit\nThe final lab turns the deployment architecture into a checklist a team can actually follow. The release is complete\nonly when application behavior, infrastructure health, security configuration, and recovery paths have all been\nverified.\n\nBefore release\n• CI green for the exact commit\n\n• Production secrets/config verified\n\n• Supabase Site URL + redirect allowlist verified\n\n• Database migration reviewed and recovery posture confirmed\n\n• Domains/DNS prepared\n\n• API health endpoints verified in staging\n\nRelease\n• Run production migration job\n\n• Deploy exact API SHA and wait for readiness\n\n• Deploy/promote web from verified commit\n\n• Run unauthenticated then authenticated smoke tests\n\n• Watch logs, metrics, traces, Sentry, DB health during observation window\n\nDone-when\n• HTTPS custom domains work\n\n• Auth sign-in/confirmation works\n\n• Authorized CRUD works\n\n• Cross-workspace authorization still blocks access\n\n• Storage/Realtime production checks pass where enabled\n\n• Rollback procedure has been rehearsed and documented\nPhase exit: TaskFlow is no longer only \"production-ready code\"; it now has a repeatable production launch and\nrecovery process.\n\nSource basis: integrated TaskFlow production release checklist.",
+      "wordCount": 166,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Production Launch Runbook and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Production Launch Runbook and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rollback plan assumes schema can always be downgraded",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Production Launch Runbook and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Production Launch Runbook and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nDeploy the real topology—Next.js, NestJS image, Supabase services, migrations, domains/TLS/CORS, secrets, health checks, smoke tests, and rollback—as one release system.",
+      "body": "Guided Build Lab — Phase 34: Production Deployment\n\nPurpose\nDeploy the real topology—Next.js, NestJS image, Supabase services, migrations, domains/TLS/CORS, secrets, health checks, smoke tests, and rollback—as one release system.\n\nDeliverable\nStaging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nverified commit/artifact -> migration gate -> Vercel web + API host -> Supabase prod services -> DNS/TLS -> smoke test -> monitor/rollback\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Create separate staging/production environment matrices before entering any dashboard values.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Deploy Next.js from the intended monorepo root with public/server env vars separated.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Deploy the exact API container artifact and verify bind address, PORT, and readiness endpoint.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Apply database migrations as a controlled release step and document backward-compatibility assumptions.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Configure custom domains/TLS and the exact CORS/redirect origins for production.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Run a smoke-test checklist and practice rollback of code while reasoning about whether the database migration is reversible.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 658,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Preview deployment points to production database",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 34: Production Deployment\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nverified commit/artifact -> migration gate -> Vercel web + API host -> Supabase prod services -> DNS/TLS -> smoke test -> monitor/rollback\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Preview deployment points to production database\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Secrets copied into source or image\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Code deploy occurs before required migration or vice versa without compatibility plan\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Rollback plan assumes schema can always be downgraded\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 457,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets copied into source or image",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 34 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Production Deployment\n\nMission\nRebuild the capability of Phase 34 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nDeploy the real topology—Next.js, NestJS image, Supabase services, migrations, domains/TLS/CORS, secrets, health checks, smoke tests, and rollback—as one release system.\n\nRequired artifact\nStaging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can describe the whole topology.\n• Can separate environment configuration.\n• Can execute smoke tests.\n• Can explain code vs database rollback constraints.\n\nIndependent build sequence\n1. Create separate staging/production environment matrices before entering any dashboard values.\n2. Deploy Next.js from the intended monorepo root with public/server env vars separated.\n3. Deploy the exact API container artifact and verify bind address, PORT, and readiness endpoint.\n4. Apply database migrations as a controlled release step and document backward-compatibility assumptions.\n5. Configure custom domains/TLS and the exact CORS/redirect origins for production.\n6. Run a smoke-test checklist and practice rollback of code while reasoning about whether the database migration is reversible.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 382,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Code deploy occurs before required migration or vice versa without compatibility plan",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 34 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 34: Production Deployment. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nStaging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 200,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Deploy the real topology—Next.js, NestJS image, Supabase services, migrations, domains/TLS/CORS, secrets, health checks, smoke tests, and rollback—as one release system.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "verified commit/artifact",
+          "migration gate",
+          "Vercel web + API host",
+          "Supabase prod services",
+          "DNS/TLS",
+          "smoke test",
+          "monitor/rollback"
+        ],
+        "steps": [
+          "Create separate staging/production environment matrices before entering any dashboard values.",
+          "Deploy Next.js from the intended monorepo root with public/server env vars separated.",
+          "Deploy the exact API container artifact and verify bind address, PORT, and readiness endpoint.",
+          "Apply database migrations as a controlled release step and document backward-compatibility assumptions.",
+          "Configure custom domains/TLS and the exact CORS/redirect origins for production.",
+          "Run a smoke-test checklist and practice rollback of code while reasoning about whether the database migration is reversible.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can describe the whole topology",
+          "Can separate environment configuration",
+          "Can execute smoke tests",
+          "Can explain code vs database rollback constraints"
+        ],
+        "breakIt": [
+          "Preview deployment points to production database",
+          "Secrets copied into source or image"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/DEPLOYMENT_RUNBOOK.md",
+      "preview": "# TaskFlow Production Deployment Runbook\n\n## Preflight\n1. Required CI checks are green for the exact release commit.\n2. Verify production environment variables and secret scopes.\n3. Verify Supabase production Site URL and redirect allowlist.\n4. Confirm recovery posture: recent backup/PITR where required.\n5. Review Prisma migrations for backward compatibility.\n\n## Deploy\n1. Run `prisma migrate deploy` as a one-off production migration job.\n2. Promote the exact API image `sha-<commit>` to Railway.\n3. Wait for `/health/ready` to pass.\n4. Promote/deploy the matching verified web commit on Vercel.\n5. Run smoke tests.\n6. Observe 5xx, p95 latency, readiness, database signals, and Sentry.\n\n## Rollback\n- If API code/config is broken, roll Railway back to the last known-good deployment/image and rerun smoke tests.\n- If web code/config is broken, promote a known-good previous Vercel deployment/commit."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/PRODUCTION_ENV_MATRIX.md",
+      "preview": "# Production Environment Matrix\n\n| Variable | Web | API | Secret? | Notes |\n|---|---:|---:|---:|---|\n| NEXT_PUBLIC_SITE_URL | yes | no | no | Canonical web origin |\n| NEXT_PUBLIC_API_URL | yes | no | no | Public API origin |\n| NEXT_PUBLIC_SUPABASE_URL | yes | no | no | Public project URL |\n| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | yes | no | no | Browser-safe public key |\n| DATABASE_URL | no | yes | yes | Production Postgres connection |\n| SUPABASE_URL | no | yes | no | Production project URL |\n| SUPABASE_SERVICE_ROLE_KEY | no | yes | yes | Server only |\n| CORS_ORIGIN | no | yes | no | Exact production web origin |\n| SENTRY_DSN | as needed | as needed | treat carefully | Production telemetry |\n\nNever use `NEXT_PUBLIC_` for database credentials, service-role keys, registry tokens, or other secrets."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/PRODUCTION_TOPOLOGY.md",
+      "preview": "# TaskFlow Production Topology\n\n- Web: `https://app.taskflow.example.com` -> Vercel (`apps/web`)\n- API: `https://api.taskflow.example.com` -> Railway Docker image service\n- Data/Auth/Storage/Realtime: separate production Supabase project\n\n## Environment rule\n\nLocal, staging, and production use separate configuration. Preview deployments must not receive production credentials merely for convenience.\n\n## Release identity\n\nUse the same Git commit SHA in API image tags, release notes, error monitoring, and deployment records."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/README.md",
+      "preview": "# TaskFlow Production Deployment Snapshot\n\nThis snapshot is a study/reference package for Phase 34. Replace `taskflow.example.com`, project references, image paths, and secrets with real environment values.\n\nPrimary course topology:\n- Next.js -> Vercel\n- NestJS/Fastify -> Railway from GHCR SHA image\n- PostgreSQL/Auth/Storage/Realtime -> Supabase production project\n\nRender is documented as an API-host alternative."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/SOURCES.md",
+      "preview": "# Source Notes\n\nCurrent source basis verified during Phase 34 generation:\n\n- Vercel environment configuration and deployment protection guidance.\n- Railway Docker-image sources, GHCR private registries, deployment health checks, domains, rollback behavior.\n- Render Docker web-service and HTTP health-check documentation as the API-host alternative.\n- Supabase production checklist, shared responsibility model, maturity model, Auth redirect URLs, and security configuration guidance.\n\nThe course topology and release decisions remain TaskFlow architecture choices; provider behavior should be rechecked before a future production launch because cloud platforms evolve."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/SUPABASE_PRODUCTION_CHECKLIST.md",
+      "preview": "# Supabase Production Checklist for TaskFlow\n\n- Use a production project separate from local/staging.\n- Set Auth Site URL to the canonical production web origin.\n- Add exact production Auth redirect paths.\n- Review Security Advisor and Performance Advisor.\n- Apply schema through version-controlled migrations.\n- Verify indexes and connection topology under expected load.\n- Configure private Storage bucket rules used by Task attachments.\n- Deploy Realtime Broadcast triggers and authorization policies.\n- Review backups/PITR and access controls appropriate to the business."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/apps/api/main.production.example.ts",
+      "preview": "// Production binding example - adapt to the existing TaskFlow main.ts.\nconst host = '0.0.0.0';\nconst port = Number(process.env.PORT ?? 3001);\n\nawait app.listen(port, host);"
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/apps/api/railway.production.env.example",
+      "preview": "NODE_ENV=production\n# PORT is injected by Railway. The app must listen on 0.0.0.0:$PORT.\nDATABASE_URL=replace-with-production-connection\nSUPABASE_URL=https://PROJECT_REF.supabase.co\nSUPABASE_PUBLISHABLE_KEY=replace-with-public-key\nSUPABASE_SERVICE_ROLE_KEY=replace-with-server-only-secret\nCORS_ORIGIN=https://app.taskflow.example.com\n# SENTRY_DSN=..."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/apps/web/vercel.production.env.example",
+      "preview": "NEXT_PUBLIC_SITE_URL=https://app.taskflow.example.com\nNEXT_PUBLIC_API_URL=https://api.taskflow.example.com\nNEXT_PUBLIC_SUPABASE_URL=https://PROJECT_REF.supabase.co\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=replace-with-public-key\n# SENTRY_DSN=..."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/infra/railway-service-notes.md",
+      "preview": "# Railway API Service\n\n- Source: Docker Image\n- Image: `ghcr.io/<org>/<repo>-api:sha-<full-commit>`\n- Healthcheck: `/health/ready`\n- Public domain: `api.taskflow.example.com`\n- Keep GHCR pull credentials read-only.\n- Do not use `:latest` for production application releases.\n- Railway health checks gate new deployments before traffic promotion."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/infra/render-alternative.md",
+      "preview": "# Render Alternative for the API\n\nRender can host the NestJS Docker web service as an alternative to Railway. Configure the service to listen on `0.0.0.0` and the platform port, set an HTTP health-check path such as `/health/ready`, and attach the custom API domain. Render uses health checks when deciding whether a new web-service deployment can receive traffic.\n\nKeep the same application-level architecture and production environment separation regardless of platform."
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/tests/production-smoke-tests.ps1",
+      "preview": "param(\n  [string]$Web = \"https://app.taskflow.example.com\",\n  [string]$Api = \"https://api.taskflow.example.com\"\n)\n\n$ErrorActionPreference = \"Stop\"\n\nWrite-Host \"Checking API liveness...\"\nInvoke-WebRequest \"$Api/health/live\" -UseBasicParsing | Out-Null\n\nWrite-Host \"Checking API readiness...\"\nInvoke-WebRequest \"$Api/health/ready\" -UseBasicParsing | Out-Null\n\nWrite-Host \"Checking web sign-in route...\"\nInvoke-WebRequest \"$Web/sign-in\" -UseBasicParsing | Out-Null\n\nWrite-Host \"PASS: unauthenticated production smoke checks\"\nWrite-Host \"Run the authenticated smoke flow separately with a controlled test identity.\""
+    },
+    {
+      "path": "reference/TaskFlow_Production_Deployment_Snapshot/tests/production-test-matrix.md",
+      "preview": "# Production Verification Matrix\n\n| Check | Expected |\n|---|---|\n| Web custom domain | HTTPS + expected production app |\n| API `/health/live` | 2xx |\n| API `/health/ready` | 2xx when DB is available |\n| Auth sign in | Session established |\n| Auth confirmation/reset | Returns to production domain |\n| GET /tasks as member | Only authorized rows |\n| Cross-workspace ID | 403/404 according to policy |\n| Create/update test Task | Persists after reload |\n| Attachment flow | Private upload/download works |\n| Realtime flow | Authorized peer receives refresh signal |\n| 5xx / Sentry | No unexpected release regression |\n| Rollback rehearsal | Known-good version restored |"
+    }
+  ],
+  "exercises": [
+    "Guided: Create separate staging/production environment matrices before entering any dashboard values.",
+    "Practice: Deploy the exact API container artifact and verify bind address, PORT, and readiness endpoint.",
+    "Debugging: reproduce and diagnose — Preview deployment points to production database.",
+    "Independent: deliver Staging and production deployment runbooks with release identity, environment matrix, smoke tests, and rollback procedure.",
+    "Explain-back: Can describe the whole topology and Can separate environment configuration."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 34's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Production deployment is a system of frontend, API, database, DNS, secrets, migrations, and observability rather than one deploy button.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Production deployment is a system of frontend, API, database, DNS, secrets, migrations, and observability rather than one deploy button."
+    },
+    {
+      "question": "Which practice best matches Phase 34's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Apply database migrations in a controlled step before code depends on the new schema.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Apply database migrations in a controlled step before code depends on the new schema."
+    },
+    {
+      "question": "Which practice best matches Phase 34's engineering goal?",
+      "options": [
+        "Use environment-specific configuration while keeping the same tested application artifact where possible.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Use environment-specific configuration while keeping the same tested application artifact where possible."
+    },
+    {
+      "question": "Which practice best matches Phase 34's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Plan smoke tests and rollback before release so recovery is part of deployment design."
+      ],
+      "answer": 3,
+      "explanation": "Plan smoke tests and rollback before release so recovery is part of deployment design."
+    },
+    {
+      "question": "You are working through the Phase 34 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create separate staging/production environment matrices before entering any dashboard values.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Preview deployment points to production database."
+      ],
+      "answer": 1,
+      "explanation": "Create separate staging/production environment matrices before entering any dashboard values."
+    },
+    {
+      "question": "You are working through the Phase 34 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Deploy Next.js from the intended monorepo root with public/server env vars separated.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Secrets copied into source or image.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Deploy Next.js from the intended monorepo root with public/server env vars separated."
+    },
+    {
+      "question": "You are working through the Phase 34 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Code deploy occurs before required migration or vice versa without compatibility plan.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Deploy the exact API container artifact and verify bind address, PORT, and readiness endpoint."
+      ],
+      "answer": 3,
+      "explanation": "Deploy the exact API container artifact and verify bind address, PORT, and readiness endpoint."
+    },
+    {
+      "question": "You are working through the Phase 34 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Rollback plan assumes schema can always be downgraded.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Apply database migrations as a controlled release step and document backward-compatibility assumptions.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Apply database migrations as a controlled release step and document backward-compatibility assumptions."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3750
+}

@@ -1,0 +1,42 @@
+{
+  "number": 11,
+  "track": "p05-api",
+  "slug": "p05-api",
+  "title": "Complete the Production Tasks API",
+  "goal": "Build CRUD, validation, error semantics, business rules, filtering, search, stable sorting, and pagination as one coherent API.",
+  "deliverables": [
+    "CRUD endpoints",
+    "runtime validation",
+    "404/409 behavior",
+    "business rule",
+    "filter/search",
+    "stable sort",
+    "offset + cursor pagination",
+    "contract tests"
+  ],
+  "steps": [
+    "Implement POST and define its request/response schema.",
+    "Implement collection GET with deterministic sorting.",
+    "Implement GET by id with deliberate 404 behavior.",
+    "Implement PATCH and keep patch semantics distinct from replacement.",
+    "Implement DELETE using the product\u2019s chosen delete semantics.",
+    "Validate untrusted payloads with Zod and shape validation failures consistently.",
+    "Add one business invariant in the service layer and one database constraint where appropriate.",
+    "Add filtering/search and prove results with fixtures.",
+    "Implement offset pagination, then cursor pagination with a stable tie-breaker.",
+    "Write API contract tests for success and important failure paths."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

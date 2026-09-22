@@ -1,0 +1,777 @@
+{
+  "number": 0,
+  "slug": "phase-00",
+  "title": "Full-Stack Architecture & Orientation",
+  "volume": 1,
+  "readme": "FULL-STACK DEVELOPER 2026\nVOLUME 01 - ENGINEERING FOUNDATION\nPHASE 00 - FULL-STACK ARCHITECTURE & ORIENTATION\n\nRecommended reading order:\n  00 Phase 00 Master Guide & Course Map\n  01 How Modern Full-Stack Applications Work\n  02 TaskFlow Production System Blueprint\n  03 2026 Locked Technology & Version Manifest\n  04 Engineering Workflow, Windows First\n  05 Architecture Atlas\n  06 Exercises, Knowledge Checks & Phase Exit\n\nPhase rule:\nDo not proceed to Phase 01 until the Phase 00 exit checklist and capstone architecture trace can be completed without copying the diagrams.\n\nCourse baseline locked: September 17, 2026.\nPrisma course hard-lock: 7.9.1.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "full-stack-mental-model",
+      "title": "Full Stack Mental Model",
+      "summary": "",
+      "body": "Phase 00\n\nHow Modern Full-\nStack Applications\nWork\nA visual mental model for browsers, frontend\nrendering, APIs, business logic, persistence,\nauthentication and state ownership.\n\nBook 1 · Full-stack mental model\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. A request is a journey                           7. The API boundary\n\n2. Browser responsibilities                         8. State ownership\n\n3. Frontend responsibilities                        9. Failure paths\n\n4. Backend responsibilities                       10. The complete request lifecycle\n\n5. Database responsibilities                      11. Knowledge checks\n\n6. Authentication vs authorization\n\nPhase 00 | Page 2 of 10\n\nA request is a journey through\nresponsibilities\nWhen a user clicks Create Task, no single framework “does the feature.” Multiple layers cooperate.\nBecoming a full-stack developer means understanding that journey well enough to diagnose it when\nsomething goes wrong.\n\nBrowser\n\nNext.js frontend\n\nHTTP API request\n\nNestJS controller + service\n\nPrisma data access\n\nSupabase PostgreSQL\n\nFigure 1 - Core application request path - This is the central diagram we will repeatedly expand throughout the\ncourse.\n\nLayer 1: the browser\n\nThe browser renders HTML and CSS, runs client-side JavaScript, stores limited client state, sends\nnetwork requests, receives responses, enforces web security rules such as CORS, and reports failures\nin developer tools. It does not decide authoritative business rules just because it can run code.\n\nLayer 2: Next.js\n\nNext.js is the presentation application. It owns routes, pages, layouts, rendering choices, UI\ncomposition, navigation and interaction. Later it also coordinates client-side server state through\nTanStack Query. The course deliberately prevents Next.js from becoming a second backend full of\nduplicated business rules.\n\nPhase 00 | Page 3 of 10\n\nLayer 3: HTTP\n\nHTTP is the contract boundary between independently running applications. A request carries a\nmethod, URL, headers and optional body. A response carries a status code, headers and optional\nbody. This boundary is valuable because the frontend and backend can evolve independently as long\nas they honor the contract.\n\nMethod                            Path                      Headers                      Body\nPOST                            /tasks                Auth, Content-Type                JSON\n\nNestJS route receives the request\n\nFigure 2 - HTTP request anatomy - The API boundary is explicit; it is not a function call disguised as networking.\n\nLayer 4: NestJS + Fastify\n\nNestJS provides the application architecture for controllers, providers, dependency injection, guards,\ninterceptors and modules. Fastify is the HTTP platform underneath NestJS in this course. Controllers\ntranslate HTTP into application calls; services own business behavior.\n\nPhase 00 | Page 4 of 10\n\nHTTP request\n\nController\n\nValidation / auth boundary\n\nService business logic\n\nPrismaService\n\nDatabase\n\nFigure 3 - Backend responsibility chain - Keep controllers thin enough that business rules remain reusable and\ntestable.\n\nASP.NET CORE BRIDGE\n\nIf you know ASP.NET Core: a Nest controller is conceptually similar to a controller, providers/\nservices use dependency injection, guards/interceptors overlap with filter/middleware concerns,\nand PrismaService loosely occupies the “database access gateway” role that DbContext often\nplays. The mapping is useful, but the frameworks are not identical.\n\nLayer 5: Prisma\n\nPrisma is not PostgreSQL. It is the application-facing ORM/data-access layer. It turns model\ndefinitions into typed database operations and manages schema changes through migrations. In our\narchitecture, Prisma stays behind NestJS so browser code never receives database credentials.\n\nLayer 6: PostgreSQL\n\nPostgreSQL is authoritative persistent storage for application data: users, memberships, projects,\ntasks, comments, audit history and other relational records. Supabase hosts PostgreSQL for the\ncourse, but the relational concepts remain standard PostgreSQL concepts.\n\nPhase 00 | Page 5 of 10\n\nAuthentication is not authorization\n\nAuthentication answers “who are you?” Authorization answers “are you allowed to perform this\naction on this resource?” Those questions happen at different points and should remain conceptually\nseparate.\n\nUser signs in\n\nSupabase Auth\n\nAccess token (JWT)\n\nNext.js sends Bearer token\n\nNestJS validates token\n\nService receives trusted identity\n\nFigure 4 - Future authentication flow - Authentication establishes a trustworthy identity before business logic\nevaluates permissions.\n\nLater, authorization adds another decision:\n\nPhase 00 | Page 6 of 10\n\nVerified user\n\nRequested action\n\nMembership / role / ownership check\n\nAllowed?\n\nExecute business operation\n\nFigure 5 - Authorization decision - A valid identity is necessary but not sufficient; permissions and resource ownership\nstill matter.\n\nState ownership\n\nMany frontend applications become difficult because every kind of state is placed in one global store.\nThe course teaches state by ownership instead.\n\nServer-owned state                                                 Client-owned state\n\nTanStack Query                                                Local / URL / Form state\ntasks · projects · users · API results                             dialogs · filters · inputs · navigation\n\nPersistent truth                                                  Domain behavior\n\nPostgreSQL                                                Services / optional stores\nauthoritative business data                                        rules and interaction logic\n\nFigure 6 - State ownership map - Different categories of state deserve different tools and lifecycles.\n\nPhase 00 | Page 7 of 10\n\nFailure paths are part of the architecture\n\nA professional mental model includes failure. Network requests time out. Validation rejects input.\nAuthentication expires. Authorization denies access. Database constraints conflict. Bugs throw\nexceptions. The goal is not to pretend failures are rare; the goal is to know which layer should detect,\ntranslate, log and present them.\n\nDatabase                    Prisma                     Service                    HTTP\nconstraint                   error                     decision                    409\n\nUI message\n“Already exists”\n\nFigure 7 - Failure translation - Errors should become more meaningful as they travel toward the user.\n\nPhase 00 | Page 8 of 10\n\nThe full lifecycle\n\nUser interaction\n\nReact / Next.js UI\n\nTanStack Query or API client\n\nHTTP + JWT\n\nNestJS controller\n\nGuard / validation\n\nService\n\nPrisma\n\nPostgreSQL\n\nResponse + cache update\n\nUI re-renders\n\nFigure 8 - Complete vertical slice - This is the mental model you should be able to narrate from memory by the end of\nPhase 00.\n\nKnowledge checks\n\n1. Why should Next.js not receive a PostgreSQL password?\n2. What responsibility would be lost if all business logic lived in controllers?\n3. What is the difference between authentication and authorization?\n\nPhase 00 | Page 9 of 10\n\n4. Where does durable business data live?\n5. Why is HTTP useful even when frontend and backend are in one monorepo?\n6. Give one example of server state and one example of local UI state.\n\nYOU ARE READY WHEN\n\nYou can narrate the request path without memorizing framework slogans: user → UI → HTTP →\ncontroller → service → Prisma → PostgreSQL → response → UI.\n\nPhase 00 | Page 10 of 10",
+      "wordCount": 981,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Full Stack Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Full Stack Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Full Stack Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Putting business rules in React components",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Full Stack Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Full Stack Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "taskflow-blueprint",
+      "title": "TaskFlow Blueprint",
+      "summary": "",
+      "body": "Phase 00\n\nTaskFlow Production\nSystem Blueprint\nThe product we will grow throughout the course -\nscope, domain model, vertical slices, security\nboundaries and final production architecture.\n\nBook 2 · Capstone system blueprint\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Why TaskFlow                          7. Security model preview\n\n2. Product capabilities                  8. Frontend information architecture\n\n3. Domain vocabulary                     9. Operational capabilities\n\n4. Growth stages                       10. What is intentionally excluded early\n\n5. Core data model                     11. Enterprise transfer\n\n6. API surface preview\n\nPhase 00 | Page 2 of 7\n\nWhy TaskFlow instead of a giant\nenterprise domain on day one?\nThe project must be complex enough to teach production engineering, but simple enough that\narchitecture remains visible. TaskFlow starts with a personal Todo feature, then grows into a\nworkspace-based collaboration system. Each expansion introduces one new class of engineering\nproblem.\n\nProduct capabilities at graduation\n\nIdentity                                                   Organizations\nSignup, login, logout, session refresh,                    Workspaces, membership, invitations, roles\nprotected routes and profile basics.                       and ownership.\n\nProjects                                                   Tasks\nProject lifecycle, status, metadata and                    Create, assign, prioritize, filter, paginate,\nmembership-aware access.                                   complete and archive.\n\nCollaboration                                              Operations\nComments, activity history, notifications and              Audit logs, testing, structured logs, health\ncarefully selected realtime.                               checks, CI/CD and deployment.\n\nDomain vocabulary\n\nConcept      Meaning in TaskFlow                                      Why it matters architecturally\n\nUser         Authenticated identity represented by Supabase           Identity must be trusted from a verified token,\nAuth plus application profile data.                      not a browser-supplied userId.\n\nWorkspace    Tenant/team boundary containing projects and             Introduces multi-tenant authorization.\nmembers.\n\nMembership   Relationship between a user and workspace with           Introduces many-to-many modeling and RBAC.\na role.\n\nProject      Container for collaborative work.                        Introduces parent-child resource ownership.\n\nPhase 00 | Page 3 of 7\n\nTask           Unit of work with status, priority and                    Exercises CRUD, validation, filtering and\nassignment.                                               optimistic updates.\n\nActivity       Immutable description of important domain                 Introduces audit/history thinking.\nevents.\n\nUser                       Membership                              Workspace\n\nProject\n\nComment / Activity                                Task\n\nFigure 1 - Domain relationship preview - This is a conceptual map, not yet a final database schema.\n\nGrowth stages\n\nWe do not create the final schema on day one. The product grows in vertical slices so the learner can\nsee cause and effect.\n\nPhase 00 | Page 4 of 7\n\nHealth check\n\nPersonal Todo CRUD\n\nValidated Todo API\n\nAuthenticated personal Todos\n\nWorkspace membership\n\nProjects + collaborative Tasks\n\nPermissions + activity\n\nProduction capabilities\n\nFigure 2 - Vertical-slice growth - Each stage should produce a usable, testable application state.\n\nAPI surface preview\n\nGET    /health\nGET    /todos\nPOST   /todos\nPATCH /todos/:id\nDELETE /todos/:id\n\n# Later\nGET     /workspaces\nPOST    /workspaces\nGET     /workspaces/:workspaceId/projects\nPOST    /projects/:projectId/tasks\nPATCH /tasks/:taskId\nPOST    /tasks/:taskId/comments\n\nTHE CONTRACT GROWS WITH THE DOMAIN\n\nWe start with resource-oriented REST endpoints because they keep the HTTP boundary visible.\nMore advanced patterns are introduced only if a concrete problem appears.\n\nPhase 00 | Page 5 of 7\n\nSecurity boundary preview\n\nBrowser signs in\n\nSupabase Auth issues session\n\nNext.js attaches access token\n\nNestJS verifies token\n\nMembership/ownership checked\n\nAuthorized service operation\n\nFigure 3 - Trusted identity path - Never use a raw browser-supplied user id as proof of identity.\n\nFrontend information architecture\n\nTaskFlow App Shell\n\nDashboard                    Projects                   My Tasks               Workspace Settings\n\nProject Detail                Task Detail\n\nFigure 4 - Future application navigation - A practical shell that will exercise layouts, routing, forms, tables and\nresponsive UI.\n\nPhase 00 | Page 6 of 7\n\nOperational capabilities we will eventually add\n\n• Structured logging and request correlation.\n• Health/readiness endpoints.\n• Environment separation.\n• Database migrations as a controlled deployment step.\n• Unit and integration tests for business behavior.\n• Playwright end-to-end flows.\n• CI quality gates.\n• Production deployment and rollback thinking.\n\nWhat is intentionally excluded early\n\nMicroservices, Kubernetes, Kafka, CQRS, event sourcing, GraphQL, distributed caches and complex\ndomain-driven architecture are not prerequisites for learning to build a high-quality production\napplication. They can be valuable in the right system, but adding them before the application has\ndemonstrated the problem they solve makes the architecture harder to understand.\n\nEnterprise transfer\n\nTaskFlow concept          HRIS analogue                          Procurement analogue\n\nWorkspace                 Company / business unit                Organization / department\n\nMembership + role         Employee + role/position               Requester / approver authority\n\nProject                   Leave cycle / HR process               Procurement request / sourcing event\n\nTask status               Workflow state                         Approval / PO / receiving state\n\nActivity log              HR audit history                       Procurement audit trail\n\nDESIGN PRINCIPLE\n\nThe course teaches patterns through TaskFlow, but every architecture explanation asks how the\nsame responsibility would appear in a larger business system.\n\nPhase 00 | Page 7 of 7",
+      "wordCount": 709,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain TaskFlow Blueprint in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TaskFlow Blueprint matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “TaskFlow Blueprint” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Letting controllers call the database directly everywhere",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TaskFlow Blueprint” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TaskFlow Blueprint solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "2026-version-manifest",
+      "title": "2026 Version Manifest",
+      "summary": "",
+      "body": "Phase 00\n\n2026 Locked\nTechnology & Version\nManifest\nA stable course baseline that prevents silent major-\nversion drift and makes every command, file and\nexplanation internally consistent.\n\nBook 3 · Technology decisions and upgrade policy\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Why version locks matter                  7. TypeScript\n\n2. Primary locked baseline                   8. Frontend libraries\n\n3. Why Node 24 LTS                           9. Testing and styling\n\n4. Next.js + React                         10. Version verification commands\n\n5. NestJS + Fastify                        11. Upgrade policy\n\n6. Prisma policy                           12. Source notes\n\nPhase 00 | Page 2 of 6\n\nWhy version locks matter in a long\ncourse\nFramework documentation changes quickly. A command that is correct for one major version may be\nwrong for another. The course therefore separates current ecosystem awareness from course\nreproducibility. We research current stable releases at course start, choose the baseline, record it,\nthen stop silently upgrading.\n\nCRITICAL COURSE RULE\n\nA newer version appearing during the course is a note, not permission to rewrite completed\nphases. Upgrades are separate engineering exercises with their own migration plan.\n\nPrimary course baseline - locked September 17,\n\nCourse\nTechnology                     Policy                         Reason\nversion\n\nNode.js          24.21.0       Locked runtime baseline        Node 24 is LTS; Node 26 is Current.\nLTS\n\npnpm             12.4.2        Locked package/                Current release includes recent Windows/install\nworkspace manager              reliability fixes.\n\nNext.js          16.3.3        Locked frontend                16.3 is Active LTS; 16.3.3 is the August security\nframework line                 release baseline.\n\nReact            19.3.0        Locked React baseline          Current stable React release.\n\nNestJS core      12.0.3        Locked backend                 Latest Nest 12 patch observed at course lock.\nframework\n\nNest CLI         12.0.3        Locked scaffold/CLI            Matched to Nest 12 course instructions.\nbaseline\n\nFastify          5.12.5        Locked HTTP platform           Stable v5; v6 is alpha and excluded.\n\nTypeScript       7.0.2         Locked language/tooling        Current stable TypeScript release.\nbaseline\n\nPrisma CLI       7.9.1         HARD LOCK                      Course requirement; Prisma 8 is not used.\n\n@prisma/client   7.9.1         HARD LOCK                      Must match Prisma 7.9.1 course workflow.\n\n@prisma/         7.9.1         HARD LOCK                      PostgreSQL driver adapter for Prisma 7.\nadapter-pg\n\nPhase 00 | Page 3 of 6\n\nSupabase JS         2.116.0          Lock when auth phase           Current v2 SDK baseline observed at course lock.\nbegins\n\nTanStack Query      5.103.1          Lock when server-state         Stable v5 line.\nphase begins\n\nZod                 4.6.5            Lock when validation/          Stable v4 baseline.\nform phases begin\n\nReact Hook          7.88.0           Lock when forms phase          Stable v7; v8 beta excluded.\nForm                                 begins\n\nTailwind CSS        4.3.3            Optional UI track              Core course begins with understandable CSS;\nbaseline                       Tailwind comes as an applied UI track.\n\nPlaywright          1.63.0           Lock when E2E phase            Cross-browser end-to-end testing baseline.\nbegins\n\nNode.js: prefer LTS for a production learning\nbaseline\n\nNode 26 is the Current release line, while Node 24 is LTS. Production applications should generally\ntarget an LTS line rather than using Current merely because the number is larger. The course locks\nNode 24.21.0 so tooling and native dependencies are reproducible.\n\nNode 26                             Node 24                                Course\nCurrent                               LTS                                Node 24.21.0\n\nFigure 1 - Release choice is not “largest version wins” - Course stability prefers an LTS runtime while still\ndocumenting what Current means.\n\nNext.js + React\n\nNext.js 16.3 is the Active LTS line. The course baseline uses the patched 16.3.3 release rather than\nan older vulnerable 16.x patch. React 19.3.0 is the current stable React release and is paired with the\nNext.js 16.3 course line.\n\nPhase 00 | Page 4 of 6\n\nNestJS + Fastify\n\nNestJS 12.0.3 is paired with Fastify 5.12.5. Fastify 6 is alpha at the course lock date, so it is\nintentionally excluded. This is a recurring course lesson: production engineering values maturity and\ncompatibility over novelty.\n\nPrisma: the deliberate exception\n\nPrisma 8 is in release-candidate status in September 2026 and changes the workflow substantially.\nThe supplied course specification requires Prisma 7.9.1. That is a sensible educational constraint:\nPrisma 7 remains supported, and locking 7.9.1 prevents a long-running course from mixing Prisma 7\ncommands with Prisma 8 behavior.\n\nHARD LOCK\n\nEvery Prisma command in this course must be version-consistent with 7.9.1. If a later phase\nneeds an upgrade, the upgrade is taught as a migration project rather than performed silently.\n\nVerification commands\n\n# Run from the appropriate project/workspace directory\nnode -v\npnpm -v\npnpm exec tsc -v\npnpm exec next --version\npnpm exec nest --version\npnpm exec prisma version\n\n# Package versions can also be inspected from package.json / pnpm-lock.yaml\n\nCourse dependency policy\n\n1. Pin majors and important patch versions deliberately.\n2. Commit the lockfile.\n3. Never copy a command from documentation without checking the documentation version.\n4. Security patches receive explicit review; they are not ignored merely because versions are\nlocked.\n5. Major upgrades happen between milestones, with tests green before and after.\n\nSource notes checked September 17, 2026\n\n• Node.js Releases: nodejs.org/en/about/previous-releases and release blog.\n\nPhase 00 | Page 5 of 6\n\n• Next.js Blog: Next.js 16.3 and August 2026 security release.\n• React Blog: React 19.3, September 9, 2026.\n• NestJS GitHub releases: v12.0.3, September 15, 2026; Nest CLI 12.0.3.\n• Fastify npm: 5.12.5 stable; 6.0.0 alpha excluded.\n• TypeScript GitHub releases: 7.0.2.\n• Prisma v7 docs and release-status page; course hard lock is 7.9.1.\n• pnpm npm/GitHub release: 12.4.2.\n• Package registries checked for React Hook Form, Zod, TanStack Query, Supabase JS, Tailwind CSS and Playwright.\n\nWHAT TO REMEMBER\n\nThe manifest is a contract. It exists so a lesson written in Phase 08 still makes sense when you\nare in Phase 30.\n\nPhase 00 | Page 6 of 6",
+      "wordCount": 959,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain 2026 Version Manifest in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "2026 Version Manifest matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “2026 Version Manifest” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating Supabase as one undifferentiated magic backend",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “2026 Version Manifest” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does 2026 Version Manifest solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "engineering-workflow",
+      "title": "Engineering Workflow",
+      "summary": "",
+      "body": "Phase 00\n\nEngineering Workflow,\nWindows First\nHow professional developers move from\nrequirement to branch, code, verification,\ndebugging, review and deployable change.\n\nBook 4 · Workflow, discipline and development habits\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. The engineering loop                            7. Environment variables and secrets\n\n2. Windows and PowerShell conventions              8. Git workflow\n\n3. Repository discipline                           9. Definition of done\n\n4. Working-directory awareness                   10. Documentation habits\n\n5. Small verified changes                        11. AI-assisted development rules\n\n6. Debugging by layer\n\nPhase 00 | Page 2 of 6\n\nThe engineering loop matters more\nthan typing speed\nrequirement, locate the responsible layer, make the smallest coherent change, verify behavior, and\npreserve a clean history.\n\nRequirement / bug report\n\nLocate responsibility\n\nPlan smallest vertical change\n\nImplement\n\nRun checks\n\nInspect runtime behavior\n\nCommit coherent change\n\nFigure 1 - Professional change loop - This loop is repeated from the first health endpoint to production deployment.\n\nWindows-first command discipline\n\nThe course uses ordinary Windows PowerShell as the primary shell. Every command will say where it\nruns. Paths containing spaces are quoted. Bash-only syntax is never silently mixed into PowerShell\ninstructions.\n\ncd \"C:\\Projects\\TaskFlow\\apps\\api\"\nGet-Location\npnpm run start:dev\n\nPhase 00 | Page 3 of 6\n\nTHE WORKING DIRECTORY IS PART OF THE COMMAND\n\nA correct command executed from the wrong workspace can produce a misleading package,\nscript or configuration error. Always include location in your debugging model.\n\nUser-profile tooling instead of unnecessary admin\nrights\n\nOn restricted Windows machines, global package setup should prefer user-owned locations rather\nthan assuming Administrator privileges. The course will document permission failures such as\nCorepack attempting writes under C:\\Program Files\\nodejs , then teach a user-profile installation\nstrategy when appropriate.\n\nRepository discipline\n\n• One responsibility per new file.\n• No “utils” dumping ground when a specific module owns the behavior.\n• Do not create a package simply because a packages/ directory exists.\n• Commit the lockfile.\n• Keep secrets out of Git.\n• Run lint/typecheck/tests/build at meaningful checkpoints.\n\ntaskflow/ workspace\n\napps/web                                                   apps/api\nNext.js                                                NestJS + Fastify\n\npackages/*\nonly when justified\n\nFigure 2 - Repository responsibility map - The monorepo is a container for independently owned applications and later\nshared packages.\n\nPhase 00 | Page 4 of 6\n\nDebugging by layer\n\nWhen an error appears, avoid replacing whole files. First determine which layer can actually produce\nthe observed symptom.\n\nSymptom                         First layer to inspect                  Example evidence\n\nButton does nothing             Browser/UI                              Console, event handler, disabled state.\n\nRequest blocked before API      Browser/network                         DevTools Network, CORS message.\n\n404/405                         HTTP/controller routing                 Method/path mismatch.\n\n401/403                         Authentication/authorization            Token/guard/permission logs.\n\n400/422                         Validation boundary                     DTO/schema error details.\n\n409                             Business rule/database constraint       Unique conflict or domain rule.\n\n500                             Backend runtime/data access             Server logs and stack trace.\n\nReproduce reliably\n\nInspect browser console/network\n\nConfirm HTTP route and status\n\nInspect server log/request id\n\nInspect service decision\n\nInspect database query/constraint\n\nFigure 3 - Debug from the outside inward - Evidence narrows the search area before code changes begin.\n\nEnvironment variables and secrets\n\nConfiguration enters the course when a layer first needs it. Secrets never appear in screenshots,\nexample repositories or PDF source snippets. Public browser variables and server-only secrets are\ntreated differently.\n\nPhase 00 | Page 5 of 6\n\n# Example documentation only\nDATABASE_URL=\"postgresql://...\"\nNEXT_PUBLIC_API_URL=\"http://localhost:4000\"\n\nGit workflow for learning and real projects\n\n1. Start from a known-green main branch.\n2. Create a focused branch for a coherent change.\n3. Make small, verifiable commits.\n4. Keep generated artifacts and secrets out of commits unless intentionally versioned.\n5. Before merge: lint, typecheck, tests and production build.\n6. Review the diff for accidental files and architecture drift.\n\nDefinition of done\n\n□ Requirement is satisfied.\n□ Expected behavior was manually verified.\n□ Error/failure path is understood.\n□ Lint passes.\n□ Typecheck passes.\n□ Relevant tests pass.\n□ Production build passes when applicable.\n□ No secret or debug artifact leaked.\n□ Architecture documentation still matches reality.\n\nAI-assisted development rules\n\nAI can accelerate explanation, search, refactoring and test design, but it should not erase your\nmental model. The course treats AI like a pair programmer: it may propose changes, but you should\nbe able to explain what layer changed, why the change is correct, and how you verified it.\n\nRULE FOR THIS COURSE\n\nNever accept a large generated patch as “correct” because it compiles. Read the diff, identify\nthe responsibility of every new file, and verify the behavior at the boundary that matters.\n\nPhase 00 | Page 6 of 6",
+      "wordCount": 728,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Engineering Workflow in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Engineering Workflow” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Choosing infrastructure before defining responsibilities",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Engineering Workflow” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Engineering Workflow solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "architecture-atlas",
+      "title": "Architecture Atlas",
+      "summary": "",
+      "body": "Phase 00\n\nArchitecture Atlas\nA visual reference of the diagrams you will keep\nredrawing as the application evolves from two\nprocesses into a production system.\n\nBook 5 · Visual architecture reference\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Atlas usage                             7. Stage F server state\n\n2. Stage A frontend only                   8. Stage G collaboration\n\n3. Stage B frontend + API                  9. Stage H testing\n\n4. Stage C persistence                   10. Stage I production\n\n5. Stage D authentication                11. Ownership reference\n\n6. Stage E authorization\n\nPhase 00 | Page 2 of 7\n\nUse this atlas to test your mental\nmodel\nDo not treat these figures as posters. Cover the labels and redraw them from memory. If a diagram\nstops matching the implementation in a later phase, the implementation or the documentation\nneeds correction.\n\nBrowser\n\nNext.js\n\nFigure 1 - Stage A: presentation only - The first mental model contains only a browser and Next.js.\n\nBrowser\n\nNext.js\n\nHTTP\n\nNestJS + Fastify\n\nFigure 2 - Stage B: independent API - The frontend now crosses an HTTP boundary to a separately running NestJS\nprocess.\n\nPhase 00 | Page 3 of 7\n\nBrowser\n\nNext.js\n\nHTTP\n\nNestJS service\n\nPrisma 7.9.1\n\nSupabase PostgreSQL\n\nFigure 3 - Stage C: persistence - Prisma enters because the API now needs durable relational data.\n\nSupabase Auth\n\nAccess token\n\nNext.js\n\nBearer token\n\nNestJS guard\n\nTrusted user\n\nFigure 4 - Stage D: authentication - Supabase Auth establishes identity; the backend validates the access token.\n\nPhase 00 | Page 4 of 7\n\nVerified user                       Workspace membership                                Requested resource\n\nAuthorization policy / service rule\n\nAllowed operation\n\nFigure 5 - Stage E: authorization boundary - Identity and resource access are separate decisions.\n\nServer-owned state                                                Client-owned state\n\nTanStack Query                                               Local / URL / Form state\ntasks · projects · users · API results                            dialogs · filters · inputs · navigation\n\nPersistent truth                                                  Domain behavior\n\nPostgreSQL                                               Services / optional stores\nauthoritative business data                                        rules and interaction logic\n\nFigure 6 - Stage F: state ownership - Server state, persistent truth, UI state and domain behavior should not be\ncollapsed into one bucket.\n\nPhase 00 | Page 5 of 7\n\nBrowser A                               NestJS API                              PostgreSQL\n\nRealtime/event\n\nBrowser B\n\nFigure 7 - Stage G: collaborative update paths - Realtime is optional and complements normal HTTP mutations rather\nthan replacing them.\n\nE2E\nPlaywright\n\nIntegration / API tests\n\nUnit tests\nservices · rules · utilities\n\nFigure 8 - Stage H: testing pyramid - Tests become broader and slower as they approach full-system behavior.\n\nPhase 00 | Page 6 of 7\n\nVercel                                API host\nUsers / browsers\nNext.js                                NestJS\n\nObservability                              Supabase\nlogs / errors                           Postgres + Auth\n\nCI/CD: lint → typecheck → test → build → deploy\n\nFigure 9 - Stage I: production topology - A deployment is multiple runtimes connected through explicit boundaries.\n\nOwnership quick reference\n\nResponsibility                                Primary owner\n\nRendering and interaction                     Next.js / React\n\nServer-state cache                            TanStack Query\n\nHTTP contract                                 Controller + API DTO/validation boundary\n\nBusiness rules                                NestJS service/application layer\n\nAuthentication identity                       Supabase Auth + backend token validation\n\nAuthorization                                 Backend guards/policies/services\n\nDatabase access                               Prisma\n\nPersistent relational truth                   PostgreSQL\n\nEnd-to-end behavior                           Playwright tests + deployed system\n\nATLAS EXERCISE\n\nClose this PDF and redraw Figures 3, 5 and 9 from memory. Then explain which boundary you\nwould inspect for a 403, a unique-constraint conflict, and a stale UI.\n\nPhase 00 | Page 7 of 7",
+      "wordCount": 516,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Architecture Atlas in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Architecture Atlas matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Architecture Atlas” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Putting business rules in React components",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Architecture Atlas” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Architecture Atlas solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "exercises-and-phase-exit",
+      "title": "Exercises and Phase Exit",
+      "summary": "",
+      "body": "Phase 00\n\nExercises, Knowledge\nChecks & Phase Exit\nTurn the diagrams into working mental models\nbefore Phase 01 introduces tools and commands.\n\nBook 6 · Active learning and assessment\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. How to practice                              6. Design scenarios\n\n2. Warm-up questions                            7. Version policy exercises\n\n3. Architecture classification                  8. Capstone Phase 00 challenge\n\n4. Request-tracing exercises                    9. Answer guide\n\n5. Debugging scenarios                        10. Exit checklist\n\nPhase 00 | Page 2 of 7\n\nPhase 00 is complete only when you\ncan reason without the diagram\nThis book converts passive reading into active recall. Do the exercises before reading the answer\nguide. The goal is not perfect wording; the goal is correct ownership and causal reasoning.\n\nWarm-up questions\n\n1. What problem does a backend API solve that a purely browser-based application cannot safely\nsolve?\n2. Why is Prisma not the database?\n3. Why does a valid JWT not automatically mean a user may edit every task?\n4. What is the value of keeping Next.js and NestJS independent even inside one repository?\n5. Why might Node 24 LTS be a better course runtime than Node 26 Current?\n6. Why are major-version upgrades treated as separate projects?\n\nArchitecture classification\n\nFor each responsibility, write the primary owning layer: browser/Next.js, NestJS, Prisma, PostgreSQL,\nSupabase Auth, TanStack Query, or CI/CD.\n\nResponsibility                                                         Your answer\n\nShow a validation error beside a form field                            __________________________________\n\nDecide whether a workspace member can delete a project                 __________________________________\n\nTranslate a service result into HTTP 201                               __________________________________\n\nPersist a new Task row                                                 __________________________________\n\nGenerate a typed database query API                                    __________________________________\n\nEstablish the signed-in user identity                                  __________________________________\n\nCache a GET /tasks result in the frontend                              __________________________________\n\nRun tests before deployment                                            __________________________________\n\nEnforce a unique database constraint                                   __________________________________\n\nPhase 00 | Page 3 of 7\n\nTrace the request\n\nScenario A - Create task\nA signed-in user enters “Prepare Q4 report” and clicks Create. Write the request journey from click to\npersisted row and back to visible UI. Name at least seven boundaries or responsibilities.\n\nYour trace:\n\nScenario B - Unauthorized edit\nUser A guesses the ID of User B’s task and sends a PATCH request manually. Where must the system\nreject the request? Why is hiding the button in the UI insufficient?\n\nYour reasoning:\n\nDebugging scenarios\n\nSymptom                                                 First three things you would inspect\n\nBrowser says CORS blocked\n\nPOST /tasks returns 404\n\nPOST returns 400 with a title error\n\nPATCH returns 403\n\nPhase 00 | Page 4 of 7\n\nAPI returns 500 after a database write\n\nRequest succeeds but UI still shows old tasks\n\nDesign scenarios\n\n1. Add task priority. List every layer that may need to change. Do not write code.\n2. Add workspace roles. Explain why the role should not be trusted from a browser form field.\n3. Add a dashboard count. Decide whether the count is persistent truth, server state, or local\nUI state.\n4. Add realtime comments. Explain why you would first build ordinary HTTP comments before\nadding realtime delivery.\n\nVersion policy exercises\n\nImagine Prisma 8 becomes stable halfway through Phase 20. Choose the best response and explain\nwhy:\n\n1. Upgrade immediately because newer is always better.\n2. Ignore all future security updates forever.\n3. Keep the course on its locked Prisma version, record Prisma 8 as an ecosystem note, and plan a\nseparate migration exercise after a stable milestone.\n4. Mix Prisma 8 CLI commands into the existing Prisma 7 project.\n\nPhase 00 | Page 5 of 7\n\nCapstone Phase 00 challenge\n\nOn blank paper or a whiteboard, design the request path for: “An authenticated workspace\nmember marks a task complete.”\n\nYour diagram must show:\n\n□ Browser interaction.\n□ Next.js / React.\n□ Server-state layer.\n□ HTTP method and resource.\n□ Access token.\n□ NestJS route/controller.\n□ Token validation.\n□ Authorization/ownership or membership decision.\n□ Service rule.\n□ Prisma update.\n□ PostgreSQL.\n□ Response.\n□ Frontend cache/UI update.\n□ At least two possible failure points.\n\nAnswer guide\n\nArchitecture classification\n\nResponsibility                              Primary owner\n\nShow field error                            Next.js / form layer\n\nCan member delete project?                  NestJS authorization/business layer\n\nHTTP 201                                    NestJS controller/HTTP layer\n\nPersist Task                                PostgreSQL via Prisma\n\nTyped DB query API                          Prisma\n\nSigned-in identity                          Supabase Auth; backend verifies token\n\nCache GET /tasks                            TanStack Query\n\nPre-deploy checks                           CI/CD\n\nPhase 00 | Page 6 of 7\n\nUnique constraint                             PostgreSQL schema\n\nUnauthorized edit\nThe browser is not a trusted security boundary. The backend must verify the token, establish the\ncaller identity, and check workspace membership/ownership/permissions before the update service\nperforms the mutation. A hidden button improves UX but does not prevent a crafted HTTP request.\n\nPrisma upgrade policy\nChoice C. The course baseline remains reproducible; the upgrade is treated as an explicit migration\nwith changelog review, compatibility testing and a rollback plan.\n\nPhase 00 exit checklist\n\n□ I can explain Browser → Next.js → NestJS → Prisma → PostgreSQL.\n□ I can distinguish authentication from authorization.\n□ I understand why Supabase Auth and Supabase PostgreSQL solve different responsibilities.\n□ I understand why TanStack Query is not the database.\n□ I can explain why the course uses a version manifest.\n□ I know why Prisma 7.9.1 is a hard lock.\n□ I can describe TaskFlow’s growth from Todo to collaborative application.\n□ I can identify the most likely layer from an HTTP status or browser symptom.\n□ I completed the capstone diagram without copying the atlas.\n\nNEXT PHASE\n\nPhase 01 moves from architecture to the development environment. We will verify Windows,\nPowerShell, Node 24 LTS, pnpm, Git, editor/tooling, PATH behavior and a reproducible project\nworkspace - with explicit checkpoints before any application scaffolding.\n\nPhase 00 | Page 7 of 7",
+      "wordCount": 908,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Exercises and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Letting controllers call the database directly everywhere",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nExplain the complete TaskFlow request path and identify which layer owns presentation, transport, business rules, persistence, identity, and operations.",
+      "body": "Guided Build Lab — Phase 00: Full-Stack Architecture & Orientation\n\nPurpose\nExplain the complete TaskFlow request path and identify which layer owns presentation, transport, business rules, persistence, identity, and operations.\n\nDeliverable\nA one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nBrowser interaction -> Next.js presentation boundary -> HTTP request -> NestJS controller/guard -> Service/business rules -> Prisma persistence -> PostgreSQL -> HTTP response -> UI update\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Draw TaskFlow as boxes and arrows before opening an IDE.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Label every arrow with what crosses it: props, HTTP JSON, verified identity, Prisma calls, SQL results.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Write one responsibility and one non-responsibility for each layer.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Trace create-task from click to database commit and back to the screen.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Trace one failure: invalid input, missing authentication, forbidden action, database outage.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Record the architecture decisions that should remain stable through later phases.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 650,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating Supabase as one undifferentiated magic backend",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 00: Full-Stack Architecture & Orientation\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nBrowser interaction -> Next.js presentation boundary -> HTTP request -> NestJS controller/guard -> Service/business rules -> Prisma persistence -> PostgreSQL -> HTTP response -> UI update\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Putting business rules in React components\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Letting controllers call the database directly everywhere\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Treating Supabase as one undifferentiated magic backend\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Choosing infrastructure before defining responsibilities\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 454,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Choosing infrastructure before defining responsibilities",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 00 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Full-Stack Architecture & Orientation\n\nMission\nRebuild the capability of Phase 00 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nExplain the complete TaskFlow request path and identify which layer owns presentation, transport, business rules, persistence, identity, and operations.\n\nRequired artifact\nA one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can trace a request without skipping a layer.\n• Can explain why the API owns rules.\n• Can distinguish authentication from authorization.\n• Can name which concerns are deployment concerns rather than business logic.\n\nIndependent build sequence\n1. Draw TaskFlow as boxes and arrows before opening an IDE.\n2. Label every arrow with what crosses it: props, HTTP JSON, verified identity, Prisma calls, SQL results.\n3. Write one responsibility and one non-responsibility for each layer.\n4. Trace create-task from click to database commit and back to the screen.\n5. Trace one failure: invalid input, missing authentication, forbidden action, database outage.\n6. Record the architecture decisions that should remain stable through later phases.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 382,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Putting business rules in React components",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 00 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 00: Full-Stack Architecture & Orientation. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 207,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain the complete TaskFlow request path and identify which layer owns presentation, transport, business rules, persistence, identity, and operations.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Browser interaction",
+          "Next.js presentation boundary",
+          "HTTP request",
+          "NestJS controller/guard",
+          "Service/business rules",
+          "Prisma persistence",
+          "PostgreSQL",
+          "HTTP response",
+          "UI update"
+        ],
+        "steps": [
+          "Draw TaskFlow as boxes and arrows before opening an IDE.",
+          "Label every arrow with what crosses it: props, HTTP JSON, verified identity, Prisma calls, SQL results.",
+          "Write one responsibility and one non-responsibility for each layer.",
+          "Trace create-task from click to database commit and back to the screen.",
+          "Trace one failure: invalid input, missing authentication, forbidden action, database outage.",
+          "Record the architecture decisions that should remain stable through later phases.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can trace a request without skipping a layer",
+          "Can explain why the API owns rules",
+          "Can distinguish authentication from authorization",
+          "Can name which concerns are deployment concerns rather than business logic"
+        ],
+        "breakIt": [
+          "Putting business rules in React components",
+          "Letting controllers call the database directly everywhere"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [],
+  "exercises": [
+    "Guided: Draw TaskFlow as boxes and arrows before opening an IDE.",
+    "Practice: Write one responsibility and one non-responsibility for each layer.",
+    "Debugging: reproduce and diagnose — Putting business rules in React components.",
+    "Independent: deliver A one-page architecture map plus an ADR-style note describing the responsibilities of Next.js, NestJS, Prisma, PostgreSQL/Supabase, and supporting infrastructure.",
+    "Explain-back: Can trace a request without skipping a layer and Can explain why the API owns rules."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 00's engineering goal?",
+      "options": [
+        "Map every request from browser to frontend, API, database, and back before adding abstractions.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Map every request from browser to frontend, API, database, and back before adding abstractions."
+    },
+    {
+      "question": "Which practice best matches Phase 00's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Keep presentation, business rules, and persistence responsibilities intentionally separated."
+      ],
+      "answer": 3,
+      "explanation": "Keep presentation, business rules, and persistence responsibilities intentionally separated."
+    },
+    {
+      "question": "Which practice best matches Phase 00's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Treat TaskFlow as one continuous system so each phase extends an architecture you already understand.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Treat TaskFlow as one continuous system so each phase extends an architecture you already understand."
+    },
+    {
+      "question": "Which practice best matches Phase 00's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use version locks as a reproducibility contract, not as a reason to ignore underlying concepts.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use version locks as a reproducibility contract, not as a reason to ignore underlying concepts."
+    },
+    {
+      "question": "You are working through the Phase 00 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Putting business rules in React components.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Draw TaskFlow as boxes and arrows before opening an IDE."
+      ],
+      "answer": 3,
+      "explanation": "Draw TaskFlow as boxes and arrows before opening an IDE."
+    },
+    {
+      "question": "You are working through the Phase 00 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Letting controllers call the database directly everywhere.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Label every arrow with what crosses it: props, HTTP JSON, verified identity, Prisma calls, SQL results.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Label every arrow with what crosses it: props, HTTP JSON, verified identity, Prisma calls, SQL results."
+    },
+    {
+      "question": "You are working through the Phase 00 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write one responsibility and one non-responsibility for each layer.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating Supabase as one undifferentiated magic backend."
+      ],
+      "answer": 1,
+      "explanation": "Write one responsibility and one non-responsibility for each layer."
+    },
+    {
+      "question": "You are working through the Phase 00 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Trace create-task from click to database commit and back to the screen.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Choosing infrastructure before defining responsibilities.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Trace create-task from click to database commit and back to the screen."
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 6494
+}

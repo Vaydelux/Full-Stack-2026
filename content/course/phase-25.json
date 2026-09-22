@@ -1,0 +1,1209 @@
+{
+  "number": 25,
+  "slug": "phase-25",
+  "title": "Optimistic Updates",
+  "volume": 7,
+  "readme": "Phase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nThis package contains 13 focused lesson PDFs, one combined book, and a TaskFlow reference snapshot.\n\nCore architecture: UI optimism where one component needs the prediction; cache optimism only where multiple observers need shared pending state; rollback on rejection; server reconciliation through targeted invalidation.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "optimistic-ui-mental-model-and-when-to-use-it",
+      "title": "Optimistic UI Mental Model and When to Use It",
+      "summary": "Optimistic UI Mental Model and When to Use It Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture What optimistic means The user performs an action and TaskFlow immediately renders the result it expects the server to accept. The HTTP request still happens.…",
+      "body": "Optimistic UI Mental Model and When\nto Use It\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nWhat optimistic means\nThe user performs an action and TaskFlow immediately renders the result it expects the server to\naccept. The HTTP request still happens. If the backend rejects the operation, the UI must recover.\n\nGood candidates\n• Low-risk reversible changes such as toggling a Task status when the transition is usually\naccepted.\n\n• Edits with predictable local results and small payloads.\n\n• Actions where immediate feedback materially improves perceived responsiveness.\n\n• Operations with a clear rollback path.\n\nPoor candidates\n• Payments, payroll finalization, destructive bulk actions, or irreversible approvals.\n\n• Operations where the server calculates an unpredictable result.\n\n• Actions likely to fail due to permissions or complex business rules.\n\n• Writes where pretending success would mislead the user materially.\n\nDecision rule\nOptimistic UX should reduce waiting without creating false confidence. For sensitive workflows, a\nvisible pending state is often better than pretending completion.",
+      "wordCount": 155,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Optimistic UI Mental Model and When to Use It in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Optimistic UI Mental Model and When to Use It matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Optimistic UI Mental Model and When to Use It” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimism without rollback",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Optimistic UI Mental Model and When to Use It” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Optimistic UI Mental Model and When to Use It solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "ui-optimism-with-mutation-variables",
+      "title": "UI Optimism with Mutation Variables",
+      "summary": "UI Optimism with Mutation Variables Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Start with the simpler strategy Two optimistic strategies in TanStack Query UI optimism Cache optimism Render mutation.variables while pending onMutate changes cached data No cache rewrite Snapshot + rollback…",
+      "body": "UI Optimism with Mutation Variables\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nStart with the simpler strategy\nTwo optimistic strategies in TanStack Query\n\nUI optimism                                               Cache optimism\nRender mutation.variables while pending                          onMutate changes cached data\nNo cache rewrite                                       Snapshot + rollback required\nSimpler rollback story                                 Useful across multiple consumers\n\nDefault to UI optimism when one place needs the prediction.\n\nUse cache optimism when several observers must see the same pending change.\n\nTanStack Query supports rendering the pending mutation variables directly. This changes what the\nuser sees without modifying the Query cache. That means there is no cache snapshot to restore.\n\nStatus button example\nconst updateStatus = useMutation({\nmutationKey: [\"tasks\", \"update-status\", task.id],\nmutationFn: (status: TaskStatus) =>\nupdateTask(task.id, { status }),\nonSettled: () =>\nqueryClient.invalidateQueries({\nqueryKey: taskKeys.all,\n}),\n})\n\nconst visibleStatus =\nupdateStatus.isPending\n? updateStatus.variables\n: task.status\n\nWhy this is powerful\n• The original Query cache remains untouched.\n\n• A failure naturally falls back to the cached server value.\n\n• The mutation can still expose an inline error and retry action.\n\n• This is ideal when only the component initiating the mutation needs to render the prediction.\n\nCross-component pending UI\nIf another component must display the pending mutation, give the mutation a stable mutationKey\nand read matching pending variables with useMutationState().",
+      "wordCount": 204,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain UI Optimism with Mutation Variables in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "UI Optimism with Mutation Variables matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “UI Optimism with Mutation Variables” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Temporary IDs colliding with real IDs",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “UI Optimism with Mutation Variables” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does UI Optimism with Mutation Variables solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "cache-optimism-onmutate-snapshot-and-rollback",
+      "title": "Cache Optimism onMutate Snapshot and Rollback",
+      "summary": "Cache Optimism: onMutate, Snapshot and Rollback Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture When cache optimism is justified If multiple components observe the same Task detail cache, changing only the initiating button is insufficient. Then TaskFlow may optimistically patch the shared…",
+      "body": "Cache Optimism: onMutate, Snapshot\nand Rollback\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nWhen cache optimism is justified\nIf multiple components observe the same Task detail cache, changing only the initiating button is\ninsufficient. Then TaskFlow may optimistically patch the shared detail cache.\n\nThe four-step pattern\nonMutate: async (status, context) => {\nconst key = taskKeys.detail(taskId)\n\nawait context.client.cancelQueries({\nqueryKey: key,\n})\n\nconst previous =\ncontext.client.getQueryData<Task>(key)\n\ncontext.client.setQueryData<Task>(\nkey,\nold => old ? { ...old, status } : old,\n)\n\nreturn { previous }\n}\n\nRollback\nonError: (_error, _status, rollback, context) => {\nif (rollback?.previous) {\ncontext.client.setQueryData(\ntaskKeys.detail(taskId),\nrollback.previous,\n)\n}\n}\n\nWhat the snapshot means\nThe snapshot is not a second permanent source of truth. It is temporary rollback material\nassociated with that mutation attempt.",
+      "wordCount": 123,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Cache Optimism onMutate Snapshot and Rollback in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Cache Optimism onMutate Snapshot and Rollback” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Older mutation response overwriting newer user intent",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Cache Optimism onMutate Snapshot and Rollback” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Cache Optimism onMutate Snapshot and Rollback solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "query-cancellation-and-stale-refetch-races",
+      "title": "Query Cancellation and Stale Refetch Races",
+      "summary": "Query Cancellation and Stale Refetch Races Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture The race Why cancelQueries comes before the optimistic cache write Time Refetch old server response Optimistic new predicted value stale refetch can overwrite prediction cancelQueries() prevents the in-flight…",
+      "body": "Query Cancellation and Stale Refetch\nRaces\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nThe race\nWhy cancelQueries comes before the optimistic cache write\n\nTime\n\nRefetch                                                                 old server response\n\nOptimistic                                             new predicted value\nstale refetch can overwrite prediction\n\ncancelQueries() prevents the in-flight query from winning this race.\n\nWhy cancellation is before setQueryData\nSuppose Task detail is refetching. You then optimistically change its status. If the older refetch\nresolves a moment later, it can replace the optimistic value with stale server data. Calling\ncancelQueries() first closes that race for the targeted query.\n\nCancellation is targeted\nawait queryClient.cancelQueries({\nqueryKey: taskKeys.detail(taskId),\n})\n\nDo not cancel the world\nCancel only queries whose in-flight results could overwrite the optimistic state you are about to\nchange. Broad cancellation creates unnecessary churn and can hide unrelated data refreshes.",
+      "wordCount": 134,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Query Cancellation and Stale Refetch Races in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Query Cancellation and Stale Refetch Races matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Query Cancellation and Stale Refetch Races” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimistically updating the wrong filtered list",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Query Cancellation and Stale Refetch Races” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Query Cancellation and Stale Refetch Races solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "server-reconciliation-onsuccess-onsettled-and-invalidation",
+      "title": "Server Reconciliation onSuccess onSettled and Invalidation",
+      "summary": "Server Reconciliation: onSuccess, onSettled and Invalidation Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Optimism ends when the server responds The local prediction must eventually be replaced or confirmed by server truth. TaskFlow uses the returned Task when useful, then invalidates affected…",
+      "body": "Server Reconciliation: onSuccess,\nonSettled and Invalidation\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nOptimism ends when the server responds\nThe local prediction must eventually be replaced or confirmed by server truth. TaskFlow uses the\nreturned Task when useful, then invalidates affected lists so authorization, filtering, derived state,\ntimestamps, and business rules are re-evaluated by the backend.\n\nReconcile detail immediately\nonSuccess: (serverTask, _status, _rollback, context) => {\ncontext.client.setQueryData(\ntaskKeys.detail(taskId),\nserverTask,\n)\n}\n\nThen invalidate authoritative collections\nonSettled: async (_data, _error, _status, _rollback, context) => {\nawait Promise.all([\ncontext.client.invalidateQueries({\nqueryKey: taskKeys.detail(taskId),\n}),\ncontext.client.invalidateQueries({\nqueryKey: taskKeys.lists(),\n}),\n])\n}\n\nAwaiting invalidation\nTanStack Query keeps the mutation pending while an awaited callback Promise is unresolved. That\ncan be useful when the UI should not announce “saved” until reconciliation has started/completed\naccording to your policy.",
+      "wordCount": 135,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Server Reconciliation onSuccess onSettled and Invalidation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Server Reconciliation onSuccess onSettled and Invalidation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Server Reconciliation onSuccess onSettled and Invalidation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimism without rollback",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server Reconciliation onSuccess onSettled and Invalidation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server Reconciliation onSuccess onSettled and Invalidation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "filtered-and-paginated-caches",
+      "title": "Filtered and Paginated Caches",
+      "summary": "Filtered and Paginated Caches Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture The hard part is list membership One mutation can affect several cached views differently All Tasks status=TODO status=DONE Task remains visible Task may disappear Task may appear Perfectly recreating every…",
+      "body": "Filtered and Paginated Caches\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nThe hard part is list membership\nOne mutation can affect several cached views differently\n\nAll Tasks                               status=TODO                               status=DONE\nTask remains visible                      Task may disappear                          Task may appear\n\nPerfectly recreating every filtered + paginated server result on the client is expensive.\n\nPrefer a small local prediction, then invalidate and let the server reconcile authoritative lists.\n\nWhy “patch every list” becomes fragile\nA status update can remove a Task from one filtered page, add it to another filter, shift page\nboundaries, change counts, and interact with search/sort order. Reproducing all backend query\nsemantics in client cache code creates a second query engine that can drift from NestJS/Prisma\nbehavior.\n\nTaskFlow strategy\n• Use UI optimism for the visible row when possible.\n\n• Optimistically patch the Task detail cache when several observers need the same pending value.\n\n• Avoid fabricating pagination metadata.\n\n• Invalidate list prefixes after settlement so the server reconstructs the authoritative collection.\n\n• Only implement filter-aware list patching for specific high-value interactions with strong tests.\n\nImportant rule\nIf an optimistic cache algorithm starts reimplementing filtering, authorization, search, sorting, and\npagination, stop. You are duplicating backend responsibility.",
+      "wordCount": 196,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Filtered and Paginated Caches in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Filtered and Paginated Caches” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Temporary IDs colliding with real IDs",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Filtered and Paginated Caches” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Filtered and Paginated Caches solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "optimistic-create-and-temporary-identity",
+      "title": "Optimistic Create and Temporary Identity",
+      "summary": "Optimistic Create and Temporary Identity Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Creating is different from updating An update already has a stable server identity. A create request may not. Inventing a fake database ID and inserting it into every cache…",
+      "body": "Optimistic Create and Temporary\nIdentity\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nCreating is different from updating\nAn update already has a stable server identity. A create request may not. Inventing a fake database\nID and inserting it into every cache can create difficult reconciliation bugs.\n\nPreferred first approach\nFor Task creation, TaskFlow initially uses UI optimism: render the pending mutation variables as a\ntemporary row while the request is pending, then invalidate the Task list when the server returns.\n\nMutation state across components\nconst pendingCreates = useMutationState({\nfilters: {\nmutationKey: [\"tasks\", \"create\"],\nstatus: \"pending\",\n},\nselect: mutation => ({\ninput: mutation.state.variables,\nsubmittedAt: mutation.state.submittedAt,\n}),\n})\n\nWhy submittedAt helps\nMultiple creates can be pending simultaneously. submittedAt gives each pending mutation a\nclient-side rendering key without pretending it is the permanent Task ID.\n\nWhen temporary IDs are justified\nOffline-first applications, drag/drop composition before sync, or complex local graph editing may\njustify a real client-generated temporary identity strategy. TaskFlow has not earned that complexity\nyet.",
+      "wordCount": 163,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Optimistic Create and Temporary Identity in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Optimistic Create and Temporary Identity matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Optimistic Create and Temporary Identity” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Older mutation response overwriting newer user intent",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Optimistic Create and Temporary Identity” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Optimistic Create and Temporary Identity solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "concurrent-mutations-and-mutation-scopes",
+      "title": "Concurrent Mutations and Mutation Scopes",
+      "summary": "Concurrent Mutations and Mutation Scopes Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Mutations run in parallel by default Two rapid clicks can produce two independent update requests. If they target the same Task, response order may differ from intent order. That…",
+      "body": "Concurrent Mutations and Mutation\nScopes\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nMutations run in parallel by default\nTwo rapid clicks can produce two independent update requests. If they target the same Task,\nresponse order may differ from intent order. That means a naive optimistic implementation can\nshow stale or surprising final state.\n\nSerializing one Task status stream\nconst updateStatus = useMutation({\nmutationKey: [\"tasks\", \"status\", taskId],\nscope: {\nid: `task-status:${taskId}`,\n},\nmutationFn: (status: TaskStatus) =>\nupdateTask(taskId, { status }),\n// optimistic callbacks...\n})\n\nWhat scope does\nTanStack Query documents that mutations run in parallel by default. Mutations with the same\nscope.id execute serially, with later ones queued while an earlier one is running.\n\nDo not serialize unrelated work\nDifferent Tasks should normally remain independent. Use the smallest scope that matches the\nresource/workflow whose ordering must be preserved.\n\nGlobal pending indicators\nUse useMutationState() or useIsMutating() with mutation keys for focused “Saving…” indicators\nrather than a hand-built global boolean.",
+      "wordCount": 155,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Concurrent Mutations and Mutation Scopes in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Concurrent Mutations and Mutation Scopes matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Concurrent Mutations and Mutation Scopes” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimistically updating the wrong filtered list",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Concurrent Mutations and Mutation Scopes” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Concurrent Mutations and Mutation Scopes solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "rollback-error-semantics-and-business-rejection",
+      "title": "Rollback Error Semantics and Business Rejection",
+      "summary": "Rollback, Error Semantics and Business Rejection Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Failure is part of the design An optimistic UI is incomplete until the learner can explain what happens for 400, 401, 403, 404, 409, network failure, and 500.…",
+      "body": "Rollback, Error Semantics and\nBusiness Rejection\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nFailure is part of the design\nAn optimistic UI is incomplete until the learner can explain what happens for 400, 401, 403, 404,\n409, network failure, and 500.\n\nTaskFlow behavior\n400                            Rollback prediction; show field/input problem if the mutation came from a form.\n\n401                            Rollback; recover authentication/session instead of blind retry.\n\n403                            Rollback; explain that the authenticated user is not permitted.\n\n409                            Rollback; surface the business conflict or invalid state transition.\n\n5xx/network                    Rollback; preserve retry affordance and requestId when available.\n\nExample business conflict\nA user may optimistically click DONE, but NestJS can reject the transition because another\nworkflow changed the Task first. The rollback is not an exceptional edge case; it is normal\ndistributed-system behavior.\n\nNever hide the rejection\nDo not silently snap the UI back with no explanation. Roll back the data and communicate why the\noptimistic prediction failed.",
+      "wordCount": 158,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Rollback Error Semantics and Business Rejection in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Rollback Error Semantics and Business Rejection” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimism without rollback",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Rollback Error Semantics and Business Rejection” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Rollback Error Semantics and Business Rejection solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "accessibility-and-optimistic-ux",
+      "title": "Accessibility and Optimistic UX",
+      "summary": "Accessibility and Optimistic UX Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Instant does not mean invisible Visual speed should not remove meaningful feedback. A status change that is still pending needs an accessible representation so keyboard and assistive-technology users are not…",
+      "body": "Accessibility and Optimistic UX\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nInstant does not mean invisible\nVisual speed should not remove meaningful feedback. A status change that is still pending needs\nan accessible representation so keyboard and assistive-technology users are not left guessing.\n\nGood patterns\n• Keep the control disabled only when duplicate intent would be harmful; otherwise allow\nindependent actions.\n\n• Use visible “Saving…” or “Pending” text when the mutation materially changes state.\n\n• Use aria-live=\"polite\" for concise status messages when appropriate.\n\n• Preserve focus after rollback; do not remount the entire table.\n\n• Announce server rejection in a nearby error region rather than only changing color.\n\nAvoid misleading success\nDo not announce “Saved” at the moment of onMutate. At that point the UI has predicted success;\nthe server has not confirmed it.",
+      "wordCount": 132,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Accessibility and Optimistic UX in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Accessibility and Optimistic UX matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Accessibility and Optimistic UX” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Temporary IDs colliding with real IDs",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Accessibility and Optimistic UX” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Accessibility and Optimistic UX solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "testing-debugging-and-devtools",
+      "title": "Testing Debugging and Devtools",
+      "summary": "Testing, Debugging and Devtools Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture What to test Optimistic code should be tested as a state machine, not only as a successful click. Core matrix • Mutation starts: predicted value appears immediately. • In-flight refetch…",
+      "body": "Testing, Debugging and Devtools\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nWhat to test\nOptimistic code should be tested as a state machine, not only as a successful click.\n\nCore matrix\n• Mutation starts: predicted value appears immediately.\n\n• In-flight refetch cannot overwrite the prediction.\n\n• Successful response replaces prediction with server value.\n\n• 400/403/409/network failure restores previous cache value.\n\n• List queries invalidate after settlement.\n\n• Two updates to the same Task preserve intended ordering when scoped serially.\n\n• Two different Tasks can mutate independently.\n\n• Pending create rows disappear after success and are replaced by server-backed query data.\n\n• Filtered pages reconcile correctly after invalidation.\n\nDevtools clues\n• Watch the Task detail query before, during, and after onMutate.\n\n• Inspect mutation status, variables, submittedAt, and mutationKey.\n\n• Confirm invalidation marks only the intended query families stale.\n\n• Look for duplicate refetches caused by both onSuccess and onSettled performing the same work.\n\nDebugging rule\nIf the UI ends in the wrong state, write the timeline: previous cache -> onMutate -> request A/B ->\ncallback order -> invalidation -> refetch. Optimistic bugs are usually ordering bugs.",
+      "wordCount": 174,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Testing Debugging and Devtools in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Testing Debugging and Devtools” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Older mutation response overwriting newer user intent",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Testing Debugging and Devtools” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Testing Debugging and Devtools solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Phase 25 - Optimistic Updates Volume 07 - Advanced Application Architecture Lab 1 - UI optimism Convert the Task status control to render mutation.variables while pending. Do not touch the cache. Add an inline retry action on failure. Lab 2…",
+      "body": "Hands-On Lab and Phase Exit\nPhase 25 - Optimistic Updates\n\nVolume 07 - Advanced Application Architecture\n\nLab 1 - UI optimism\nConvert the Task status control to render mutation.variables while pending. Do not touch the\ncache. Add an inline retry action on failure.\n\nLab 2 - Cache optimism\nOn a Task detail page, snapshot the Task query, cancel it, patch the status in onMutate, restore it in\nonError, and replace it with the server response in onSuccess.\n\nLab 3 - Concurrency\nTrigger multiple status changes quickly. First observe parallel behavior. Then add a per-Task\nmutation scope and verify the queue preserves ordering for that Task while other Tasks remain\nindependent.\n\nLab 4 - Failure drills\n• Force a 403 and confirm rollback + explanation.\n\n• Force a 409 state-transition conflict and confirm rollback.\n\n• Throttle/offline the network and observe pending UI and retry behavior.\n\n• Keep a Task list filtered by status and verify the authoritative list after invalidation.\n\nExit criteria\n• I can explain UI optimism versus cache optimism.\n\n• I can implement cancel -> snapshot -> patch -> rollback -> reconcile.\n\n• I understand why list caches are harder than detail caches.\n\n• I can reason about multiple concurrent mutations.\n\n• I know which high-risk operations should remain pessimistic.\n\n• I can debug an optimistic race with a timeline rather than guessing.\n\nSources\nSource                                             Use in this phase\n\nTanStack Query - Optimistic Updates                Documents the two supported strategies: UI optimism\nhttps://tanstack.com/query/latest/docs/framework   through mutation variables and cache optimism through\n/react/guides/optimistic-updates                   onMutate plus rollback context.\n\nTanStack Query - Query Cancellation                Explains cancellation and why cancelQueries is important\nhttps://tanstack.com/query/latest/docs/framework   before an optimistic cache write that could otherwise be\n/react/guides/query-cancellation                   overwritten by an in-flight refetch.\n\nSource                                              Use in this phase\n\nTanStack Query - Invalidations from                 Shows targeted invalidation after successful/settled mutations\nMutations                                           and awaiting invalidation when pending state should include\nhttps://tanstack.com/query/latest/docs/framework    reconciliation.\n/react/guides/invalidations-from-mutations\n\nTanStack Query - Mutations                          Documents mutation scopes: mutations run in parallel by\nhttps://tanstack.com/query/latest/docs/framework    default, while identical scope IDs serialize execution.\n/react/guides/mutations\n\nTanStack Query - useMutationState                   Exposes pending mutation variables across components and\nhttps://tanstack.com/query/latest/docs/framework    supports concurrent optimistic UI with mutation keys and\n/react/reference/functions/useMutationState         submittedAt.\n\nTanStack Query - QueryClient                        Documents get/setQueryData, cancelQueries,\nhttps://tanstack.com/query/latest/docs/reference/   invalidateQueries, getQueriesData, setQueriesData, and\nQueryClient                                         cache control used by optimistic workflows.",
+      "wordCount": 397,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimistically updating the wrong filtered list",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nAdd optimistic UI safely by defining snapshot, optimistic state, rollback, reconciliation, temporary identity, and concurrency behavior.",
+      "body": "Guided Build Lab — Phase 25: Optimistic Updates\n\nPurpose\nAdd optimistic UI safely by defining snapshot, optimistic state, rollback, reconciliation, temporary identity, and concurrency behavior.\n\nDeliverable\nOptimistic task update/create flow with rollback and authoritative server reconciliation.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nuser action -> cancel/snapshot relevant queries -> optimistic cache write -> server mutation -> rollback on error -> invalidate/reconcile on settle\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Choose one mutation where low failure probability and UX benefit justify optimism.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Capture the previous cache state before changing it.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Apply an optimistic update to the exact affected query data.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Force a server failure and prove rollback restores the previous state.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — On success/settle, reconcile with authoritative server data rather than trusting the optimistic object forever.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Simulate two rapid mutations and reason about race ordering and stale responses.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 632,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Optimism without rollback",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 25: Optimistic Updates\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nuser action -> cancel/snapshot relevant queries -> optimistic cache write -> server mutation -> rollback on error -> invalidate/reconcile on settle\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Optimism without rollback\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Temporary IDs colliding with real IDs\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Older mutation response overwriting newer user intent\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Optimistically updating the wrong filtered list\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 447,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Temporary IDs colliding with real IDs",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 25 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Optimistic Updates\n\nMission\nRebuild the capability of Phase 25 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nAdd optimistic UI safely by defining snapshot, optimistic state, rollback, reconciliation, temporary identity, and concurrency behavior.\n\nRequired artifact\nOptimistic task update/create flow with rollback and authoritative server reconciliation.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can implement snapshot/rollback/reconcile.\n• Can decide when optimism is inappropriate.\n• Can handle temporary identity.\n• Can reason about concurrent mutations.\n\nIndependent build sequence\n1. Choose one mutation where low failure probability and UX benefit justify optimism.\n2. Capture the previous cache state before changing it.\n3. Apply an optimistic update to the exact affected query data.\n4. Force a server failure and prove rollback restores the previous state.\n5. On success/settle, reconcile with authoritative server data rather than trusting the optimistic object forever.\n6. Simulate two rapid mutations and reason about race ordering and stale responses.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 356,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this optimistic concept.",
+          "Diagnose one representative optimistic failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user action",
+          "snapshot",
+          "optimistic cache",
+          "server result",
+          "commit/rollback"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user action → snapshot → optimistic cache → server result → commit/rollback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Optimistic task update/create flow with rollback and authoritative server reconciliation.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Snapshot first so failure can restore truth",
+          "code": "onMutate: async (input) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  applyOptimisticChange(input);\n  return { previous };\n},\nonError: (_err, _input, ctx) => restore(ctx?.previous),"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Older mutation response overwriting newer user intent",
+          "Change one assumption in the optimistic example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the optimistic boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 25 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 25: Optimistic Updates. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nOptimistic task update/create flow with rollback and authoritative server reconciliation.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 196,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "optimistic",
+        "objectives": [
+          "Add optimistic UI safely by defining snapshot, optimistic state, rollback, reconciliation, temporary identity, and concurrency behavior.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "user action",
+          "cancel/snapshot relevant queries",
+          "optimistic cache write",
+          "server mutation",
+          "rollback on error",
+          "invalidate/reconcile on settle"
+        ],
+        "steps": [
+          "Choose one mutation where low failure probability and UX benefit justify optimism.",
+          "Capture the previous cache state before changing it.",
+          "Apply an optimistic update to the exact affected query data.",
+          "Force a server failure and prove rollback restores the previous state.",
+          "On success/settle, reconcile with authoritative server data rather than trusting the optimistic object forever.",
+          "Simulate two rapid mutations and reason about race ordering and stale responses.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can implement snapshot/rollback/reconcile",
+          "Can decide when optimism is inappropriate",
+          "Can handle temporary identity",
+          "Can reason about concurrent mutations"
+        ],
+        "breakIt": [
+          "Optimism without rollback",
+          "Temporary IDs colliding with real IDs"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/OPTIMISTIC_DECISION_TABLE.md",
+      "preview": "# Optimistic Update Decision Table\n\n| Operation | Course decision | Why |\n|---|---|---|\n| Task status toggle | Optimistic | Small, reversible, predictable result |\n| Task title edit | Usually optimistic | Predictable, but preserve server validation errors |\n| Create Task | UI optimism first | Avoid inventing fake permanent IDs |\n| Delete Task | Usually pessimistic initially | Destructive; accidental false success is costly |\n| Membership role change | Pessimistic | Security-sensitive authorization operation |\n| Payroll finalization | Pessimistic | High-impact irreversible business workflow |\n| Purchase-order approval | Usually pessimistic | Approval rules may fail and user should not see false completion |"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 25 - Optimistic Updates Snapshot\n\nThis snapshot extends the Phase 22 TanStack Query architecture. It intentionally demonstrates two strategies:\n\n1. UI optimism through mutation variables (preferred when one view needs the prediction).\n2. Cache optimism through onMutate + rollback (used when several observers share the same Task detail cache).\n\nThe server remains authoritative. Task list caches are invalidated after settlement rather than attempting to reproduce every filter/pagination rule in client code."
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/SOURCES.md",
+      "preview": "# Sources\n\n- https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates\n- https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation\n- https://tanstack.com/query/latest/docs/framework/react/guides/invalidations-from-mutations\n- https://tanstack.com/query/latest/docs/framework/react/guides/mutations\n- https://tanstack.com/query/latest/docs/framework/react/reference/functions/useMutationState\n- https://tanstack.com/query/latest/docs/reference/QueryClient"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/apps/web/src/components/tasks/pending-task-rows.tsx",
+      "preview": "\"use client\";\n\nimport { usePendingTaskCreates } from \"@/hooks/use-create-task-pending\";\n\nexport function PendingTaskRows() {\n  const pending = usePendingTaskCreates();\n\n  return pending.map(item => (\n    <tr key={item.submittedAt} aria-busy=\"true\">\n      <td>{item.input.title}</td>\n      <td>Pending creation</td>\n      <td>{item.input.priority ?? \"MEDIUM\"}</td>\n    </tr>\n  ));\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/apps/web/src/components/tasks/task-status-button.tsx",
+      "preview": "\"use client\";\n\nimport { useTaskStatusOptimistic } from \"@/hooks/use-task-status-optimistic\";\nimport type { TaskStatus } from \"@/lib/api/task-types\";\n\ntype Props = {\n  taskId: string;\n  status: TaskStatus;\n};\n\nexport function TaskStatusButton({ taskId, status }: Props) {\n  const mutation = useTaskStatusOptimistic(taskId);\n\n  const visibleStatus = mutation.isPending\n    ? mutation.variables\n    : status;\n\n  const nextStatus: TaskStatus =\n    visibleStatus === \"DONE\" ? \"IN_PROGRESS\" : \"DONE\";\n"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/apps/web/src/components/ui/task-saving-indicator.tsx",
+      "preview": "\"use client\";\n\nimport { useIsMutating } from \"@tanstack/react-query\";\n\nexport function TaskSavingIndicator() {\n  const count = useIsMutating({ mutationKey: [\"tasks\", \"mutation\"] });\n\n  if (count === 0) return null;\n\n  return (\n    <span role=\"status\" aria-live=\"polite\">\n      Saving {count === 1 ? \"change\" : `${count} changes`}...\n    </span>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/apps/web/src/hooks/use-create-task-pending.ts",
+      "preview": "\"use client\";\n\nimport { useMutation, useMutationState } from \"@tanstack/react-query\";\nimport { createTask } from \"@/lib/api/task-mutations\";\nimport { taskKeys } from \"@/lib/query/task-keys\";\nimport { taskMutationKeys } from \"@/lib/query/task-mutation-keys\";\nimport type { CreateTaskInput } from \"@repo/validators/tasks\";\n\nexport function useCreateTask() {\n  return useMutation({\n    mutationKey: taskMutationKeys.create(),\n    mutationFn: createTask,\n    onSettled: async (_data, _error, _variables, _result, context) => {\n      await context.client.invalidateQueries({\n        queryKey: taskKeys.lists(),\n      });\n    },\n  });\n}\n"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/apps/web/src/hooks/use-task-status-optimistic.ts",
+      "preview": "\"use client\";\n\nimport { useMutation } from \"@tanstack/react-query\";\nimport { taskKeys } from \"@/lib/query/task-keys\";\nimport { taskMutationKeys } from \"@/lib/query/task-mutation-keys\";\nimport { updateTask } from \"@/lib/api/task-mutations\";\nimport type { Task, TaskStatus } from \"@/lib/api/task-types\";\n\nexport function useTaskStatusOptimistic(taskId: string) {\n  return useMutation({\n    mutationKey: taskMutationKeys.updateStatus(taskId),\n    scope: { id: `task-status:${taskId}` },\n\n    mutationFn: (status: TaskStatus) =>\n      updateTask(taskId, { status }),\n\n    onMutate: async (status, context) => {\n      const key = taskKeys.detail(taskId);\n\n      await context.client.cancelQueries({ queryKey: key });"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/apps/web/src/lib/query/task-mutation-keys.ts",
+      "preview": "export const taskMutationKeys = {\n  all: [\"tasks\", \"mutation\"] as const,\n  create: () => [...taskMutationKeys.all, \"create\"] as const,\n  updateStatus: (taskId: string) =>\n    [...taskMutationKeys.all, \"status\", taskId] as const,\n};"
+    },
+    {
+      "path": "reference/TaskFlow_Optimistic_Updates_Snapshot/tests/optimistic-update-test-matrix.md",
+      "preview": "# Phase 25 Optimistic Update Test Matrix\n\n| Scenario | Expected result |\n|---|---|\n| Status mutation starts | Predicted status appears immediately |\n| Detail query is refetching | cancelQueries prevents stale response from overwriting prediction |\n| Server accepts status | Detail cache uses server Task; lists invalidate |\n| Server returns 403 | Previous Task detail is restored; permission error shown |\n| Server returns 409 | Previous Task detail is restored; conflict explained |\n| Network fails | Previous Task detail is restored; retry remains possible |\n| Two changes same Task | Same scope serializes requests in intent order |\n| Two changes different Tasks | Requests can run independently |\n| Create Task pending | Temporary UI row uses mutation variables + submittedAt |\n| Create succeeds | Pending row disappears after list refetch returns server Task |\n| Status-filtered list | List is reconciled by invalidation/refetch rather than fabricated client metadata |\n| Logout while mutations exist | Existing Phase 22 logout clears QueryClient cache |"
+    }
+  ],
+  "exercises": [
+    "Guided: Choose one mutation where low failure probability and UX benefit justify optimism.",
+    "Practice: Apply an optimistic update to the exact affected query data.",
+    "Debugging: reproduce and diagnose — Optimism without rollback.",
+    "Independent: deliver Optimistic task update/create flow with rollback and authoritative server reconciliation.",
+    "Explain-back: Can implement snapshot/rollback/reconcile and Can decide when optimism is inappropriate."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 25's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Optimistic updates must define how to snapshot, apply, roll back, and reconcile state."
+      ],
+      "answer": 3,
+      "explanation": "Optimistic updates must define how to snapshot, apply, roll back, and reconcile state."
+    },
+    {
+      "question": "Which practice best matches Phase 25's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Use optimism where failure is uncommon and the user benefit justifies rollback complexity.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Use optimism where failure is uncommon and the user benefit justifies rollback complexity."
+    },
+    {
+      "question": "Which practice best matches Phase 25's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Handle concurrent mutations and stale responses so an older result cannot overwrite newer user intent.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Handle concurrent mutations and stale responses so an older result cannot overwrite newer user intent."
+    },
+    {
+      "question": "Which practice best matches Phase 25's engineering goal?",
+      "options": [
+        "Always reconcile optimistic client state with authoritative server state.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Always reconcile optimistic client state with authoritative server state."
+    },
+    {
+      "question": "You are working through the Phase 25 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Optimism without rollback.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose one mutation where low failure probability and UX benefit justify optimism.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Choose one mutation where low failure probability and UX benefit justify optimism."
+    },
+    {
+      "question": "You are working through the Phase 25 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Capture the previous cache state before changing it.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Temporary IDs colliding with real IDs."
+      ],
+      "answer": 1,
+      "explanation": "Capture the previous cache state before changing it."
+    },
+    {
+      "question": "You are working through the Phase 25 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Apply an optimistic update to the exact affected query data.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Older mutation response overwriting newer user intent.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Apply an optimistic update to the exact affected query data."
+    },
+    {
+      "question": "You are working through the Phase 25 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Optimistically updating the wrong filtered list.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Force a server failure and prove rollback restores the previous state."
+      ],
+      "answer": 3,
+      "explanation": "Force a server failure and prove rollback restores the previous state."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3757
+}

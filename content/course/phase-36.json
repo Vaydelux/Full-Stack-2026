@@ -1,0 +1,1247 @@
+{
+  "number": 36,
+  "slug": "phase-36",
+  "title": "TaskFlow -> Enterprise Systems",
+  "volume": 8,
+  "readme": "Phase 36 is the final phase of FULL_STACK_DEVELOPER_2026_COMPLETE. Open 13_Phase_36_Complete_Book.pdf for the combined edition. The reference folder contains enterprise architecture templates and examples.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "modular-monolith-and-domain-boundaries",
+      "title": "Modular Monolith and Domain Boundaries",
+      "summary": "Modular Monolith First: Domain Boundaries A growing system should first become modular in code and data ownership. A modular monolith keeps one deployment while giving each business capability an explicit public interface. - - - - - HR Payroll Procurement Inventory Accounting Recruitment > >…",
+      "body": "Modular Monolith First: Domain Boundaries\nA growing system should first become modular in code and data ownership. A modular monolith keeps one deployment\nwhile giving each business capability an explicit public interface.\n\n-                        -                         -                         -                    -\nHR                     Payroll                Procurement                 Inventory                Accounting       Recruitment\n>                        >                         >                         >                    >\nFigure 2 - Business capabilities become modules, not miscellaneous folders\n\nModule rule\n• Group controllers, services, policies, repositories, schemas, and events around a business capability rather than technical type alone.\n\n• Expose only the providers/contracts another module genuinely needs. NestJS modules encapsulate providers by default and exported\nproviders form the module public interface.\n\n• Avoid making every helper global; controlled imports keep dependency direction visible as the team grows.\n\nWhen to consider extraction\n• Independent scaling profile, independent release cadence, strong data ownership, separate team responsibility, regulatory isolation, or\npersistent reliability pressure.\n\n• Do not extract a microservice merely because a module has many files.\napps/api/src/modules/\npeople/\npayroll/\nleave/\nprocurement/\ninventory/\naccounting/\nrecruitment/\n\nEach module owns its rules and exports a small public API.\n\nA clean module boundary is valuable even if every module runs in the same NestJS process.\nOfficial reference: NestJS Modules - https://docs.nestjs.com/modules",
+      "wordCount": 185,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Modular Monolith and Domain Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Modular Monolith and Domain Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Microservices before module boundaries are understood",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Modular Monolith and Domain Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Modular Monolith and Domain Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "enterprise-domain-decomposition-blueprints",
+      "title": "Enterprise Domain Decomposition Blueprints",
+      "summary": "Domain Decomposition Blueprints TaskFlow concepts transfer into enterprise domains, but the nouns and invariants change. Model the business capability first, then reuse the architectural patterns. Domain Core records High-value invariants HRIS Employee, Position, Department, Employment active employment, effective dates, manager/department consistency Payroll PayrollRun, PayItem, Deduction,…",
+      "body": "Domain Decomposition Blueprints\nTaskFlow concepts transfer into enterprise domains, but the nouns and invariants change. Model the business\ncapability first, then reuse the architectural patterns.\n\nDomain                           Core records                                       High-value invariants\n\nHRIS                             Employee, Position, Department, Employment         active employment, effective dates, manager/department\nconsistency\n\nPayroll                          PayrollRun, PayItem, Deduction, Payslip            one finalized result per run/employee, immutable finalized\namounts\n\nProcurement                      Requisition, Quotation, PurchaseOrder, Receipt     approval thresholds, PO state, received quantity <=\nordered quantity\n\nInventory                        Item, Warehouse, StockMovement, Reservation        ledger consistency, reservation rules, no unauthorized\nstock movement\n\nAccounting                       JournalEntry, Account, Period                      balanced debits/credits, closed-period protection\n\nRecruitment                      JobOpening, Applicant, Interview, Offer            stage transitions, role-based access, offer approval\n\nTransferable TaskFlow patterns\n• State transitions become approval/workflow policies.\n\n• Workspace membership becomes department/company/branch scope.\n\n• Task audit history becomes payroll, stock, approval, and financial audit evidence.\n\n• Attachment handling becomes contracts, receipts, resumes, payslips, and supporting documents.\nDo not create a single \"EnterpriseService.\" Each business capability needs a clear owner.\nSource basis: TaskFlow architecture transfer and domain-modeling synthesis; domain policies must be validated against the target organization.",
+      "wordCount": 169,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Enterprise Domain Decomposition Blueprints in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Enterprise Domain Decomposition Blueprints” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Boolean fields replacing explicit workflow states",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Enterprise Domain Decomposition Blueprints” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Enterprise Domain Decomposition Blueprints solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "approval-workflows-and-long-running-processes",
+      "title": "Approval Workflows and Long Running Processes",
+      "summary": "Approval Workflows and Long-Running Processes Enterprise systems contain processes that live longer than one HTTP request. Model the workflow explicitly instead of scattering booleans such as approved=true across controllers. - - - - DRAFT SUBMITTED REVIEW APPROVED EXECUTED > > > > Figure 3 -…",
+      "body": "Approval Workflows and Long-Running Processes\nEnterprise systems contain processes that live longer than one HTTP request. Model the workflow explicitly instead of\nscattering booleans such as approved=true across controllers.\n\n-                            -                          -                             -\nDRAFT                    SUBMITTED                    REVIEW                    APPROVED                  EXECUTED\n>                            >                          >                             >\nFigure 3 - A workflow is a state machine with actors, transitions, and evidence\n\nWorkflow design checklist\n• Define states, allowed transitions, actor/permission requirements, transition preconditions, timestamps, reason/comments, and\nterminal states.\n\n• Put transition rules in one authoritative backend policy/service; the UI only presents actions that may be available.\n\n• Use explicit actions such as submit(), approve(), reject(), cancel(), finalize() instead of generic update({status}).\n\nLong-running workflow\n• An approval may wait hours or days. Persist workflow state; do not keep it in memory or an HTTP connection.\n\n• For multi-step asynchronous work, store progress and make each step restartable. Background workers can continue after process\nrestarts.\napprovePurchaseOrder(poId, actor) {\nassertPermission(actor, \"po.approve\")\nassertState(po, \"SUBMITTED\")\nassertApprovalThreshold(actor, po.total)\nreturn transition(po, \"APPROVED\")\n}\n\nAn approval is a business transition, not merely a status field edit.\nSource basis: application state-machine/workflow design; persisted state is required for long-running business processes.",
+      "wordCount": 183,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Approval Workflows and Long Running Processes in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Approval Workflows and Long Running Processes” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Dual writes to database and message broker without reliability design",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Approval Workflows and Long Running Processes” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Approval Workflows and Long Running Processes solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "audit-trails-history-and-effective-dates",
+      "title": "Audit Trails History and Effective Dates",
+      "summary": "Audit Trails, History, and Effective Dates Enterprise data often needs an answer to “who changed what, when, why, and from which business state?” That is different from ordinary application logging. Business - - - - Investigation / Transaction Domain row Audit record command > >…",
+      "body": "Audit Trails, History, and Effective Dates\nEnterprise data often needs an answer to “who changed what, when, why, and from which business state?” That is\ndifferent from ordinary application logging.\n\nBusiness         -                          -                         -                         -      Investigation /\nTransaction               Domain row                Audit record\ncommand          >                          >                         >                         >          report\n\nFigure 4 - Audit evidence is durable business data\n\nAudit record\n• Capture actor identity, action, entity type/id, timestamp, relevant before/after or structured change data, reason, requestId/correlation,\nand business context.\n\n• Write critical audit evidence in the same transaction as the business change when atomicity is required.\n\n• Do not treat console/Sentry logs as the authoritative business audit ledger; operational telemetry can expire or be sampled.\n\nEffective-dated data\n• HR salary, employment status, tax settings, and organization assignments often change \"effective from\" a date rather than by\noverwriting history.\n\n• Prefer explicit effectiveFrom/effectiveTo or versioned records when historical reconstruction is a business requirement.\nLogs explain system behavior; audit records explain business accountability. They overlap, but they are not interchangeable.\nSource basis: enterprise audit/accountability architecture; distinguish durable audit records from sampled operational telemetry.",
+      "wordCount": 171,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Audit Trails History and Effective Dates in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Audit Trails History and Effective Dates” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared database tables with unclear ownership across domains",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Audit Trails History and Effective Dates” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Audit Trails History and Effective Dates solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "background-jobs-idempotency-and-retries",
+      "title": "Background Jobs Idempotency and Retries",
+      "summary": "Background Jobs, Idempotency, and Retries Payroll calculation, report generation, imports, email batches, document generation, and integrations should not turn user-facing HTTP requests into long-running processes. - - - - - Notify / query HTTP command Persist intent Enqueue job Worker Persist result > > >…",
+      "body": "Background Jobs, Idempotency, and Retries\nPayroll calculation, report generation, imports, email batches, document generation, and integrations should not turn\nuser-facing HTTP requests into long-running processes.\n\n-                         -                         -                         -                          -     Notify / query\nHTTP command                Persist intent            Enqueue job                  Worker                 Persist result\n>                         >                         >                         >                          >        status\n\nFigure 5 - Long work moves to durable workers while the API remains responsive\n\n2026 course line\n• @nestjs/bullmq 12.0.0 integrates BullMQ with NestJS 12; BullMQ 6.x is the current major queue line.\n\n• Jobs must be designed for retries. BullMQ explicitly recommends idempotent jobs so retrying a failed job leads to the same final state\nas a successful first attempt.\n\n• Use stable business idempotency keys/job IDs where duplicate execution would be harmful, but remember queue de-duplication alone\nis not a complete business idempotency strategy.\n\nExamples\n• Generate payroll PDF, import attendance CSV, synchronize government contribution tables, send approved PO to supplier integration,\nrebuild reporting projection.\n\n• Recurring work should use the current BullMQ Job Scheduler API rather than removed legacy repeatable-job APIs in BullMQ 6.\njob key: payroll-run:<runId>:calculate\n\nWorker checks database:\n- already COMPLETED? return existing result\n- PROCESSING stale? recover according to policy\n- otherwise claim work and continue\n\nRetry is safe only when the operation is designed to survive duplicate delivery and partial failure.\nOfficial references: BullMQ idempotent jobs https://docs.bullmq.io/patterns/idempotent-jobs ; Job Schedulers https://docs.bullmq.io/guide/job-schedulers/\n; npm @nestjs/bullmq 12.0.0.",
+      "wordCount": 228,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Background Jobs Idempotency and Retries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Background Jobs Idempotency and Retries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Microservices before module boundaries are understood",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Background Jobs Idempotency and Retries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Background Jobs Idempotency and Retries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "financial-correctness-payroll-and-accounting",
+      "title": "Financial Correctness Payroll and Accounting",
+      "summary": "Financial Correctness: Payroll and Accounting Financial systems need stronger invariants than ordinary CRUD. Monetary arithmetic, finalization, periods, rounding, and reproducibility must be explicit business rules. Money rules • Never use binary floating-point for authoritative monetary amounts. PostgreSQL numeric/decimal is exact and selectable in precision; PostgreSQL…",
+      "body": "Financial Correctness: Payroll and Accounting\nFinancial systems need stronger invariants than ordinary CRUD. Monetary arithmetic, finalization, periods, rounding,\nand reproducibility must be explicit business rules.\n\nMoney rules\n• Never use binary floating-point for authoritative monetary amounts. PostgreSQL numeric/decimal is exact and selectable in precision;\nPostgreSQL also warns against floating point for money because of rounding risk.\n\n• Define currency, scale, rounding mode, and when rounding occurs. Do not let UI formatting decide accounting behavior.\n\n• Persist calculation inputs/version references needed to reproduce a finalized payroll or journal result.\n\nFinalize means something\n• DRAFT calculations may be recomputed. FINALIZED payroll/journal results should normally be immutable; corrections are new\nadjustment/reversal records, not silent edits.\n\n• Accounting journal entries require balanced debits and credits before posting; closed periods reject ordinary postings.\n\n• PayrollRun should have a deterministic lifecycle: DRAFT -> CALCULATING -> REVIEW -> FINALIZED -> PAID/ARCHIVED as\nappropriate.\nmodel MoneyExample {\namount Decimal @db.Decimal(18, 2)\ncurrency String @db.VarChar(3)\n}\n\n# Never store authoritative payroll money in float/double.\n\nFinancial correctness is a domain invariant, not a formatting concern.\nOfficial reference: PostgreSQL 18 numeric is exact; floating point should not be used for money due to rounding risk -\nhttps://www.postgresql.org/docs/18/datatype-money.html",
+      "wordCount": 199,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Financial Correctness Payroll and Accounting in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Financial Correctness Payroll and Accounting” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Boolean fields replacing explicit workflow states",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Financial Correctness Payroll and Accounting” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Financial Correctness Payroll and Accounting solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "procurement-inventory-and-stock-consistency",
+      "title": "Procurement Inventory and Stock Consistency",
+      "summary": "Procurement, Inventory, and Stock Consistency Procurement and inventory illustrate why enterprise systems need ledgers, reservations, and transaction boundaries rather than one mutable “quantity” field. - - - - - Accounting Requisition PO Receive Stock movement Available stock > > > > > impact Figure 6…",
+      "body": "Procurement, Inventory, and Stock Consistency\nProcurement and inventory illustrate why enterprise systems need ledgers, reservations, and transaction boundaries\nrather than one mutable “quantity” field.\n\n-                         -                         -                         -                       -   Accounting\nRequisition                   PO                      Receive              Stock movement             Available stock\n>                         >                         >                         >                       >     impact\n\nFigure 6 - Physical and financial consequences cross module boundaries\n\nStock model\n• Use StockMovement as durable evidence: RECEIPT, ISSUE, TRANSFER, ADJUSTMENT, RETURN. Current balance can be\nderived/materialized from movement history.\n\n• If reservations exist, distinguish onHand, reserved, and available rather than subtracting arbitrary UI values.\n\n• Validate source/destination, item status, quantity sign, authorization, and sufficient stock under a transaction/concurrency strategy.\n\nProcurement consistency\n• Received quantity cannot exceed the allowed ordered quantity without an explicit variance policy.\n\n• PO approval authority may depend on amount, department, budget, category, and segregation-of-duties rules.\n\n• Goods receipt should be linked to its PO lines and later accounting/payables process, not represented as an unrelated stock edit.\nA stock balance is the result of controlled movements; the movement ledger is the evidence.\nSource basis: transactional inventory/procurement modeling principles; exact policies vary by organization and regulation.",
+      "wordCount": 171,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Procurement Inventory and Stock Consistency in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Procurement Inventory and Stock Consistency” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Dual writes to database and message broker without reliability design",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Procurement Inventory and Stock Consistency” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Procurement Inventory and Stock Consistency solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "integration-boundaries-events-and-outbox",
+      "title": "Integration Boundaries Events and Outbox",
+      "summary": "Integration Boundaries, Events, and the Outbox Pattern Enterprise systems integrate with banks, biometrics, email/SMS, government services, accounting systems, suppliers, and identity providers. External side effects cannot participate in the same database transaction. Business - - - - Inbox/idempoten Outbox row Publisher/worker External system transaction >…",
+      "body": "Integration Boundaries, Events, and the Outbox\nPattern\nEnterprise systems integrate with banks, biometrics, email/SMS, government services, accounting systems, suppliers,\nand identity providers. External side effects cannot participate in the same database transaction.\n\nBusiness          -                          -                           -                           -   Inbox/idempoten\nOutbox row               Publisher/worker            External system\ntransaction        >                          >                           >                           >          cy\n\nFigure 7 - Persist intent before performing unreliable external side effects\n\nBoundary rule\n• Do not call an external provider halfway through a database transaction and assume both systems commit atomically.\n\n• Persist the business change and an outbox/integration intent atomically; a worker publishes/sends after commit and records delivery\nstate.\n\n• Inbound webhooks should verify authenticity, store a stable provider/event ID, and process idempotently so duplicate delivery cannot\nduplicate business effects.\n\nEvent design\n• Use business events such as PurchaseOrderApproved or PayrollRunFinalized, not low-level \"row updated\" messages as the default\nintegration contract.\n\n• Keep event payloads versionable and avoid leaking internal ORM row shapes to external consumers.\nBEGIN TRANSACTION\nupdate purchase_order set status = 'APPROVED'\ninsert audit_event (...)\ninsert integration_outbox (event_type, aggregate_id, payload)\nCOMMIT\n\nworker -> supplier/accounting integration\n\nThe outbox solves \"database committed but message was never sent\" by making publish intent durable.\nSource basis: transactional outbox/inbox architectural pattern; external systems cannot share a local PostgreSQL atomic transaction.",
+      "wordCount": 198,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Integration Boundaries Events and Outbox in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Integration Boundaries Events and Outbox” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared database tables with unclear ownership across domains",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Integration Boundaries Events and Outbox” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Integration Boundaries Events and Outbox solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "reporting-read-models-and-exports",
+      "title": "Reporting Read Models and Exports",
+      "summary": "Reporting, Read Models, and Exports Operational screens and enterprise reports have different query needs. Do not distort transactional models only to make one heavy report convenient. Transactional - - - - Storage / Projection / query Report job Artifact tables > > > > download…",
+      "body": "Reporting, Read Models, and Exports\nOperational screens and enterprise reports have different query needs. Do not distort transactional models only to make\none heavy report convenient.\n\nTransactional      -                         -                         -                         -       Storage /\nProjection / query           Report job                  Artifact\ntables          >                         >                         >                         >       download\n\nFigure 8 - Heavy reporting can use purpose-built reads and background execution\n\nReporting strategy\n• Start with indexed SQL queries and purpose-built repository projections. Use views/materialized projections/read models when\nrepeated reporting pressure justifies them.\n\n• Large PDF/Excel exports belong in background jobs; persist report status and generated artifact metadata instead of holding an HTTP\nrequest open.\n\n• Reports must apply the same tenant/department/security scope as interactive APIs.\n\nEnterprise considerations\n• Financial and payroll reports often need \"as-of\" historical data, not whatever the current mutable row contains.\n\n• For management analytics, separate operational correctness from analytics latency. A slightly delayed read model may be acceptable\nif clearly documented.\nA report is another product surface with security, correctness, performance, and reproducibility requirements.\nSource basis: CQRS/read-model concepts applied pragmatically; use only when operational queries/reporting pressure justifies it.",
+      "wordCount": 170,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Reporting Read Models and Exports in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Reporting Read Models and Exports” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Microservices before module boundaries are understood",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Reporting Read Models and Exports” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Reporting Read Models and Exports solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "enterprise-permissions-and-segregation-of-duties",
+      "title": "Enterprise Permissions and Segregation of Duties",
+      "summary": "Enterprise Permissions and Segregation of Duties OWNER/ADMIN/MEMBER is sufficient for TaskFlow, but enterprise systems often need permission scopes, organizational context, approval limits, and segregation of duties. Concern Example Policy owner Role Payroll Officer Authorization policy Scope Company / branch / department Membership / org assignment…",
+      "body": "Enterprise Permissions and Segregation of Duties\nOWNER/ADMIN/MEMBER is sufficient for TaskFlow, but enterprise systems often need permission scopes,\norganizational context, approval limits, and segregation of duties.\n\nConcern                          Example                                             Policy owner\n\nRole                             Payroll Officer                                     Authorization policy\n\nScope                            Company / branch / department                       Membership / org assignment\n\nPermission                       payroll.finalize                                    Permission matrix\n\nLimit                            approve PO <= 100,000                               Business authorization rule\n\nRelationship                     Supervisor of employee                              Resource/context policy\n\nSoD                              Creator cannot final-approve own PO                 Business security rule\n\nDecision model\n• Authenticate identity first, resolve enterprise user and organizational scope, then evaluate permission plus resource/business context.\n\n• Keep high-risk operations default-deny. UI visibility is convenience; backend policy is enforcement.\n\n• Log/audit sensitive authorization outcomes such as payroll finalization, role changes, approval overrides, and period reopening.\nEnterprise authorization is often RBAC + scope + relationship + business rule, not RBAC alone.\nSource basis: Phase 19 authorization model extended with organization scope, approval limits, and segregation-of-duties business rules.",
+      "wordCount": 147,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Enterprise Permissions and Segregation of Duties in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Enterprise Permissions and Segregation of Duties” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Boolean fields replacing explicit workflow states",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Enterprise Permissions and Segregation of Duties” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Enterprise Permissions and Segregation of Duties solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "scaling-migration-and-service-extraction",
+      "title": "Scaling Migration and Service Extraction",
+      "summary": "Scaling and Migration Without a Rewrite The TaskFlow architecture is intentionally replaceable. Scale the constrained boundary first, then extract only where independent operation creates more value than distributed-system cost. - - - Selective - Cloud/on-prem Modular monolith Workers Read models > > > services >…",
+      "body": "Scaling and Migration Without a Rewrite\nThe TaskFlow architecture is intentionally replaceable. Scale the constrained boundary first, then extract only where\nindependent operation creates more value than distributed-system cost.\n\n-                         -                          -        Selective      -     Cloud/on-prem\nModular monolith              Workers                 Read models\n>                         >                          >        services       >        options\n\nFigure 9 - Evolution is incremental and evidence-driven\n\nTypical evolution\n• Vercel web can remain independent while NestJS API/workers scale separately.\n\n• Move long work to BullMQ workers before splitting business modules into network services.\n\n• Supabase PostgreSQL can migrate to self-hosted/AWS PostgreSQL because Prisma/application services do not depend on\ndashboard-only business logic.\n\n• Supabase Storage can migrate behind an application-owned storage adapter to S3-compatible storage; Redis/Upstash can move to\nself-hosted/managed Redis.\n\nService extraction trigger\n• Extract when a module needs independent scaling, release, resilience, compliance, or team ownership and has a stable contract/data\nboundary.\n\n• After extraction, accept new costs: network failure, distributed tracing, eventual consistency, deployment coordination, contract\nversioning, and data ownership.\nMicroservices are a trade, not an upgrade. A well-modularized monolith can support very serious systems.\nSource basis: Phase 35 dependency boundaries plus replaceable infrastructure strategy. Service extraction requires operational evidence.",
+      "wordCount": 182,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Scaling Migration and Service Extraction in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Scaling Migration and Service Extraction” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Dual writes to database and message broker without reliability design",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Scaling Migration and Service Extraction” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Scaling Migration and Service Extraction solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "enterprise-capstone-and-course-exit",
+      "title": "Enterprise Capstone and Course Exit",
+      "summary": "Enterprise Capstone and Course Exit The final exercise is to convert one enterprise domain into an implementable architecture using the same reasoning applied throughout TaskFlow. - - - - Plan - Choose domain Model invariants Design modules Define workflows Test/operate > > > > jobs/integrations…",
+      "body": "Enterprise Capstone and Course Exit\nThe final exercise is to convert one enterprise domain into an implementable architecture using the same reasoning\napplied throughout TaskFlow.\n\n-                        -                            -                        -          Plan         -\nChoose domain            Model invariants           Design modules             Define workflows                                 Test/operate\n>                        >                            >                        >   jobs/integrations   >\nFigure 10 - Final capstone: architecture from business rules outward\n\nCapstone options\n• Government/private HRIS with timekeeping, leave, payroll, deductions, recruitment, audit logs, and reports.\n\n• Procurement + inventory with requisitions, approvals, suppliers, POs, receiving, stock movements, reservations, and accounting\nhandoff.\n\n• Accounting/financial management with chart of accounts, journals, periods, approvals, reconciliation, reporting, and audit evidence.\n\nRequired deliverables\n• Module map and dependency rules; key entities and invariants; approval/state machines; permission matrix; transaction boundaries;\njob/idempotency plan; integration contracts; audit strategy; reporting path; failure/recovery model; deployment/observability plan.\n\n• Identify what remains synchronous, what becomes a worker, and what evidence would justify service extraction later.\n\n• Write ADRs for the three highest-impact decisions and a migration plan from the current TaskFlow-shaped platform.\n\nCourse exit standard\n• You should now be able to explain why each layer exists, where a rule belongs, how to verify it, and how to evolve it without blindly\ncopying a framework architecture diagram.\nThe course is complete when you can design the next system from first principles, not when you can reproduce TaskFlow\nfrom memory.\nSource basis: cumulative course synthesis and final architecture capstone.",
+      "wordCount": 221,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Enterprise Capstone and Course Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Enterprise Capstone and Course Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared database tables with unclear ownership across domains",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Enterprise Capstone and Course Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Enterprise Capstone and Course Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nGeneralize TaskFlow patterns into larger enterprise systems while preserving modular boundaries, workflows, auditability, integration reliability, and migration paths.",
+      "body": "Guided Build Lab — Phase 36: TaskFlow -> Enterprise Systems\n\nPurpose\nGeneralize TaskFlow patterns into larger enterprise systems while preserving modular boundaries, workflows, auditability, integration reliability, and migration paths.\n\nDeliverable\nEnterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nbusiness capabilities -> modular monolith -> workflow/state machines -> transactional boundaries -> outbox/events -> background workers -> reporting/integrations -> scale-out only when earned\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Choose one enterprise domain and identify business capabilities before choosing services/databases.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Design modules with explicit ownership and public interfaces inside a modular monolith.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Identify a transaction that crosses an integration boundary and design an outbox/event handoff.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Separate synchronous user requests from background work such as reports, imports, notifications, or payroll runs.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Write concrete scaling triggers that would justify extracting a service, queue, cache, or separate database later.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 659,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Microservices before module boundaries are understood",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 36: TaskFlow -> Enterprise Systems\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nbusiness capabilities -> modular monolith -> workflow/state machines -> transactional boundaries -> outbox/events -> background workers -> reporting/integrations -> scale-out only when earned\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Microservices before module boundaries are understood\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Boolean fields replacing explicit workflow states\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Dual writes to database and message broker without reliability design\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Shared database tables with unclear ownership across domains\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 457,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Boolean fields replacing explicit workflow states",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 36 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — TaskFlow -> Enterprise Systems\n\nMission\nRebuild the capability of Phase 36 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nGeneralize TaskFlow patterns into larger enterprise systems while preserving modular boundaries, workflows, auditability, integration reliability, and migration paths.\n\nRequired artifact\nEnterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can decompose by business capability.\n• Can model long-running workflows.\n• Can explain outbox/event reliability.\n• Can justify when distribution is and is not earned.\n\nIndependent build sequence\n1. Choose one enterprise domain and identify business capabilities before choosing services/databases.\n2. Design modules with explicit ownership and public interfaces inside a modular monolith.\n3. Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.\n4. Identify a transaction that crosses an integration boundary and design an outbox/event handoff.\n5. Separate synchronous user requests from background work such as reports, imports, notifications, or payroll runs.\n6. Write concrete scaling triggers that would justify extracting a service, queue, cache, or separate database later.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 385,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this enterprise concept.",
+          "Diagnose one representative enterprise failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enterprise systems are difficult because business invariants, approvals, auditability, effective dates, and permissions interact over long-lived data.",
+        "mentalModel": [
+          "business workflow",
+          "invariants",
+          "permissions",
+          "transaction/audit",
+          "operational outcome"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business workflow → invariants → permissions → transaction/audit → operational outcome. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Model workflow state and invariants explicitly",
+          "code": "Requisition -> Approval -> Purchase Order -> Goods Receipt -> Invoice\nInvariant examples:\n- received quantity <= ordered quantity\n- finalized approvals are auditable\n- closed orders reject new receipts"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Dual writes to database and message broker without reliability design",
+          "Change one assumption in the enterprise example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the enterprise boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 36 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 36: TaskFlow -> Enterprise Systems. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nEnterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 204,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "enterprise",
+        "objectives": [
+          "Generalize TaskFlow patterns into larger enterprise systems while preserving modular boundaries, workflows, auditability, integration reliability, and migration paths.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "business capabilities",
+          "modular monolith",
+          "workflow/state machines",
+          "transactional boundaries",
+          "outbox/events",
+          "background workers",
+          "reporting/integrations",
+          "scale-out only when earned"
+        ],
+        "steps": [
+          "Choose one enterprise domain and identify business capabilities before choosing services/databases.",
+          "Design modules with explicit ownership and public interfaces inside a modular monolith.",
+          "Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.",
+          "Identify a transaction that crosses an integration boundary and design an outbox/event handoff.",
+          "Separate synchronous user requests from background work such as reports, imports, notifications, or payroll runs.",
+          "Write concrete scaling triggers that would justify extracting a service, queue, cache, or separate database later.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can decompose by business capability",
+          "Can model long-running workflows",
+          "Can explain outbox/event reliability",
+          "Can justify when distribution is and is not earned"
+        ],
+        "breakIt": [
+          "Microservices before module boundaries are understood",
+          "Boolean fields replacing explicit workflow states"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/APPROVAL_WORKFLOW_TEMPLATE.md",
+      "preview": "# Approval Workflow Template\n\n## States\nDRAFT -> SUBMITTED -> REVIEW -> APPROVED -> EXECUTED\n\n## For each transition define\n- command name\n- allowed source state\n- target state\n- actor permission\n- organizational scope\n- monetary/other approval limits\n- preconditions\n- required reason/comment\n- audit event\n- side effects / queued work\n\nNever expose a generic API that lets a client assign any workflow state directly."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/AUDIT_EVENT_SCHEMA.md",
+      "preview": "# Audit Event Schema\n\nSuggested fields:\n\n- id\n- occurredAt\n- actorUserId / auth subject\n- workspace/company/department context\n- action\n- entityType\n- entityId\n- reason\n- beforeJson (only appropriate fields)\n- afterJson (only appropriate fields)\n- requestId / correlationId\n- source (WEB/API/JOB/INTEGRATION)\n\nFor critical changes, write the audit event in the same database transaction as the business change. Do not put credentials or unnecessary sensitive data into audit payloads."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/CAPSTONE_BLUEPRINT.md",
+      "preview": "# Final Enterprise Capstone Blueprint\n\nChoose HRIS, Procurement+Inventory, or Accounting. Produce:\n\n1. Module/bounded-context map.\n2. Key entities and invariants.\n3. State/approval workflows.\n4. Permission + scope + segregation-of-duties matrix.\n5. Transaction boundaries.\n6. Audit-event model.\n7. Background-job and idempotency plan.\n8. Integration contracts and outbox/inbox strategy.\n9. Reporting/read-model strategy.\n10. Test matrix and failure-recovery cases.\n11. Deployment/observability plan.\n12. ADRs for the three highest-impact architecture decisions.\n13. Evidence/triggers that would justify future service extraction."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/DOMAIN_MODULE_CATALOG.md",
+      "preview": "# Domain Module Catalog\n\n| Module | Owns | Example commands |\n|---|---|---|\n| People | Employee/employment/org assignments | hireEmployee, transferEmployee, terminateEmployment |\n| Leave | Leave balances and requests | submitLeave, approveLeave, cancelLeave |\n| Payroll | Payroll runs/pay items/deductions | calculatePayroll, finalizePayroll, markPaid |\n| Procurement | Requisitions/POs/suppliers | submitRequisition, approvePO, cancelPO |\n| Inventory | Items/warehouses/movements | receiveStock, issueStock, transferStock |\n| Accounting | Accounts/journals/periods | postJournal, closePeriod, reverseJournal |\n| Recruitment | Openings/applicants/offers | advanceApplicant, approveOffer, hireApplicant |\n\nEach module exports a small public service/event contract. Do not expose repositories or Prisma models as the default cross-module API."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/ENTERPRISE_ARCHITECTURE_MAP.md",
+      "preview": "# Enterprise Architecture Map\n\n```text\nNext.js\n  -> NestJS/Fastify modular application\n      -> People / Payroll / Leave / Procurement / Inventory / Accounting / Recruitment\n      -> Repository interfaces / Prisma implementations\n      -> PostgreSQL\n      -> BullMQ workers for long-running work\n      -> Supabase Auth / Storage / Realtime where applicable\n```\n\nStart as a modular monolith. Extract workers or services only when scaling, reliability, compliance, release cadence, or team ownership creates real pressure."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/ENTERPRISE_PERMISSION_MATRIX.md",
+      "preview": "# Enterprise Permission Matrix - Example\n\n| Role | Scope | Example permissions | Extra constraints |\n|---|---|---|---|\n| HR Officer | company/department | employee.read, leave.review | cannot edit payroll result |\n| Payroll Officer | company | payroll.calculate, payslip.generate | finalization may require second approver |\n| Supervisor | team | leave.approve, employee.read.team | relationship-scoped |\n| Procurement Officer | business unit | requisition.manage, po.create | cannot final approve own PO |\n| Department Head | department | po.approve | approval amount threshold |\n| Accounting | company | journal.post, period.read | closed-period rule |\n\nAuthorization decision = identity + scope + permission + relationship + business rule."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/FINANCIAL_CORRECTNESS.md",
+      "preview": "# Financial Correctness Checklist\n\n- Use exact decimal/numeric amounts, never binary float for authoritative money.\n- Store currency explicitly.\n- Define rounding mode and rounding stage.\n- Version tables/formulas/rates used for payroll calculations.\n- Finalized payroll/journals should be immutable; corrections use adjustments/reversals.\n- Journal entries must balance before posting.\n- Closed accounting periods reject normal postings.\n- Recalculation must be reproducible from durable inputs/version references."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/IDEMPOTENCY_AND_JOBS.md",
+      "preview": "# Idempotency and Background Jobs\n\nCourse line:\n- @nestjs/bullmq 12.0.0\n- BullMQ 6.x\n\n## Example job key\n`payroll-run:<runId>:calculate`\n\n## Worker rule\n1. Load durable operation state.\n2. If already completed, return the durable result.\n3. Claim/process according to concurrency policy.\n4. Persist progress/results.\n5. Make external side effects independently idempotent.\n\nBullMQ recommends idempotent jobs so retries converge to the same final state. BullMQ 6 uses Job Schedulers for recurring work."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/INTEGRATION_BOUNDARIES.md",
+      "preview": "# Integration Boundaries\n\n## Outbound\nBusiness transaction -> outbox row -> worker -> external provider -> delivery state.\n\n## Inbound webhook\nVerify authenticity -> persist provider event ID -> deduplicate -> process business command -> persist result.\n\n## Contract rule\nUse business events such as `PurchaseOrderApproved` and version their payloads. Avoid publishing raw Prisma rows as long-lived external contracts."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/MIGRATION_ROADMAP.md",
+      "preview": "# Migration Roadmap\n\n## Stage 1 - Modular monolith\nSingle API, explicit Nest feature modules, one PostgreSQL cluster.\n\n## Stage 2 - Worker separation\nBullMQ workers for payroll calculation, imports, exports, notification batches, integrations.\n\n## Stage 3 - Read scaling\nIndexes, read models, replicas/analytics pipeline where evidence requires.\n\n## Stage 4 - Selective service extraction\nOnly modules with independent scale/reliability/team/compliance pressure.\n\n## Infrastructure replacement path\n- Supabase PostgreSQL -> self-hosted/AWS PostgreSQL\n- Supabase Storage -> S3-compatible storage adapter\n- Upstash/managed Redis -> alternate Redis\n- Railway/Render -> AWS containers/Kubernetes when operations justify it\n"
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/README.md",
+      "preview": "# TaskFlow Enterprise Systems Blueprint\n\nThis is the final course reference snapshot. It does not turn TaskFlow into one giant ERP implementation. Instead it provides reusable architecture templates for evolving the same principles into HRIS, payroll, procurement, inventory, accounting, recruitment, and other enterprise modules.\n\nThe default evolution strategy is:\n1. modular monolith,\n2. durable background workers,\n3. purpose-built read models,\n4. selective service extraction only when evidence justifies it."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/REPORTING_ARCHITECTURE.md",
+      "preview": "# Reporting Architecture\n\nStart simple:\n1. Indexed PostgreSQL query.\n2. Purpose-built projection/select.\n3. View/materialized read model if repeated pressure justifies it.\n4. Background job for large Excel/PDF exports.\n5. Store generated artifact metadata; Storage holds bytes.\n\nAlways apply tenant/department authorization to reports and exports. Historical reports must use effective-dated/versioned business data where required."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/SOURCES.md",
+      "preview": "# Phase 36 Sources\n\nOfficial references consulted:\n\n- NestJS Modules: https://docs.nestjs.com/modules\n- BullMQ Idempotent Jobs: https://docs.bullmq.io/patterns/idempotent-jobs\n- BullMQ Job IDs/Deduplication: https://docs.bullmq.io/guide/jobs/job-ids\n- BullMQ Job Schedulers: https://docs.bullmq.io/guide/job-schedulers/\n- BullMQ Flows: https://docs.bullmq.io/guide/flows/\n- @nestjs/bullmq npm: https://www.npmjs.com/package/@nestjs/bullmq\n- BullMQ npm: https://www.npmjs.com/package/bullmq\n- PostgreSQL 18 Monetary Types: https://www.postgresql.org/docs/18/datatype-money.html\n- PostgreSQL 18 Data Types (`numeric` / `decimal` exact numeric): https://www.postgresql.org/docs/18/datatype.html\n\nArchitecture patterns such as modular monoliths, transactional outbox/inbox, effective-dated history, segregation of duties, and read models are presented as engineering patterns; their exact implementation must follow the target organization's regulatory and business requirements."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/VERSION_LOCK.md",
+      "preview": "# Phase 36 Version Notes\n\nExisting course locks remain:\n- Next.js 16.x\n- NestJS 12.x\n- Fastify 5.x\n- Prisma 7.9.1 (hard course lock)\n- PostgreSQL 18 line\n- Zod 4.x\n- TanStack Query 5.x\n\nNew enterprise-worker line verified for this phase:\n- @nestjs/bullmq 12.0.0\n- BullMQ 6.x (current npm line observed: 6.3.x)\n\nDo not auto-upgrade these inside an existing course checkpoint. Verify release notes and tests first."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/apps/api/src/modules/payroll/payroll-run.states.ts",
+      "preview": "export type PayrollRunState =\n  | \"DRAFT\"\n  | \"CALCULATING\"\n  | \"REVIEW\"\n  | \"FINALIZED\"\n  | \"PAID\";\n\n// FINALIZED results should normally become immutable.\n// Corrections should create explicit adjustments/reversals rather than\n// silently rewriting historical payroll evidence."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/apps/api/src/modules/procurement/approval-state-machine.ts",
+      "preview": "export type PurchaseOrderState =\n  | \"DRAFT\"\n  | \"SUBMITTED\"\n  | \"APPROVED\"\n  | \"REJECTED\"\n  | \"CANCELED\";\n\nexport function canApprovePurchaseOrder(\n  state: PurchaseOrderState,\n): boolean {\n  return state === \"SUBMITTED\";\n}\n\n// Real policy additionally checks permission, scope, approval limit,\n// segregation of duties, budget, and other organization rules."
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/apps/api/src/modules/procurement/procurement.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\";\n\n// Illustrative final-course module boundary.\n@Module({\n  imports: [],\n  controllers: [],\n  providers: [],\n  exports: [],\n})\nexport class ProcurementModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/apps/api/src/workers/payroll.worker.example.ts",
+      "preview": "// Pseudocode-level example for Phase 36.\n\nasync function calculatePayrollJob(runId: string) {\n  const run = await loadPayrollRun(runId);\n\n  if (run.status === \"FINALIZED\" || run.status === \"CALCULATED\") {\n    return run; // durable idempotent result\n  }\n\n  await claimRunForCalculation(runId);\n  const result = await calculateFromVersionedInputs(runId);\n  return persistCalculatedResult(runId, result);\n}\n\ndeclare function loadPayrollRun(id: string): Promise<any>;\ndeclare function claimRunForCalculation(id: string): Promise<void>;\ndeclare function calculateFromVersionedInputs(id: string): Promise<any>;\ndeclare function persistCalculatedResult(id: string, value: any): Promise<any>;"
+    },
+    {
+      "path": "reference/TaskFlow_Enterprise_Systems_Blueprint/tests/enterprise-test-matrix.md",
+      "preview": "# Enterprise Test Matrix\n\n| Risk | Minimum verification |\n|---|---|\n| Unauthorized payroll finalization | HTTP E2E + permission policy test |\n| Duplicate payroll job delivery | idempotency integration test |\n| PO creator self-approves despite SoD | authorization/business policy test |\n| Stock transfer partially commits | PostgreSQL transaction/failure integration test |\n| Accounting journal unbalanced | pure policy + service test |\n| Closed-period posting | service + HTTP E2E |\n| Webhook delivered twice | inbox/idempotency integration test |\n| Outbox publish fails after DB commit | worker recovery test |\n| Report leaks another department | real PostgreSQL scoped query + E2E |\n| Audit record missing on critical command | transaction integration test |\n| Finalized payroll mutated | repository/service invariant test |\n| Worker retry exposes duplicate external side effect | integration contract/idempotency test |"
+    }
+  ],
+  "exercises": [
+    "Guided: Choose one enterprise domain and identify business capabilities before choosing services/databases.",
+    "Practice: Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.",
+    "Debugging: reproduce and diagnose — Microservices before module boundaries are understood.",
+    "Independent: deliver Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.",
+    "Explain-back: Can decompose by business capability and Can model long-running workflows."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Enterprise scaling starts by identifying new business boundaries, compliance needs, load, and organizational ownership.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Enterprise scaling starts by identifying new business boundaries, compliance needs, load, and organizational ownership."
+    },
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Keep the modular monolith viable until scale or team boundaries justify distributing the system."
+      ],
+      "answer": 3,
+      "explanation": "Keep the modular monolith viable until scale or team boundaries justify distributing the system."
+    },
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Add queues, caches, services, and orchestration only for concrete bottlenecks or ownership needs.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Add queues, caches, services, and orchestration only for concrete bottlenecks or ownership needs."
+    },
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Design replaceable infrastructure interfaces so managed services can evolve without rewriting core business rules.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Design replaceable infrastructure interfaces so managed services can evolve without rewriting core business rules."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Microservices before module boundaries are understood.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose one enterprise domain and identify business capabilities before choosing services/databases."
+      ],
+      "answer": 3,
+      "explanation": "Choose one enterprise domain and identify business capabilities before choosing services/databases."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Boolean fields replacing explicit workflow states.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Design modules with explicit ownership and public interfaces inside a modular monolith.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Design modules with explicit ownership and public interfaces inside a modular monolith."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Dual writes to database and message broker without reliability design."
+      ],
+      "answer": 1,
+      "explanation": "Model one long-running approval as a state machine with actors, transitions, evidence, and audit records."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Identify a transaction that crosses an integration boundary and design an outbox/event handoff.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Shared database tables with unclear ownership across domains.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Identify a transaction that crosses an integration boundary and design an outbox/event handoff."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3929
+}

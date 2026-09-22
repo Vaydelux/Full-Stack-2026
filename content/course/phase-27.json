@@ -1,0 +1,1237 @@
+{
+  "number": 27,
+  "slug": "phase-27",
+  "title": "File Uploads & Supabase Storage",
+  "volume": 7,
+  "readme": "Phase 27 - File Uploads and Supabase Storage\n\nThis package completes Volume 07. It teaches a private signed-upload-intent architecture in which NestJS authorizes Task attachment operations, Supabase Storage stores bytes, and PostgreSQL stores TaskAttachment metadata.\n\nFiles are intentionally split into focused books plus a combined edition. See reference/TaskFlow_Storage_Snapshot for implementation examples.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "storage-mental-model-public-private-and-source-of-truth",
+      "title": "Storage Mental Model Public Private and Source of Truth",
+      "summary": "Storage Mental Model: Public, Private and Source of Truth TaskFlow - Full Stack Developer 2026 Storage is object storage, not a relational domain model Two systems, different responsibilities Supabase Storage TaskFlow PostgreSQL objectPath object bytes which Task owns it object path who uploaded it object…",
+      "body": "Storage Mental Model: Public, Private\nand Source of Truth\nTaskFlow - Full Stack Developer 2026\n\nStorage is object storage, not a relational domain model\nTwo systems, different responsibilities\n\nSupabase Storage                                 TaskFlow PostgreSQL\nobjectPath\nobject bytes                                   which Task owns it\n\nobject path                                     who uploaded it\n\nobject metadata                                display name/type/size\n\nsigned access                                    workflow status\n\nDo not use storage.objects as your business-domain attachment table.\n\nPublic vs private\n• Public bucket: anyone with the object URL can fetch the object; useful for genuinely public assets.\n\n• Private bucket: reads require authenticated authorization or a signed URL. Task attachments are\nprivate by default.\n\nDo not edit storage.objects directly\nSupabase stores Storage metadata in Postgres, but its documentation explicitly recommends treating\nthe storage schema as read-only and performing object mutations through Storage APIs. Deleting\nmetadata with SQL does not reliably delete the underlying object.\n\nTaskFlow decision\nPostgreSQL owns TaskAttachment rows and relationships. Supabase Storage owns bytes. objectPath is\nthe bridge between them.",
+      "wordCount": 157,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Storage Mental Model Public Private and Source of Truth in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Storage Mental Model Public Private and Source of Truth matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Storage Mental Model Public Private and Source of Truth” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting filename extension as MIME proof",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Storage Mental Model Public Private and Source of Truth” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Storage Mental Model Public Private and Source of Truth solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "signed-upload-intent-architecture",
+      "title": "Signed Upload Intent Architecture",
+      "summary": "Signed Upload Intent Architecture TaskFlow - Full Stack Developer 2026 Why not proxy every byte through NestJS A backend proxy can work, but it makes the API server carry file bandwidth, memory and timeout pressure. TaskFlow instead lets the browser upload directly to Storage after…",
+      "body": "Signed Upload Intent Architecture\nTaskFlow - Full Stack Developer 2026\n\nWhy not proxy every byte through NestJS\nA backend proxy can work, but it makes the API server carry file bandwidth, memory and timeout\npressure. TaskFlow instead lets the browser upload directly to Storage after NestJS authorizes a\nnarrowly scoped upload intent.\n\nEnd-to-end flow\n\nTaskFlow attachment upload - authorization stays in NestJS\n\nBrowser                      NestJS                            Postgres                 Storage            Browser\nfile                   upload intent                       PENDING row             signed token       direct upload\n\nNestJS finalize                                 Postgres\nverify object                              READY metadata\n\nStorage holds bytes. PostgreSQL holds application meaning and relationships.\n\nTrust boundary\nSigned upload intent - trust boundary\n\nBrowser                                NestJS                         Signed token               Storage\n\nuntrusted filename                  auth + permission                     one object path          enforces bucket\n\nMIME + size                         allowlist + limit                   time limited             constraints\n\nservice-role key remains server-only\n\noriginal filename is metadata - not the authoritative object path\n\nTwo-step commit\n• Intent endpoint validates Task access, file policy and requested metadata, creates a PENDING row,\nthen returns a signed upload token.\n\n• Browser transfers bytes directly to the exact object path.\n\n• Finalize endpoint checks the object exists and its Storage metadata matches the expected size/type,\nthen marks the row READY.\n\nWhy PENDING matters\nDirect object storage and PostgreSQL are separate systems. A PENDING state gives\nTaskFlow an explicit way to represent “intent exists but upload is not yet committed to the\napplication”.",
+      "wordCount": 214,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Signed Upload Intent Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Signed Upload Intent Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Public bucket for private tenant files",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Signed Upload Intent Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Signed Upload Intent Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "attachment-data-model-and-prisma-migration",
+      "title": "Attachment Data Model and Prisma Migration",
+      "summary": "Attachment Data Model and Prisma Migration TaskFlow - Full Stack Developer 2026 Domain model enum AttachmentStatus { PENDING READY DELETING } model TaskAttachment { id String @id @default(uuid()) taskId String uploadedById String bucket String @default(\"task-attachments\") objectPath String @unique originalName String mimeType String sizeBytes Int status…",
+      "body": "Attachment Data Model and Prisma\nMigration\nTaskFlow - Full Stack Developer 2026\n\nDomain model\nenum AttachmentStatus {\nPENDING\nREADY\nDELETING\n}\n\nmodel TaskAttachment {\nid           String           @id @default(uuid())\ntaskId       String\nuploadedById String\nbucket       String           @default(\"task-attachments\")\nobjectPath   String           @unique\noriginalName String\nmimeType     String\nsizeBytes    Int\nstatus       AttachmentStatus @default(PENDING)\ncreatedAt    DateTime         @default(now())\nreadyAt      DateTime?\n\ntask       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)\nuploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)\n\n@@index([taskId, status, createdAt])\n@@index([uploadedById])\n}\n\nWhy metadata belongs here\n• Task ownership and authorization need relational joins.\n\n• Original display filename must survive even though the object path is randomized.\n\n• PENDING/READY/DELETING are application workflow states, not Storage object states.\n\n• Audit/reporting can reference uploader, Task and timestamps without scanning a bucket.\n\nMigration note\nAdd the model and Task/User relations using the same Prisma 7.9.1 migration workflow from Phase 09.\nDo not hand-edit the Storage schema.",
+      "wordCount": 149,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Attachment Data Model and Prisma Migration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Attachment Data Model and Prisma Migration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "User-controlled storage path enabling cross-tenant overwrite",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Attachment Data Model and Prisma Migration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Attachment Data Model and Prisma Migration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "private-bucket-configuration-and-server-storage-client",
+      "title": "Private Bucket Configuration and Server Storage Client",
+      "summary": "Private Bucket Configuration and Server Storage Client TaskFlow - Full Stack Developer 2026 Bucket policy await supabase.storage.createBucket( \"task-attachments\", { public: false, allowedMimeTypes: [ \"application/pdf\", \"image/png\", \"image/jpeg\", \"text/plain\", ], fileSizeLimit: \"20MB\", }, ) Why both application validation and bucket limits NestJS validation gives business-friendly errors and…",
+      "body": "Private Bucket Configuration and\nServer Storage Client\nTaskFlow - Full Stack Developer 2026\n\nBucket policy\nawait supabase.storage.createBucket(\n\"task-attachments\",\n{\npublic: false,\nallowedMimeTypes: [\n\"application/pdf\",\n\"image/png\",\n\"image/jpeg\",\n\"text/plain\",\n],\nfileSizeLimit: \"20MB\",\n},\n)\n\nWhy both application validation and bucket limits\nNestJS validation gives business-friendly errors and authorization. Bucket limits provide a second\nenforcement layer if a client tries to upload bytes that violate the configured size or MIME constraints.\n\nServer-only client\nconst storageAdmin = createClient(\nconfig.getOrThrow(\"SUPABASE_URL\"),\nconfig.getOrThrow(\"SUPABASE_SERVICE_ROLE_KEY\"),\n{\nauth: {\npersistSession: false,\nautoRefreshToken: false,\n},\n},\n)\n\nCritical secret rule\nSUPABASE_SERVICE_ROLE_KEY bypasses Storage RLS and must never be exposed through\nNEXT_PUBLIC_*, browser bundles, logs, or error payloads. NestJS must perform authorization before\nusing this client.\n\nWhy TaskFlow does not need broad browser Storage RLS\nThe browser receives a signed token for one pre-authorized object path. This keeps the primary\nbusiness authorization policy in NestJS instead of duplicating Task membership rules across Storage\nRLS.",
+      "wordCount": 150,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Private Bucket Configuration and Server Storage Client in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Private Bucket Configuration and Server Storage Client matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Private Bucket Configuration and Server Storage Client” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Database metadata created before upload succeeds with no cleanup",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Private Bucket Configuration and Server Storage Client” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Private Bucket Configuration and Server Storage Client solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "file-policy-safe-object-paths-and-validation",
+      "title": "File Policy Safe Object Paths and Validation",
+      "summary": "File Policy, Safe Object Paths and Validation TaskFlow - Full Stack Developer 2026 Client metadata is untrusted • file.name may contain awkward characters or misleading extensions. • file.type is supplied by the client and can be spoofed. • Size can be checked client-side for UX…",
+      "body": "File Policy, Safe Object Paths and\nValidation\nTaskFlow - Full Stack Developer 2026\n\nClient metadata is untrusted\n• file.name may contain awkward characters or misleading extensions.\n\n• file.type is supplied by the client and can be spoofed.\n\n• Size can be checked client-side for UX but must be enforced again server-side and by the bucket.\n\nAllowlist schema\nconst allowedMimeTypes = z.enum([\n\"application/pdf\",\n\"image/png\",\n\"image/jpeg\",\n\"text/plain\",\n])\n\nexport const createAttachmentIntentSchema = z.object({\noriginalName: z.string().trim().min(1).max(255),\nmimeType: allowedMimeTypes,\nsizeBytes: z.number().int().positive()\n.max(20 * 1024 * 1024),\n})\n\nDo not use original filename as identity\nconst extensionByMime = {\n\"application/pdf\": \"pdf\",\n\"image/png\": \"png\",\n\"image/jpeg\": \"jpg\",\n\"text/plain\": \"txt\",\n} as const\n\nconst objectPath =\n`workspaces/${workspaceId}` +\n`/tasks/${taskId}` +\n`/${attachmentId}.${extensionByMime[mimeType]}`\n\nSecurity consequence\nThe object path is generated from trusted identifiers and an allowlisted extension. The original filename\nis stored only as display metadata, eliminating path traversal and collision pressure from user-supplied\nnames.\n\nHigh-risk file types\nFor executables, macro-enabled Office files, archives or regulated uploads, MIME allowlists are not\nenough. A stronger design adds quarantine plus malware/content scanning before READY.",
+      "wordCount": 183,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain File Policy Safe Object Paths and Validation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "File Policy Safe Object Paths and Validation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “File Policy Safe Object Paths and Validation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting filename extension as MIME proof",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “File Policy Safe Object Paths and Validation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does File Policy Safe Object Paths and Validation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "signed-standard-uploads-for-small-files",
+      "title": "Signed Standard Uploads for Small Files",
+      "summary": "Signed Standard Uploads for Small Files TaskFlow - Full Stack Developer 2026 When to use it Supabase recommends standard uploads for small files and TUS resumable uploads when files exceed roughly 6MB, network reliability matters, or progress events are required. API creates an intent async…",
+      "body": "Signed Standard Uploads for Small\nFiles\nTaskFlow - Full Stack Developer 2026\n\nWhen to use it\nSupabase recommends standard uploads for small files and TUS resumable uploads when files exceed\nroughly 6MB, network reliability matters, or progress events are required.\n\nAPI creates an intent\nasync createIntent(taskId: string, user: AuthenticatedUser, input: CreateAttachmentIntent) {\nconst task = await this.tasks.findScopedById(taskId, user.id)\nif (!task) throw new TaskNotFoundException(taskId)\n\nconst attachmentId = randomUUID()\nconst objectPath = buildAttachmentObjectPath({\nworkspaceId: task.workspaceId,\ntaskId,\nattachmentId,\nmimeType: input.mimeType,\n})\n\nconst row = await this.attachments.createPending({\nid: attachmentId,\ntaskId,\nuploadedById: user.id,\nbucket: ATTACHMENT_BUCKET,\nobjectPath,\n...input,\n})\n\ntry {\nconst signed = await this.storage.createSignedUploadUrl(objectPath)\nreturn { attachment: row, upload: signed }\n} catch (error) {\nawait this.attachments.deletePending(attachmentId)\nthrow error\n}\n}\n\nBrowser transfers bytes\nconst { error } = await supabase.storage\n.from(intent.attachment.bucket)\n.uploadToSignedUrl(\nintent.attachment.objectPath,\nintent.upload.token,\nfile,\n{ contentType: file.type },\n)\n\nif (error) throw error\n\nawait completeAttachment(intent.attachment.id)\n\nNo upsert by default\nEach attachment gets a new UUID path, so overwriting is unnecessary. Supabase also\nrecommends new paths instead of overwrites to avoid stale CDN propagation behavior.",
+      "wordCount": 179,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Signed Standard Uploads for Small Files in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Signed Standard Uploads for Small Files” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Public bucket for private tenant files",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Signed Standard Uploads for Small Files” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Signed Standard Uploads for Small Files solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "resumable-tus-uploads-and-progress",
+      "title": "Resumable TUS Uploads and Progress",
+      "summary": "Resumable TUS Uploads and Progress TaskFlow - Full Stack Developer 2026 When TaskFlow switches to TUS • File is larger than 6MB. • Users frequently upload over unstable networks. • Product requires progress and resumability. Dependency pnpm --filter web add tus-js-client@4.3.1 Signed TUS upload sketch…",
+      "body": "Resumable TUS Uploads and Progress\nTaskFlow - Full Stack Developer 2026\n\nWhen TaskFlow switches to TUS\n• File is larger than 6MB.\n\n• Users frequently upload over unstable networks.\n\n• Product requires progress and resumability.\n\nDependency\npnpm --filter web add tus-js-client@4.3.1\n\nSigned TUS upload sketch\nconst upload = new tus.Upload(file, {\nendpoint:\n`https://${projectRef}.storage.supabase.co` +\n`/storage/v1/upload/resumable`,\n\nheaders: {\n\"x-signature\": signedUploadToken,\n},\n\nmetadata: {\nbucketName: \"task-attachments\",\nobjectName: objectPath,\ncontentType: file.type,\n},\n\nchunkSize: 6 * 1024 * 1024,\nretryDelays: [0, 3000, 5000, 10000, 20000],\nremoveFingerprintOnSuccess: true,\n\nonProgress(bytesUploaded, bytesTotal) {\nonProgress(bytesUploaded / bytesTotal)\n},\n\nonSuccess() {\nvoid completeAttachment(attachmentId)\n},\n})\n\nupload.start()\n\nImportant implementation details\n• Use the direct project-ref.storage.supabase.co hostname for large uploads.\n\n• Supabase currently requires 6MB TUS chunks.\n\n• Signed upload tokens can be forwarded in the x-signature header.\n\n• Progress is a transfer-progress signal; the attachment is not READY until NestJS finalizes it.\n\nCourse default\nKeep standard signed upload as the simplest path for small files. Add TUS only when file size or UX\nrequirements justify the extra moving parts.",
+      "wordCount": 166,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Resumable TUS Uploads and Progress in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Resumable TUS Uploads and Progress matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Resumable TUS Uploads and Progress” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "User-controlled storage path enabling cross-tenant overwrite",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Resumable TUS Uploads and Progress” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Resumable TUS Uploads and Progress solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "finalize-verify-and-commit-attachment-metadata",
+      "title": "Finalize Verify and Commit Attachment Metadata",
+      "summary": "Finalize, Verify and Commit Attachment Metadata TaskFlow - Full Stack Developer 2026 Never trust “upload finished” from the browser The browser can call finalize even if it uploaded nothing or different bytes. NestJS must verify the object through a privileged Storage API before marking the…",
+      "body": "Finalize, Verify and Commit\nAttachment Metadata\nTaskFlow - Full Stack Developer 2026\n\nNever trust “upload finished” from the browser\nThe browser can call finalize even if it uploaded nothing or different bytes. NestJS must verify the object\nthrough a privileged Storage API before marking the application row READY.\n\nVerification flow\nasync complete(id: string, user: AuthenticatedUser) {\nconst attachment =\nawait this.attachments.findPendingScoped(id, user.id)\n\nif (!attachment) {\nthrow new AttachmentNotFoundException(id)\n}\n\nconst info = await this.storage.info(\nattachment.bucket,\nattachment.objectPath,\n)\n\nif (info.size !== attachment.sizeBytes) {\nthrow new AttachmentUploadMismatchException()\n}\n\nif (normalizeMime(info.contentType) !== attachment.mimeType) {\nthrow new AttachmentUploadMismatchException()\n}\n\nreturn this.attachments.markReady(id, new Date())\n}\n\nWhat info() provides\nSupabase Storage currently exposes an info(path) API that returns object details such as size, content\ntype and timestamps. It is a useful server-side verification step before committing attachment\nmetadata.\n\nLimits of metadata verification\nMatching size and declared content type still does not prove the file is harmless. For hostile-file\nscenarios, add a scanning/quarantine pipeline.",
+      "wordCount": 163,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Finalize Verify and Commit Attachment Metadata in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Finalize Verify and Commit Attachment Metadata matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Finalize Verify and Commit Attachment Metadata” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Database metadata created before upload succeeds with no cleanup",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Finalize Verify and Commit Attachment Metadata” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Finalize Verify and Commit Attachment Metadata solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "private-downloads-and-short-lived-signed-urls",
+      "title": "Private Downloads and Short Lived Signed URLs",
+      "summary": "Private Downloads and Short-Lived Signed URLs TaskFlow - Full Stack Developer 2026 Download authorization A browser should not receive a permanent public object URL for Task documents. It first asks NestJS for access to an attachment. NestJS verifies Task visibility using the same Workspace authorization…",
+      "body": "Private Downloads and Short-Lived\nSigned URLs\nTaskFlow - Full Stack Developer 2026\n\nDownload authorization\nA browser should not receive a permanent public object URL for Task documents. It first asks NestJS for\naccess to an attachment. NestJS verifies Task visibility using the same Workspace authorization rules\nfrom Phase 19.\n\nSigned download\nconst { data, error } = await storage\n.from(attachment.bucket)\n.createSignedUrl(\nattachment.objectPath,\n60,\n{ download: true },\n)\n\nif (error) throw error\nreturn {\nurl: data.signedUrl,\nexpiresIn: 60,\n}\n\nWhy short-lived URLs\n• The URL can be handed to the browser without exposing the service-role key.\n\n• Access naturally expires.\n\n• The application can re-check authorization every time it issues a new URL.\n\nDo not put signed URLs in durable state\nA signed URL is a temporary capability. Store bucket + objectPath in PostgreSQL, then mint\na fresh URL when needed.",
+      "wordCount": 132,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Private Downloads and Short Lived Signed URLs in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Private Downloads and Short Lived Signed URLs” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting filename extension as MIME proof",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Private Downloads and Short Lived Signed URLs” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Private Downloads and Short Lived Signed URLs solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "replacement-deletion-and-orphan-cleanup",
+      "title": "Replacement Deletion and Orphan Cleanup",
+      "summary": "Replacement, Deletion and Orphan Cleanup TaskFlow - Full Stack Developer 2026 Replacement strategy Do not overwrite the same object path by default. Upload a new UUID-named object, verify it, update the application metadata/reference, then clean up the old object. This avoids stale-caching behavior and gives…",
+      "body": "Replacement, Deletion and Orphan\nCleanup\nTaskFlow - Full Stack Developer 2026\n\nReplacement strategy\nDo not overwrite the same object path by default. Upload a new UUID-named object, verify it, update\nthe application metadata/reference, then clean up the old object. This avoids stale-caching behavior\nand gives rollback options.\n\nDeletion is a distributed workflow\nDeletion across database + object storage is not one ACID transaction\n\nREADY                     DELETING           Storage.remove              DB delete\nmetadata                    mark row             delete bytes             remove row\n\nIf a step fails, keep enough state to retry cleanup safely.\n\nRecommended delete flow\n• Authorize attachment deletion in NestJS.\n\n• Mark metadata DELETING so concurrent UI actions stop treating it as normal.\n\n• Call storage.remove([objectPath]).\n\n• After successful object deletion, remove the TaskAttachment row.\n\n• If Storage deletion fails, retain DELETING (or restore READY) and retry operationally.\n\nOrphan cleanup\n• PENDING rows older than the signed-upload lifetime may indicate abandoned intents.\n\n• Cleanup job checks whether an object exists; remove any abandoned bytes and delete stale\nmetadata.\n\n• Object without TaskAttachment metadata is an orphan and still consumes storage.\n\n• Do not delete directly from storage.objects; use the Storage API.\n\nWhy this is not one database transaction\nPostgreSQL and object storage cannot share the same local Prisma transaction. Correctness comes\nfrom explicit workflow states, idempotent operations and compensating cleanup.",
+      "wordCount": 209,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Replacement Deletion and Orphan Cleanup in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Replacement Deletion and Orphan Cleanup matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Replacement Deletion and Orphan Cleanup” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Public bucket for private tenant files",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Replacement Deletion and Orphan Cleanup” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Replacement Deletion and Orphan Cleanup solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "frontend-ux-tanstack-query-and-form-integration",
+      "title": "Frontend UX TanStack Query and Form Integration",
+      "summary": "Frontend UX, TanStack Query and Form Integration TaskFlow - Full Stack Developer 2026 UI responsibilities • Validate obvious type/size issues before requesting an intent. • Show selected filename and human-readable size. • Show transfer progress for TUS uploads. • Distinguish uploading from finalizing. • Allow…",
+      "body": "Frontend UX, TanStack Query and\nForm Integration\nTaskFlow - Full Stack Developer 2026\n\nUI responsibilities\n• Validate obvious type/size issues before requesting an intent.\n\n• Show selected filename and human-readable size.\n\n• Show transfer progress for TUS uploads.\n\n• Distinguish uploading from finalizing.\n\n• Allow retry without creating uncontrolled duplicate records.\n\n• Announce errors and progress accessibly.\n\nMutation lifecycle\nconst uploadAttachment = useMutation({\nmutationFn: async (file: File) => {\nconst intent = await createAttachmentIntent(taskId, file)\nawait uploadFile(intent, file, setProgress)\nreturn completeAttachment(intent.attachment.id)\n},\n\nonSuccess: async () => {\nawait queryClient.invalidateQueries({\nqueryKey: attachmentKeys.list(taskId),\n})\n},\n})\n\nState ownership\n• Selected File and progress: local component/mutation UI state.\n\n• Attachment list: TanStack Query server state.\n\n• Upload policy: shared display hints may exist client-side, but NestJS and bucket restrictions remain\nauthoritative.\n\n• Original filename field: display metadata, not a storage key.\n\nAccessibility\nUse a real file input with a programmatic label, provide text progress in addition to a visual bar, and\nannounce success/failure through a polite status region. Do not communicate upload state only by\ncolor.",
+      "wordCount": 162,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Frontend UX TanStack Query and Form Integration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Frontend UX TanStack Query and Form Integration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "User-controlled storage path enabling cross-tenant overwrite",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Frontend UX TanStack Query and Form Integration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Frontend UX TanStack Query and Form Integration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "testing-security-troubleshooting-and-phase-exit",
+      "title": "Testing Security Troubleshooting and Phase Exit",
+      "summary": "Testing, Security, Troubleshooting and Phase Exit TaskFlow - Full Stack Developer 2026 Security test matrix • Unauthenticated intent request -> 401. • Authenticated non-member attaches to another Workspace Task -> 404/403 according to policy. • Disallowed MIME or >20MB -> rejected before signed token issuance.…",
+      "body": "Testing, Security, Troubleshooting and\nPhase Exit\nTaskFlow - Full Stack Developer 2026\n\nSecurity test matrix\n• Unauthenticated intent request -> 401.\n\n• Authenticated non-member attaches to another Workspace Task -> 404/403 according to policy.\n\n• Disallowed MIME or >20MB -> rejected before signed token issuance.\n\n• Path sent by browser is ignored; server generates objectPath.\n\n• Service-role key never appears in web bundle or API response.\n\n• Finalize without an object -> failure; row remains non-READY.\n\n• Finalize with size/type mismatch -> failure.\n\n• Download for unauthorized caller -> denied.\n\n• Expired signed download -> no permanent access.\n\n• Delete failure leaves recoverable state for retry.\n\nCommon failures\n• 400 Asset Already Exists: path collision or unintended reuse; unique UUID paths avoid this.\n\n• 413/size error: global or bucket limits are lower than the application policy.\n\n• TUS stalls/retries: verify direct storage hostname, 6MB chunks, token header and network\nconditions.\n\n• Signed upload works but finalize fails: inspect info() result and expected metadata.\n\n• Object remains after business deletion: run orphan/deletion retry workflow; do not manipulate\nstorage tables directly.\n\nPhase exit checklist\n• Private bucket configured with allowed MIME types and 20MB limit.\n\n• TaskAttachment migration applied.\n\n• Signed upload intent is authorized by NestJS.\n\n• Small-file upload works; TUS path understood/tested if enabled.\n\n• Finalize verifies object metadata and marks READY.\n\n• Download uses short-lived signed URL.\n\n• Delete/replacement have explicit failure recovery.\n\n• Tests prove cross-Workspace file access is denied.\n\nVolume 07 completed\nRepository Pattern, Optimistic Updates, Realtime and Storage are now layered on top of the same\ntrusted backend architecture rather than replacing it.\n\nOfficial/current references\nSource                                                        Used for\n\nSupabase Storage overview                                     Storage concepts, bucket types, access control and delivery.\nhttps://supabase.com/docs/guides/storage\n\nSupabase Standard Uploads                                     Standard uploads are recommended for small files; TUS is\nhttps://supabase.com/docs/guides/storage/uploads/standar      recommended above 6MB or when resumability/progress\nd-uploads                                                     matters.\n\nSupabase Resumable Uploads                                    TUS endpoint, 6MB chunks, direct storage hostname, progress\nhttps://supabase.com/docs/guides/storage/uploads/resumab      callbacks and signed upload tokens.\nle-uploads\n\nSupabase Storage Access Control                               Storage RLS model, service-role bypass warning and policy\nhttps://supabase.com/docs/guides/storage/security/access-c    requirements.\nontrol\n\nSupabase Storage Ownership                                    owner_id derives from the JWT subject but ownership alone does\nhttps://supabase.com/docs/guides/storage/security/ownersh     not enforce access control.\nip\n\nSupabase Storage Schema                                       Treat storage schema as read-only; mutate objects through\nhttps://supabase.com/docs/guides/storage/schema/design        Storage APIs, not direct SQL.\n\nSupabase File Limits                                          Global and per-bucket file size/type restrictions.\nhttps://supabase.com/docs/guides/storage/uploads/file-limit\ns\n\nSupabase createSignedUploadUrl                                Creates time-limited upload tokens.\nhttps://supabase.com/docs/reference/javascript/file-buckets\n-createsigneduploadurl\n\nSupabase uploadToSignedUrl                                    Browser upload using a signed upload token.\nhttps://supabase.com/docs/reference/javascript/file-buckets\n-uploadtosignedurl\n\nSupabase createSignedUrl                                      Short-lived signed download URLs for private objects.\nhttps://supabase.com/docs/reference/javascript/file-buckets\n-createsignedurl\n\nSupabase info                                                 Retrieves object metadata including size and content type.\nhttps://supabase.com/docs/reference/javascript/file-buckets\n-info\n\nSupabase createBucket                                         Private bucket creation with MIME and size restrictions.\nhttps://supabase.com/docs/reference/javascript/file-buckets\n-createbucket\n\ntus-js-client npm                                             Stable v4.3.1 used for resumable upload/progress example.\nhttps://www.npmjs.com/package/tus-js-client",
+      "wordCount": 513,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Testing Security Troubleshooting and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Testing Security Troubleshooting and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Database metadata created before upload succeeds with no cleanup",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Testing Security Troubleshooting and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Testing Security Troubleshooting and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nDesign a secure file-upload pipeline with storage objects, metadata, validation, signed access, lifecycle cleanup, and authorization.",
+      "body": "Guided Build Lab — Phase 27: File Uploads & Supabase Storage\n\nPurpose\nDesign a secure file-upload pipeline with storage objects, metadata, validation, signed access, lifecycle cleanup, and authorization.\n\nDeliverable\nTask attachment upload/download/delete workflow using Supabase Storage plus application metadata.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nupload intent -> API authorization/validation -> signed upload or storage request -> object store -> finalize metadata -> signed/read access\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Define file policy: allowed types, size, naming/path rules, ownership, retention.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Generate time-limited access for private objects and test outsider access denial.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Implement delete/cleanup behavior for abandoned uploads and metadata/object mismatch.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 647,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting filename extension as MIME proof",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 27: File Uploads & Supabase Storage\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nupload intent -> API authorization/validation -> signed upload or storage request -> object store -> finalize metadata -> signed/read access\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Trusting filename extension as MIME proof\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Public bucket for private tenant files\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — User-controlled storage path enabling cross-tenant overwrite\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Database metadata created before upload succeeds with no cleanup\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 453,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Public bucket for private tenant files",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 27 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — File Uploads & Supabase Storage\n\nMission\nRebuild the capability of Phase 27 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nDesign a secure file-upload pipeline with storage objects, metadata, validation, signed access, lifecycle cleanup, and authorization.\n\nRequired artifact\nTask attachment upload/download/delete workflow using Supabase Storage plus application metadata.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can separate object bytes and metadata.\n• Can validate/authorize upload intent.\n• Can use signed access.\n• Can reason about partial failure cleanup.\n\nIndependent build sequence\n1. Define file policy: allowed types, size, naming/path rules, ownership, retention.\n2. Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability.\n3. Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.\n4. Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows.\n5. Generate time-limited access for private objects and test outsider access denial.\n6. Implement delete/cleanup behavior for abandoned uploads and metadata/object mismatch.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 373,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "User-controlled storage path enabling cross-tenant overwrite",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 27 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 27: File Uploads & Supabase Storage. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nTask attachment upload/download/delete workflow using Supabase Storage plus application metadata.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 199,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Design a secure file-upload pipeline with storage objects, metadata, validation, signed access, lifecycle cleanup, and authorization.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "upload intent",
+          "API authorization/validation",
+          "signed upload or storage request",
+          "object store",
+          "finalize metadata",
+          "signed/read access"
+        ],
+        "steps": [
+          "Define file policy: allowed types, size, naming/path rules, ownership, retention.",
+          "Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability.",
+          "Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.",
+          "Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows.",
+          "Generate time-limited access for private objects and test outsider access denial.",
+          "Implement delete/cleanup behavior for abandoned uploads and metadata/object mismatch.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can separate object bytes and metadata",
+          "Can validate/authorize upload intent",
+          "Can use signed access",
+          "Can reason about partial failure cleanup"
+        ],
+        "breakIt": [
+          "Trusting filename extension as MIME proof",
+          "Public bucket for private tenant files"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/ATTACHMENT_SECURITY_CHECKLIST.md",
+      "preview": "# Attachment security checklist\n\n- Private bucket by default.\n- Service-role key only in NestJS/server environment.\n- NestJS authorizes Task membership before issuing upload/download capabilities.\n- Server generates object paths; never trust client-supplied paths.\n- Allowlist MIME types and cap size in API + bucket.\n- Original name is display metadata only.\n- Finalize verifies object existence, size and content type.\n- Signed download URLs are short-lived.\n- Do not store signed URLs in PostgreSQL.\n- Do not mutate `storage.objects` directly.\n- Add malware/quarantine scanning for higher-risk file classes.\n- Clean abandoned PENDING uploads and failed DELETING records."
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 27 - File Uploads and Supabase Storage\n\nReference snapshot for a signed-upload-intent architecture. NestJS authorizes attachment operations, Supabase Storage holds bytes, and PostgreSQL stores application metadata.\n\nDefault bucket: `task-attachments` (private). Default app limit: 20 MB."
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/SOURCES.md",
+      "preview": "# Official sources\n\n- Supabase Storage overview: https://supabase.com/docs/guides/storage\n- Supabase Standard Uploads: https://supabase.com/docs/guides/storage/uploads/standard-uploads\n- Supabase Resumable Uploads: https://supabase.com/docs/guides/storage/uploads/resumable-uploads\n- Supabase Storage Access Control: https://supabase.com/docs/guides/storage/security/access-control\n- Supabase Storage Ownership: https://supabase.com/docs/guides/storage/security/ownership\n- Supabase Storage Schema: https://supabase.com/docs/guides/storage/schema/design\n- Supabase File Limits: https://supabase.com/docs/guides/storage/uploads/file-limits\n- Supabase createSignedUploadUrl: https://supabase.com/docs/reference/javascript/file-buckets-createsigneduploadurl\n- Supabase uploadToSignedUrl: https://supabase.com/docs/reference/javascript/file-buckets-uploadtosignedurl\n- Supabase createSignedUrl: https://supabase.com/docs/reference/javascript/file-buckets-createsignedurl\n- Supabase info: https://supabase.com/docs/reference/javascript/file-buckets-info\n- Supabase createBucket: https://supabase.com/docs/reference/javascript/file-buckets-createbucket\n- tus-js-client npm: https://www.npmjs.com/package/tus-js-client"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/.env.example",
+      "preview": "SUPABASE_URL=https://YOUR_PROJECT.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=SERVER_ONLY_SECRET\nTASK_ATTACHMENT_BUCKET=task-attachments"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/prisma/schema.phase27.prisma",
+      "preview": "enum AttachmentStatus {\n  PENDING\n  READY\n  DELETING\n}\n\nmodel TaskAttachment {\n  id           String           @id @default(uuid())\n  taskId       String\n  uploadedById String\n  bucket       String           @default(\"task-attachments\")\n  objectPath   String           @unique\n  originalName String\n  mimeType     String\n  sizeBytes    Int\n  status       AttachmentStatus @default(PENDING)\n  createdAt    DateTime         @default(now())\n  readyAt      DateTime?\n\n  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/attachments/attachment-path.ts",
+      "preview": "import { ATTACHMENT_EXTENSION_BY_MIME } from \"./attachment.constants\"\n\nexport function buildAttachmentObjectPath(input: {\n  workspaceId: string\n  taskId: string\n  attachmentId: string\n  mimeType: keyof typeof ATTACHMENT_EXTENSION_BY_MIME\n}) {\n  const ext = ATTACHMENT_EXTENSION_BY_MIME[input.mimeType]\n  return `workspaces/${input.workspaceId}/tasks/${input.taskId}/${input.attachmentId}.${ext}`\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/attachments/attachment.constants.ts",
+      "preview": "export const ATTACHMENT_BUCKET = \"task-attachments\"\nexport const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024\n\nexport const ALLOWED_ATTACHMENT_MIME_TYPES = [\n  \"application/pdf\",\n  \"image/png\",\n  \"image/jpeg\",\n  \"text/plain\",\n] as const\n\nexport const ATTACHMENT_EXTENSION_BY_MIME = {\n  \"application/pdf\": \"pdf\",\n  \"image/png\": \"png\",\n  \"image/jpeg\": \"jpg\",\n  \"text/plain\": \"txt\",\n} as const"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/attachments/attachment.schemas.ts",
+      "preview": "import { z } from \"zod\"\nimport { ALLOWED_ATTACHMENT_MIME_TYPES, MAX_ATTACHMENT_BYTES } from \"./attachment.constants\"\n\nexport const createAttachmentIntentSchema = z.strictObject({\n  originalName: z.string().trim().min(1).max(255),\n  mimeType: z.enum(ALLOWED_ATTACHMENT_MIME_TYPES),\n  sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES),\n})\n\nexport type CreateAttachmentIntent = z.infer<typeof createAttachmentIntentSchema>"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/attachments/attachments.controller.ts",
+      "preview": "import { Body, Controller, Param, Post, UseGuards } from \"@nestjs/common\"\nimport { StandardSchemaValidationPipe } from \"@nestjs/common\"\nimport { SupabaseAuthGuard } from \"../auth/supabase-auth.guard\"\nimport { CurrentUser } from \"../common/decorators/current-user.decorator\"\nimport type { AuthenticatedUser } from \"../auth/authenticated-user\"\nimport { createAttachmentIntentSchema, type CreateAttachmentIntent } from \"./attachment.schemas\"\nimport { AttachmentsService } from \"./attachments.service\"\n\n@Controller()\n@UseGuards(SupabaseAuthGuard)\nexport class AttachmentsController {\n  constructor(private readonly attachments: AttachmentsService) {}\n\n  @Post(\"tasks/:taskId/attachments/upload-intents\")\n  createIntent(\n    @Param(\"taskId\") taskId: string,\n    @CurrentUser() user: AuthenticatedUser,\n    @Body(new StandardSchemaValidationPipe(createAttachmentIntentSchema))\n    body: CreateAttachmentIntent,\n  ) {"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/attachments/attachments.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\"\nimport { AttachmentsController } from \"./attachments.controller\"\nimport { AttachmentsService } from \"./attachments.service\"\nimport { SupabaseStorageService } from \"../storage/supabase-storage.service\"\n\n@Module({\n  controllers: [AttachmentsController],\n  providers: [AttachmentsService, SupabaseStorageService],\n})\nexport class AttachmentsModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/attachments/attachments.service.ts",
+      "preview": "import { randomUUID } from \"node:crypto\"\nimport { Injectable } from \"@nestjs/common\"\nimport { ATTACHMENT_BUCKET } from \"./attachment.constants\"\nimport { buildAttachmentObjectPath } from \"./attachment-path\"\nimport type { CreateAttachmentIntent } from \"./attachment.schemas\"\nimport type { AuthenticatedUser } from \"../auth/authenticated-user\"\nimport { SupabaseStorageService } from \"../storage/supabase-storage.service\"\n\n@Injectable()\nexport class AttachmentsService {\n  constructor(\n    private readonly storage: SupabaseStorageService,\n    // inject Task/Attachment repositories used by the real application\n  ) {}\n\n  async createIntent(taskId: string, user: AuthenticatedUser, input: CreateAttachmentIntent) {\n    // 1. Load Task inside the caller's authorized scope.\n    // 2. Generate attachmentId + trusted objectPath.\n    // 3. Insert PENDING TaskAttachment metadata row.\n    // 4. Ask Storage for a signed upload token."
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/api/src/storage/supabase-storage.service.ts",
+      "preview": "import { Injectable } from \"@nestjs/common\"\nimport { ConfigService } from \"@nestjs/config\"\nimport { createClient, SupabaseClient } from \"@supabase/supabase-js\"\n\n@Injectable()\nexport class SupabaseStorageService {\n  private readonly client: SupabaseClient\n\n  constructor(config: ConfigService) {\n    this.client = createClient(\n      config.getOrThrow(\"SUPABASE_URL\"),\n      config.getOrThrow(\"SUPABASE_SERVICE_ROLE_KEY\"),\n      { auth: { persistSession: false, autoRefreshToken: false } },\n    )\n  }\n\n  async createSignedUploadUrl(bucket: string, path: string) {\n    const { data, error } = await this.client.storage\n      .from(bucket)\n      .createSignedUploadUrl(path, { upsert: false })"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/web/src/components/tasks/task-attachment-uploader.tsx",
+      "preview": "\"use client\"\n\nimport { useState } from \"react\"\nimport { useMutation, useQueryClient } from \"@tanstack/react-query\"\n\nexport function TaskAttachmentUploader({ taskId }: { taskId: string }) {\n  const [progress, setProgress] = useState(0)\n  const queryClient = useQueryClient()\n\n  const mutation = useMutation({\n    mutationFn: async (file: File) => {\n      // create intent -> upload bytes -> complete attachment\n      // use standard upload for small files; TUS when progress/resume is needed\n      return { fileName: file.name }\n    },\n    onSuccess: async () => {\n      setProgress(0)\n      await queryClient.invalidateQueries({\n        queryKey: [\"tasks\", taskId, \"attachments\"],\n      })"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/web/src/lib/api/task-attachments.ts",
+      "preview": "import { createBrowserSupabaseClient } from \"@/lib/supabase/client\"\n\nexport async function uploadAttachmentFile(intent: {\n  bucket: string\n  objectPath: string\n  token: string\n}, file: File) {\n  const supabase = createBrowserSupabaseClient()\n  const { error } = await supabase.storage\n    .from(intent.bucket)\n    .uploadToSignedUrl(intent.objectPath, intent.token, file, {\n      contentType: file.type,\n    })\n  if (error) throw error\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/apps/web/src/lib/storage/upload-file-tus.ts",
+      "preview": "import * as tus from \"tus-js-client\"\n\nexport function uploadFileTus(input: {\n  projectRef: string\n  signedUploadToken: string\n  bucket: string\n  objectPath: string\n  file: File\n  onProgress: (ratio: number) => void\n}) {\n  return new Promise<void>((resolve, reject) => {\n    const upload = new tus.Upload(input.file, {\n      endpoint: `https://${input.projectRef}.storage.supabase.co/storage/v1/upload/resumable`,\n      headers: { \"x-signature\": input.signedUploadToken },\n      metadata: {\n        bucketName: input.bucket,\n        objectName: input.objectPath,\n        contentType: input.file.type,\n      },\n      chunkSize: 6 * 1024 * 1024,"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/setup/create-private-bucket.ts",
+      "preview": "import { createClient } from \"@supabase/supabase-js\"\n\nconst supabase = createClient(\n  process.env.SUPABASE_URL!,\n  process.env.SUPABASE_SERVICE_ROLE_KEY!,\n  { auth: { persistSession: false, autoRefreshToken: false } },\n)\n\nconst { error } = await supabase.storage.createBucket(\"task-attachments\", {\n  public: false,\n  allowedMimeTypes: [\n    \"application/pdf\",\n    \"image/png\",\n    \"image/jpeg\",\n    \"text/plain\",\n  ],\n  fileSizeLimit: \"20MB\",\n})\n\nif (error && !String(error.message).toLowerCase().includes(\"already\")) {"
+    },
+    {
+      "path": "reference/TaskFlow_Storage_Snapshot/tests/storage-test-matrix.md",
+      "preview": "# Phase 27 test matrix\n\n## Authorization\n- No token cannot create an upload intent.\n- Member outside the Task Workspace cannot attach/download/delete.\n- Valid member can create an intent for an authorized Task.\n\n## Validation\n- Zero-byte, >20MB and disallowed MIME are rejected.\n- Client cannot choose an object path.\n- Generated paths are unique and Workspace/Task scoped.\n\n## Lifecycle\n- Intent creates PENDING metadata.\n- Successful upload + matching Storage info becomes READY.\n- Missing object cannot finalize.\n- Metadata mismatch cannot finalize.\n- Signed download expires.\n- Delete removes bytes then metadata or leaves a recoverable DELETING state.\n- Stale PENDING intents are cleaned."
+    }
+  ],
+  "exercises": [
+    "Guided: Define file policy: allowed types, size, naming/path rules, ownership, retention.",
+    "Practice: Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.",
+    "Debugging: reproduce and diagnose — Trusting filename extension as MIME proof.",
+    "Independent: deliver Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.",
+    "Explain-back: Can separate object bytes and metadata and Can validate/authorize upload intent."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Keep file bytes in object storage and metadata/authorization relationships in application data where appropriate.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Keep file bytes in object storage and metadata/authorization relationships in application data where appropriate."
+    },
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Validate file type, size, path, and ownership before trusting an upload workflow.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Validate file type, size, path, and ownership before trusting an upload workflow."
+    },
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Use signed or access-controlled URLs instead of making private files globally public."
+      ],
+      "answer": 3,
+      "explanation": "Use signed or access-controlled URLs instead of making private files globally public."
+    },
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Treat deletion as a coordinated workflow when both storage objects and database metadata must remain consistent.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Treat deletion as a coordinated workflow when both storage objects and database metadata must remain consistent."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define file policy: allowed types, size, naming/path rules, ownership, retention.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Trusting filename extension as MIME proof.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define file policy: allowed types, size, naming/path rules, ownership, retention."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Public bucket for private tenant files.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability."
+      ],
+      "answer": 3,
+      "explanation": "Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: User-controlled storage path enabling cross-tenant overwrite.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Upload bytes directly to storage where appropriate rather than proxying large files through the API by default."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Database metadata created before upload succeeds with no cleanup."
+      ],
+      "answer": 1,
+      "explanation": "Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4049
+}

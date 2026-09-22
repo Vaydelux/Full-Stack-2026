@@ -1,0 +1,1077 @@
+{
+  "number": 11,
+  "slug": "phase-11",
+  "title": "Persistent Task CRUD API",
+  "volume": 3,
+  "readme": "Full-Stack Developer 2026 - Phase 11\nPersistent Task CRUD API\n\nThis phase replaces the temporary in-memory resource with PostgreSQL-backed Task CRUD through NestJS + Prisma 7.9.1.\n\nOrder: read 00 through 10, or use 11_Phase_11_Complete_Book.pdf.\nThe reference snapshot is a teaching reference, not a replacement for generating your own migration and Prisma Client.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "from-memory-to-durable-state",
+      "title": "From Memory to Durable State",
+      "summary": "From Memory to Durable State Why the storage lifetime must move beyond the Node.js process Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone In-memory Todo API ↓ Durable database boundary ↓ TaskFlow Task resource Phase 11 replaces process memory…",
+      "body": "From Memory to Durable State\nWhy the storage lifetime must move beyond the Node.js process\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nIn-memory Todo API\n\n↓\n\nDurable database boundary\n\n↓\n\nTaskFlow Task resource\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nMemory solved the wrong problem\nThe array from Phase 05 was useful because it isolated HTTP behavior. It was never meant to be durable\nstorage. A process-local array belongs to one running Node.js process; when that process stops, the array\nstops existing with it.\n\nFigure 1 - The persistence gap\nPOST /todos\n\n↓\n\nNestJS process memory\n\n↓\n\nRestart process\n\n↓\n\ndata disappears\n\nThe failure is not a bug in HTTP. It is a storage-lifetime problem.\n\nDurable state changes the ownership model\nOnce Task rows live in PostgreSQL, NestJS no longer owns their lifetime. NestJS owns the rules for creating\nand changing them; PostgreSQL owns durable storage and relational constraints.\n\nConcern                       In-memory array                                PostgreSQL + Prisma\n\nLifetime                      Until process exits                            Survives application restarts\n\nRelations                     Manual objects only                            Foreign keys + relations\n\nConcurrency                   One process perspective                        Database concurrency model\n\nIntegrity                     Application discipline                         Application + database constraints\n\nInspection                    Debugger/log output                            SQL, Prisma Studio, dashboard\n\nWhy we move from Todo to Task\nPhase 10 established Task as a real domain entity: it belongs to a Project, has a status and priority, and can\nlater be assigned to a User. We therefore evolve the API to /tasks instead of keeping a fake Todo resource\ndisconnected from the production model.\n\nReal-world transfer\n\nThe same transition happens when a prototype PayrollRun, PurchaseRequest, LeaveRequest, or\nInventoryMovement stops being a JavaScript object and becomes durable business data.\n\nPersistence does not remove the service layer\nA common beginner mistake is to treat Prisma as the service. Prisma knows how to access data; it does not\nknow TaskFlow business semantics. The service remains the place where application rules and meaningful\nnot-found behavior live.\n\nFigure 2 - Responsibility boundary\nTasksController: HTTP input/output\n\n↓\n\nTasksService: application behavior\n\n↓\n\nPrismaService: reusable database dependency\n\n↓\n\nPostgreSQL: durable relational state\n\nEach layer becomes easier to change because its responsibility is explicit.\n\nWhat changes and what stays stable\n• HTTP verbs and REST resource semantics from Phase 05 remain valid.\n\n• CORS and fetch behavior from Phase 06 remain valid.\n\n• The storage implementation changes from memory to PostgreSQL.\n\n• The data model from Phase 10 becomes executable schema.\n\n• The frontend still talks to an HTTP API; it never receives database credentials.",
+      "wordCount": 400,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain From Memory to Durable State in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "From Memory to Durable State matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “From Memory to Durable State” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Controllers contain Prisma calls",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “From Memory to Durable State” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does From Memory to Durable State solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "schema-migration-and-development-seed",
+      "title": "Schema Migration and Development Seed",
+      "summary": "Schema Migration and Development Seed Evolve additively, generate safely, seed the minimum relational graph Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone Phase 09 learning schema ↓ Add TaskFlow domain + preserve legacy table ↓ Seed Workspace + Project…",
+      "body": "Schema Migration and Development\nSeed\nEvolve additively, generate safely, seed the minimum relational graph\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nPhase 09 learning schema\n\n↓\n\nAdd TaskFlow domain + preserve legacy table\n\n↓\n\nSeed Workspace + Project\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nSTEP 1 - Evolve the Prisma schema safely\nPhase 09 created a small Todo table for learning. Phase 10 designed the real TaskFlow domain. A\nproduction-minded migration should prefer additive change over casually dropping a table that might contain\nuseful data.\n\nMigration strategy\n\nKeep the old PostgreSQL table for now by mapping it to a clearly named LegacyTodo model. Add the new User,\nWorkspace, Membership, Project, and Task models in the same schema. Retire legacy data only after an explicit\ncleanup/migration decision.\n\nmodel LegacyTodo {\nid        String   @id @default(cuid())\ntitle     String\ncompleted Boolean @default(false)\ncreatedAt DateTime @default(now())\nupdatedAt DateTime @updatedAt\n\n@@map(\"Todo\")\n}\n\nThe Prisma model name changes for application clarity, while @@map(\"Todo\") preserves the existing\ndatabase table name. The new TaskFlow models are then added beside it.\n\nRun schema checks before migration\nFrom taskflow\\apps\\api run:\n\npnpm exec prisma format\npnpm exec prisma validate\n\nValidation should succeed before Prisma touches the database. If it does not, stop here. Migration output is not\nthe place to discover a malformed schema.\n\nCreate the domain migration\npnpm exec prisma migrate dev --name add_taskflow_domain\n\nReview the SQL\n\nOpen the generated migration.sql before treating the migration as complete. Confirm that the migration creates the\nTaskFlow tables and does not unexpectedly DROP the learning Todo table.\n\nRegenerate the client\nThe generated Prisma Client is derived from schema.prisma. New models are not available to TypeScript until\nthe client is regenerated.\n\npnpm exec prisma generate\npnpm run build\n\nFigure 1 - Schema-to-runtime lifecycle\n\nschema.prisma\n\n↓\n\nmigrate dev\n\n↓\n\nPostgreSQL schema\n\n↓\n\nprisma generate\n\n↓\n\ngenerated Prisma Client\n\n↓\n\nNestJS build\n\nDatabase structure and TypeScript client code are related, but they are not the same artifact.\n\nSTEP 2 - Seed the minimum relational graph\nA Task requires projectId, and a Project requires a Workspace. Rather than weakening those relations for\nconvenience, Phase 11 creates a tiny development graph that satisfies the real model.\n\nWorkspace\n-> Membership <- User\n-> Project\n-> Task\n\nThe included prisma/seed.ts is idempotent for the learning Workspace/User/Membership. It finds or creates the\nLearning Project, then prints the Project ID needed by POST /tasks.\n\nFrom apps/api:\n\npnpm exec ts-node prisma/seed.ts\n\nExpected output\n\nTaskFlow development seed ready. Copy the printed Project ID. You will use it as projectId in the first POST\nrequest.",
+      "wordCount": 428,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Schema Migration and Development Seed in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Schema Migration and Development Seed” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "PATCH treats omitted values as null/empty",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Schema Migration and Development Seed” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Schema Migration and Development Seed solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "tasks-module-and-service-architecture",
+      "title": "Tasks Module and Service Architecture",
+      "summary": "Tasks Module and Service Architecture Controllers, services, dependency injection, and a clean Prisma boundary Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone HTTP routing ↓ TasksService behavior ↓ PrismaService persistence Phase 11 replaces process memory with durable PostgreSQL-backed application…",
+      "body": "Tasks Module and Service Architecture\nControllers, services, dependency injection, and a clean Prisma boundary\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nHTTP routing\n\n↓\n\nTasksService behavior\n\n↓\n\nPrismaService persistence\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nThe module we actually need\nThe old TodosModule stored data in memory. Phase 11 introduces TasksModule because Task is now the\ndurable domain resource. We do not create repository abstractions yet; PrismaService already gives the\nservice a clean database dependency.\n\nsrc/tasks/\ntasks.module.ts\ntasks.controller.ts\ntasks.service.ts\ntasks.types.ts\n\nModule wiring\nimport { Module } from \"@nestjs/common\";\nimport { TasksController } from \"./tasks.controller\";\nimport { TasksService } from \"./tasks.service\";\n\n@Module({\ncontrollers: [TasksController],\nproviders: [TasksService],\n})\nexport class TasksModule {}\n\nPrismaModule is global from Phase 09, so TasksModule does not need to import it explicitly. TasksService can\nrequest PrismaService through Nest dependency injection.\n\nApplication module\nimport { Module } from \"@nestjs/common\";\nimport { ConfigModule } from \"@nestjs/config\";\nimport { HealthModule } from \"./health/health.module\";\nimport { PrismaModule } from \"./prisma/prisma.module\";\nimport { TasksModule } from \"./tasks/tasks.module\";\n\n@Module({\nimports: [\nConfigModule.forRoot({ isGlobal: true }),\nPrismaModule,\nHealthModule,\nTasksModule,\n],\n})\nexport class AppModule {}\n\nWhy remove TodosModule from AppModule?\n\nThe old /todos endpoint represented temporary storage. Leaving it registered beside /tasks would create two\ncompeting resource models and confuse the learning architecture.\n\nCompile-time request shapes - temporary\n\nimport {\nTaskPriority,\nTaskStatus,\n} from \"../generated/prisma/client\";\n\n// These are compile-time shapes only. Phase 12 replaces this temporary\n// boundary with DTOs + runtime validation.\nexport type CreateTaskInput = {\nprojectId: string;\ntitle: string;\ndescription?: string | null;\n};\n\nexport type UpdateTaskInput = {\ntitle?: string;\ndescription?: string | null;\nstatus?: TaskStatus;\npriority?: TaskPriority;\n};\n\nThese TypeScript types help the editor and compiler, but they do not validate JSON received from the network.\nA caller can still send an invalid string at runtime. Phase 12 replaces this temporary boundary with DTOs and\nruntime validation.\n\nService dependency graph\nFigure 1 - Nest dependency graph\nTasksController\n\n↓\n\nTasksService\n\n↓\n\nPrismaService\n\n↓\n\nPrisma Client + adapter\n\n↓\n\nPostgreSQL\n\nNest wires class dependencies; Prisma handles persistence; the database remains the final integrity boundary.\n\nController vs service\nController owns                                                 Service owns\n\nRoutes and HTTP decorators                                      Task application behavior\n\nPath/body extraction                                            Project existence checks\n\nHTTP status choice                                              Prisma queries\n\nDelegation                                                      Not-found semantics\n\nNestJS guidance consistently treats controllers as request handlers that delegate more complex work to\ninjectable providers/services. That separation is the pattern TaskFlow follows here.",
+      "wordCount": 383,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "business",
+        "objectives": [
+          "Explain Tasks Module and Service Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this business concept.",
+          "Diagnose one representative business failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tasks Module and Service Architecture matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "validated command",
+          "invariant",
+          "state transition",
+          "persisted result"
+        ],
+        "steps": [
+          "Restate the goal of “Tasks Module and Service Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → validated command → invariant → state transition → persisted result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Make the transition rule explicit",
+          "code": "if (task.status === \"DONE\") {\n  throw new TaskAlreadyCompletedError(task.id);\n}\n\ntask.status = \"DONE\";\ntask.completedAt = new Date();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Missing records bubble up as raw ORM exceptions",
+          "Change one assumption in the business example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Tasks Module and Service Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Tasks Module and Service Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the business boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "create-persistent-tasks",
+      "title": "Create Persistent Tasks",
+      "summary": "Create Persistent Tasks POST /tasks from HTTP request to PostgreSQL INSERT Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone POST /tasks ↓ Project relation check ↓ prisma.task.create() Phase 11 replaces process memory with durable PostgreSQL-backed application behavior. Full-Stack Developer…",
+      "body": "Create Persistent Tasks\nPOST /tasks from HTTP request to PostgreSQL INSERT\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nPOST /tasks\n\n↓\n\nProject relation check\n\n↓\n\nprisma.task.create()\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nPOST /tasks - create the first durable Task\nCreation is the first operation that proves NestJS can transform an HTTP request into a persistent PostgreSQL\nrow.\n\nFigure 1 - Create lifecycle\nPOST /tasks\n\n↓\n\nTasksController.create()\n\n↓\n\nTasksService.create()\n\n↓\n\nverify Project exists\n\n↓\n\nprisma.task.create()\n\n↓\n\nPostgreSQL INSERT\n\n↓\n\n201 response\n\nThe service checks parent semantics before it asks Prisma to create the Task.\n\nController route\n@Post()\ncreate(@Body() body: CreateTaskInput) {\nreturn this.tasksService.create(body);\n}\n\nNestJS uses 201 Created for a successful POST handler by default. The controller does not construct SQL and\ndoes not instantiate PrismaClient.\n\nService create method\n\nasync create(input: CreateTaskInput) {\nconst project = await this.prisma.project.findUnique({\nwhere: { id: input.projectId },\nselect: { id: true },\n});\n\nif (!project) {\nthrow new NotFoundException(\n`Project ${input.projectId} was not found.`,\n);\n}\n\nreturn this.prisma.task.create({\ndata: {\nprojectId: input.projectId,\ntitle: input.title,\ndescription: input.description,\n},\n});\n}\n\nTest from PowerShell\nFrom any PowerShell terminal while the API is running:\n\n$projectId = \"<PROJECT-ID-FROM-SEED>\"\n\n$body = @{\nprojectId = $projectId\ntitle = \"Persist my first Task\"\ndescription = \"Created in Phase 11\"\n} | ConvertTo-Json\n\n$created = Invoke-RestMethod `\n-Method Post `\n-Uri \"http://127.0.0.1:4000/tasks\" `\n-ContentType \"application/json\" `\n-Body $body\n\n$created\n\nCheckpoint C\n\nThe response should contain a generated Task id, your projectId/title, status TODO, priority MEDIUM, and\ntimestamps. Copy the Task id for later steps.\n\nWhat the defaults teach\nThe HTTP request did not send status, priority, id, createdAt, or updatedAt. Those values come from the\nPrisma/database model. Defaults are part of the durable domain contract, not UI convenience.\n\nKnown gap\n\nSending a missing or malformed title is not handled professionally yet. TypeScript request types vanish at runtime.\nPhase 12 adds real validation at the API boundary.",
+      "wordCount": 315,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Create Persistent Tasks in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Create Persistent Tasks matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Create Persistent Tasks” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "UI is considered proof without inspecting API/database",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Create Persistent Tasks” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Create Persistent Tasks solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "read-persistent-tasks",
+      "title": "Read Persistent Tasks",
+      "summary": "Read Persistent Tasks Collection and detail queries with meaningful not-found behavior Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone GET /tasks ↓ Prisma findMany/findUnique ↓ 200 or 404 Phase 11 replaces process memory with durable PostgreSQL-backed application behavior. Full-Stack…",
+      "body": "Read Persistent Tasks\nCollection and detail queries with meaningful not-found behavior\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nGET /tasks\n\n↓\n\nPrisma findMany/findUnique\n\n↓\n\n200 or 404\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nGET /tasks - list durable rows\nA read operation should not know whether the row was created five seconds ago or before the API restarted.\nThat is exactly what durable storage gives us.\n\nfindAll() {\nreturn this.prisma.task.findMany({\norderBy: { createdAt: \"desc\" },\n});\n}\n\nThis phase keeps list behavior deliberately small. Filtering, search, sorting policy, and pagination become a\ndedicated professional API topic in Phase 15.\n\nController list route\n@Get()\nfindAll() {\nreturn this.tasksService.findAll();\n}\n\nTest the collection\nInvoke-RestMethod `\n-Method Get `\n-Uri \"http://127.0.0.1:4000/tasks\"\n\nGET /tasks/:id - one resource\nfindUnique() may return null. HTTP clients should not have to understand Prisma nullability, so the service\ntranslates absence into an HTTP-aware application error.\n\nasync findOne(id: string) {\nconst task = await this.prisma.task.findUnique({\nwhere: { id },\n});\n\nif (!task) {\nthrow new NotFoundException(\n`Task ${id} was not found.`,\n);\n}\n\nreturn task;\n}\n\n@Get(\":id\")\nfindOne(@Param(\"id\") id: string) {\nreturn this.tasksService.findOne(id);\n}\n\nPowerShell detail test\n$taskId = \"<TASK-ID>\"\nInvoke-RestMethod `\n-Method Get `\n-Uri \"http://127.0.0.1:4000/tasks/$taskId\"\n\nMissing resource semantics\n\nRequesting a random Task id should return 404 Not Found. That is an API contract decision. Clients should not\nreceive a raw Prisma error or a false 200 response with null.\n\nFigure 1 - Read decision\nGET /tasks/:id\n\n↓\n\nfindUnique(id)\n\n↓\n\nrow exists?\n\n↓\n\nyes -> 200 Task | no -> 404\n\nThe service translates storage results into application semantics.",
+      "wordCount": 267,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Read Persistent Tasks in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Read Persistent Tasks matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Read Persistent Tasks” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Controllers contain Prisma calls",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Read Persistent Tasks” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Read Persistent Tasks solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "update-persistent-tasks",
+      "title": "Update Persistent Tasks",
+      "summary": "Update Persistent Tasks PATCH semantics, Prisma update, and P2025 translation Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone PATCH /tasks/:id ↓ Prisma update ↓ durable row changes Phase 11 replaces process memory with durable PostgreSQL-backed application behavior. Full-Stack Developer…",
+      "body": "Update Persistent Tasks\nPATCH semantics, Prisma update, and P2025 translation\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nPATCH /tasks/:id\n\n↓\n\nPrisma update\n\n↓\n\ndurable row changes\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nPATCH /tasks/:id - partial durable change\nPATCH is appropriate when the client changes only part of a Task. The update body in this phase is\nintentionally small: title, description, status, and priority.\n\n@Patch(\":id\")\nupdate(\n@Param(\"id\") id: string,\n@Body() body: UpdateTaskInput,\n) {\nreturn this.tasksService.update(id, body);\n}\n\nPrisma update\nasync update(id: string, input: UpdateTaskInput) {\ntry {\nreturn await this.prisma.task.update({\nwhere: { id },\ndata: input,\n});\n} catch (error) {\nthis.rethrowMissingTask(error, id);\n}\n}\n\nPrisma performs a targeted UPDATE for the row selected by the unique id. updatedAt changes automatically\nbecause the schema marks it with @updatedAt.\n\nWhy catch P2025?\nFor the locked Prisma 7 client used by this course, an update or delete that depends on a missing record can\nraise PrismaClientKnownRequestError with code P2025. We translate that database-client error into 404 for\nthe HTTP contract.\n\nprivate rethrowMissingTask(\nerror: unknown,\nid: string,\n): never {\nif (\nerror instanceof Prisma.PrismaClientKnownRequestError &&\nerror.code === \"P2025\"\n) {\nthrow new NotFoundException(\n`Task ${id} was not found.`,\n);\n}\n\nthrow error;\n}\n\nPowerShell update\n\n$patch = @{\nstatus = \"DONE\"\npriority = \"HIGH\"\n} | ConvertTo-Json\n\nInvoke-RestMethod `\n-Method Patch `\n-Uri \"http://127.0.0.1:4000/tasks/$taskId\" `\n-ContentType \"application/json\" `\n-Body $patch\n\nImportant limitation\n\nTypeScript says status is TaskStatus, but raw JSON is still untrusted at runtime. Phase 12 will reject values such as\nNOT_A_REAL_STATUS before they reach Prisma.\n\nBusiness state comes later\nPhase 11 permits direct status changes because the goal is database CRUD. Larger workflows may eventually\nrequire rules such as DONE -> CANCELED being forbidden, or completedAt being synchronized. Those are\nservice/business-rule concerns, not reasons to overload this persistence lesson.",
+      "wordCount": 297,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Update Persistent Tasks in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Update Persistent Tasks matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Update Persistent Tasks” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "PATCH treats omitted values as null/empty",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Update Persistent Tasks” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Update Persistent Tasks solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "delete-and-error-semantics",
+      "title": "Delete and Error Semantics",
+      "summary": "Delete and Error Semantics 204 deletion, missing rows, and honest HTTP meaning Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone DELETE /tasks/:id ↓ Prisma delete ↓ 204 or 404 Phase 11 replaces process memory with durable PostgreSQL-backed application behavior.…",
+      "body": "Delete and Error Semantics\n204 deletion, missing rows, and honest HTTP meaning\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nDELETE /tasks/:id\n\n↓\n\nPrisma delete\n\n↓\n\n204 or 404\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nDELETE /tasks/:id - remove a durable row\nDeletion is a useful place to separate database return values from HTTP response semantics. Prisma can\nreturn the deleted row internally, while the HTTP endpoint can intentionally return 204 No Content.\n\n@Delete(\":id\")\n@HttpCode(HttpStatus.NO_CONTENT)\nasync remove(@Param(\"id\") id: string) {\nawait this.tasksService.remove(id);\n}\n\nasync remove(id: string) {\ntry {\nreturn await this.prisma.task.delete({\nwhere: { id },\n});\n} catch (error) {\nthis.rethrowMissingTask(error, id);\n}\n}\n\nTest deletion\nPowerShell can expose the HTTP status directly with Invoke-WebRequest:\n\n$response = Invoke-WebRequest `\n-Method Delete `\n-Uri \"http://127.0.0.1:4000/tasks/$taskId\"\n\n$response.StatusCode\n\nExpected result\n\n204 means the request succeeded and there is intentionally no response body. A later GET for the same id should\nreturn 404.\n\nError mapping is not a global architecture yet\nPhase 11 handles the one Prisma error needed for CRUD semantics close to TasksService. Phase 13 will\nintroduce a more systematic error strategy and exception mapping. We do not build a giant global abstraction\nbefore there is enough repeated behavior to justify one.\n\nSituation                                   HTTP meaning               Current handling\n\nTask does not exist                         404 Not Found              NotFoundException\n\nCreate succeeds                             201 Created                Nest POST default\n\nRead/update succeeds                        200 OK                     Nest default\n\nDelete succeeds                             204 No Content             Explicit @HttpCode\n\nMalformed body                              Not robust yet             Phase 12\n\nUnexpected database failure                 500-class failure          Propagates to Nest\n\nDo not turn every database error into 400\nA timeout, connection failure, constraint violation, and missing row are not the same condition. Error handling\nshould preserve meaning. If the application cannot classify an unexpected failure safely, it should not fabricate\na friendly-but-wrong status code.",
+      "wordCount": 309,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Delete and Error Semantics in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Delete and Error Semantics matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Delete and Error Semantics” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Missing records bubble up as raw ORM exceptions",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Delete and Error Semantics” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Delete and Error Semantics solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "persistence-verification-and-database-inspection",
+      "title": "Persistence Verification and Database Inspection",
+      "summary": "Persistence Verification and Database Inspection Prove durability with restart tests, Prisma Studio, and SQL Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone Create database row ↓ Restart NestJS ↓ Read the same row Phase 11 replaces process memory with…",
+      "body": "Persistence Verification and Database\nInspection\nProve durability with restart tests, Prisma Studio, and SQL\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nCreate database row\n\n↓\n\nRestart NestJS\n\n↓\n\nRead the same row\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nThe restart test - proof of persistence\nThe strongest Phase 11 demonstration is intentionally simple: create a Task, stop NestJS, start NestJS again,\nand read the same Task. If it survives, storage lifetime has moved out of the Node.js process and into\nPostgreSQL.\n\nFigure 1 - Persistence proof\nPOST /tasks\n\n↓\n\nrow committed to PostgreSQL\n\n↓\n\nstop NestJS\n\n↓\n\nstart NestJS\n\n↓\n\nGET /tasks\n\n↓\n\nsame row still exists\n\nPersistence is observable behavior, not a diagram label.\n\nVerification sequence\n• Create at least two Tasks with POST /tasks.\n\n• Record one Task id and its updatedAt value.\n\n• Stop the API process with Ctrl+C.\n\n• Start the API again from apps/api using pnpm run start:dev.\n\n• Call GET /tasks and GET /tasks/:id.\n\n• Confirm the same ids and values remain.\n\nInspect through Prisma Studio\nFrom apps/api you can open a development inspection UI:\n\npnpm exec prisma studio\n\nUse Studio as an inspection/development tool, not as a substitute for application rules. The important question\nis whether the Task table contains the same rows the API returns.\n\nInspect through Supabase\nThe Supabase Table Editor or SQL Editor gives a second perspective. Querying the table directly helps\nseparate database truth from API rendering problems.\n\nselect\nid,\n\"projectId\",\ntitle,\nstatus,\npriority,\n\"createdAt\",\n\"updatedAt\"\nfrom \"Task\"\norder by \"createdAt\" desc;\n\nDebugging principle\n\nIf the row exists in PostgreSQL but GET /tasks does not return it, debug the NestJS/Prisma query path. If the row\nnever reached PostgreSQL, debug the create request or database write path.\n\nDatabase constraints still matter\nTry to reason about what happens if a Task references a Project that does not exist. The foreign key protects\nrelational integrity even if application code contains a bug. Application checks improve semantics; database\nconstraints protect durable truth.",
+      "wordCount": 331,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Persistence Verification and Database Inspection in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Persistence Verification and Database Inspection matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Persistence Verification and Database Inspection” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "UI is considered proof without inspecting API/database",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Persistence Verification and Database Inspection” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Persistence Verification and Database Inspection solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "end-to-end-persistent-taskflow",
+      "title": "End to End Persistent TaskFlow",
+      "summary": "End-to-End Persistent TaskFlow Reconnect the thin Next.js view and debug across layers Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone Next.js Server Component ↓ NestJS /tasks ↓ PostgreSQL-backed HTML Phase 11 replaces process memory with durable PostgreSQL-backed application behavior.…",
+      "body": "End-to-End Persistent TaskFlow\nReconnect the thin Next.js view and debug across layers\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nNext.js Server Component\n\n↓\n\nNestJS /tasks\n\n↓\n\nPostgreSQL-backed HTML\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nReconnect the thin Next.js view\nThe backend is the focus of Phase 11, but a short integration check keeps the full-stack mental model alive.\nNext.js can now read the durable /tasks resource instead of the old in-memory /todos endpoint.\n\nexport type Task = {\nid: string;\nprojectId: string;\ntitle: string;\ndescription: string | null;\nstatus: \"TODO\" | \"IN_PROGRESS\" | \"DONE\" | \"CANCELED\";\npriority: \"LOW\" | \"MEDIUM\" | \"HIGH\" | \"URGENT\";\ncreatedAt: string;\nupdatedAt: string;\n};\n\nconst API_BASE_URL = process.env.API_BASE_URL;\n\nif (!API_BASE_URL) {\nthrow new Error(\"API_BASE_URL is required.\");\n}\n\nexport async function getTasks(): Promise<Task[]> {\nconst response = await fetch(`${API_BASE_URL}/tasks`, {\ncache: \"no-store\",\n});\n\nif (!response.ok) {\nthrow new Error(`Task API returned ${response.status}.`);\n}\n\nreturn response.json();\n}\n\nThe API base URL remains server-only in this example because the Server Component performs the request.\nNo database URL or database credential is ever exposed to the browser.\n\nTask page\nimport { getTasks } from \"@/lib/api/tasks\";\n\nexport default async function TasksPage() {\nconst tasks = await getTasks();\n\nreturn (\n<main>\n<h1>Tasks</h1>\n\n{tasks.length === 0 ? (\n<p>No persisted tasks yet.</p>\n) : (\n<ul>\n{tasks.map((task) => (\n<li key={task.id}>\n<strong>{task.title}</strong>\n{\" - \"}\n{task.status}\n</li>\n))}\n</ul>\n)}\n</main>\n);\n}\n\nFigure 1 - End-to-end durable read\n\nBrowser requests /tasks page\n\n↓\n\nNext.js Server Component\n\n↓\n\nGET NestJS /tasks\n\n↓\n\nTasksService\n\n↓\n\nPrismaService\n\n↓\n\nPostgreSQL\n\n↓\n\nHTML returned to browser\n\nThe browser still talks to an application layer. It never connects directly to PostgreSQL.\n\nEnd-to-end test\n• Create a Task with PowerShell against NestJS.\n\n• Refresh the Next.js /tasks page.\n\n• Confirm the new Task title and status render.\n\n• Restart NestJS, refresh Next.js again, and confirm the Task still renders.\n\nDebug by layer\nObservation                                                  Likely layer to inspect first\n\nNestJS /tasks fails in PowerShell                            Backend / Prisma / database\n\nPowerShell succeeds, Next.js fails                           Next.js API client / environment URL\n\nAPI returns [] but SQL shows rows                            Prisma query / wrong database connection\n\nSQL has no row after POST                                    Create path / migration / DB connection\n\nRows disappear only after restart                            You are still hitting memory somewhere\n\nStill intentionally simple\n\nNo mutation UI, optimistic update, TanStack Query cache, authentication, or authorization is added yet. Those later\nphases should solve real problems one at a time.",
+      "wordCount": 388,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain End to End Persistent TaskFlow in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "End to End Persistent TaskFlow matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “End to End Persistent TaskFlow” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Controllers contain Prisma calls",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “End to End Persistent TaskFlow” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does End to End Persistent TaskFlow solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Follow, modify, implement, engineer, and prove Phase 11 understanding Phase 11 - Persistent Task CRUD API Volume 03 - Database Engineering Architecture milestone Build persistent CRUD ↓ Stress the mental model ↓ Graduate to validation Phase 11 replaces process memory…",
+      "body": "Hands-On Lab and Phase Exit\nFollow, modify, implement, engineer, and prove Phase 11 understanding\n\nPhase 11 - Persistent Task CRUD API\nVolume 03 - Database Engineering\n\nArchitecture milestone\nBuild persistent CRUD\n\n↓\n\nStress the mental model\n\n↓\n\nGraduate to validation\n\nPhase 11 replaces process memory with durable PostgreSQL-backed application behavior.\n\nHands-on lab - build persistence without copying\nblindly\nUse the reference snapshot only after attempting the steps yourself. The goal is to prove that you understand\nwhich layer owns each operation.\n\nLevel 1 - Follow\n• Apply the additive TaskFlow domain migration.\n\n• Run prisma generate and confirm the NestJS build still succeeds.\n\n• Run prisma/seed.ts and record the generated Project ID.\n\n• Register TasksModule and start the API.\n\n• Create, list, read, update, and delete a Task through HTTP.\n\nLevel 2 - Modify\n• Create three Tasks with different priorities.\n\n• Update one Task from TODO to IN_PROGRESS, then DONE.\n\n• Give another Task a description, then set description back to null.\n\n• Verify updatedAt changes while createdAt remains stable.\n\nLevel 3 - Implement\n• Add a service method that returns only Tasks for a given projectId. You may expose it temporarily through a\nproject-scoped route, but do not add pagination yet.\n\n• Return only the fields the caller needs with Prisma select, then explain what changed in the TypeScript return\nshape.\n\n• Write a PowerShell script that creates a Task, updates it, reads it, restarts the verification manually, and finally\ndeletes it.\n\nLevel 4 - Engineer\nSuppose production already contains 100,000 legacy Todo rows and the business now wants the new\nProject/Task model. Explain why simply dropping Todo is unacceptable. Propose an additive migration, data\nbackfill/mapping strategy, verification step, and later cleanup migration. No code is required until the migration\nplan is coherent.\n\nPhase exit questions\nQuestion                                        What a strong answer should mention\n\nWhy is PrismaService not business logic?        It exposes DB access; domain behavior belongs in services\n\nWhy does Task need projectId?                   The durable model requires project ownership/relationship\n\nWhy preserve the Todo table temporarily?        Additive migration avoids accidental destructive change\n\nWhy does TypeScript not validate JSON?          Types disappear at runtime; Phase 12 adds validation\n\nWhat proves persistence?                        Same row survives NestJS process restart\n\nQuestion                                        What a strong answer should mention\n\nWhy return 404 for P2025?                       Translate storage-specific absence into HTTP resource semantics\n\nExit checklist\n• [ ] prisma validate passes.\n\n• [ ] add_taskflow_domain migration applies.\n\n• [ ] prisma generate runs after schema changes.\n\n• [ ] seed prints a valid Project ID.\n\n• [ ] POST /tasks persists a row.\n\n• [ ] GET collection/detail reads durable rows.\n\n• [ ] PATCH modifies a row.\n\n• [ ] DELETE returns 204 and removes a row.\n\n• [ ] Missing Task returns 404.\n\n• [ ] Restarting NestJS does not erase data.\n\n• [ ] Next.js can render the durable list.\n\n• [ ] You can explain why malformed input remains the next problem.\n\nPhase 11 complete\n\nYou now have a real HTTP -> NestJS -> Prisma -> PostgreSQL CRUD path. The next architectural weakness is the\nuntrusted request body. That becomes Phase 12.",
+      "wordCount": 466,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "PATCH treats omitted values as null/empty",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild persistent task CRUD through controller → service → Prisma with explicit contracts and verified database effects.",
+      "body": "Guided Build Lab — Phase 11: Persistent Task CRUD API\n\nPurpose\nBuild persistent task CRUD through controller → service → Prisma with explicit contracts and verified database effects.\n\nDeliverable\nWorking /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nHTTP route -> controller -> service -> Prisma query -> PostgreSQL -> mapped response\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Define Task create/update/read response shapes before implementation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Implement create through the service and verify both HTTP response and database row.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Implement list/read with deterministic ordering and missing-record behavior.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Implement partial update without overwriting omitted fields accidentally.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Implement delete semantics and decide whether the API returns the resource, metadata, or no content.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Run a manual CRUD script from empty database to cleanup and save it as a repeatable smoke test.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 632,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Missing records bubble up as raw ORM exceptions",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 11: Persistent Task CRUD API\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nHTTP route -> controller -> service -> Prisma query -> PostgreSQL -> mapped response\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Controllers contain Prisma calls\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — PATCH treats omitted values as null/empty\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Missing records bubble up as raw ORM exceptions\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — UI is considered proof without inspecting API/database\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 445,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "UI is considered proof without inspecting API/database",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 11 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Persistent Task CRUD API\n\nMission\nRebuild the capability of Phase 11 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild persistent task CRUD through controller → service → Prisma with explicit contracts and verified database effects.\n\nRequired artifact\nWorking /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can build CRUD without copy-paste controller logic.\n• Can map persistence failures to API semantics.\n• Can verify durable effects.\n• Can explain why response contracts should not be accidental Prisma types.\n\nIndependent build sequence\n1. Define Task create/update/read response shapes before implementation.\n2. Implement create through the service and verify both HTTP response and database row.\n3. Implement list/read with deterministic ordering and missing-record behavior.\n4. Implement partial update without overwriting omitted fields accidentally.\n5. Implement delete semantics and decide whether the API returns the resource, metadata, or no content.\n6. Run a manual CRUD script from empty database to cleanup and save it as a repeatable smoke test.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 374,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this crud concept.",
+          "Diagnose one representative crud failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "HTTP contract",
+          "controller",
+          "service rule",
+          "Prisma operation",
+          "database row"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP contract → controller → service rule → Prisma operation → database row. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Controllers contain Prisma calls",
+          "Change one assumption in the crud example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the crud boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 11 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 11: Persistent Task CRUD API. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nWorking /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 202,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "crud",
+        "objectives": [
+          "Build persistent task CRUD through controller → service → Prisma with explicit contracts and verified database effects.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "HTTP route",
+          "controller",
+          "service",
+          "Prisma query",
+          "PostgreSQL",
+          "mapped response"
+        ],
+        "steps": [
+          "Define Task create/update/read response shapes before implementation.",
+          "Implement create through the service and verify both HTTP response and database row.",
+          "Implement list/read with deterministic ordering and missing-record behavior.",
+          "Implement partial update without overwriting omitted fields accidentally.",
+          "Implement delete semantics and decide whether the API returns the resource, metadata, or no content.",
+          "Run a manual CRUD script from empty database to cleanup and save it as a repeatable smoke test.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can build CRUD without copy-paste controller logic",
+          "Can map persistence failures to API semantics",
+          "Can verify durable effects",
+          "Can explain why response contracts should not be accidental Prisma types"
+        ],
+        "breakIt": [
+          "Controllers contain Prisma calls",
+          "PATCH treats omitted values as null/empty"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/README.txt",
+      "preview": "TaskFlow Phase 11 reference snapshot\n\nThis snapshot demonstrates the phase-end shape only.\nDo not copy generated Prisma Client files or migration timestamps from documentation.\nGenerate them from your real schema and database state.\n\nRun from apps/api:\n  pnpm exec prisma validate\n  pnpm exec prisma migrate dev --name add_taskflow_domain\n  pnpm exec prisma generate\n  pnpm exec ts-node prisma/seed.ts\n  pnpm run build\n  pnpm run start:dev"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/prisma/schema.prisma",
+      "preview": "generator client {\n  provider     = \"prisma-client\"\n  output       = \"../src/generated/prisma\"\n  moduleFormat = \"cjs\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum MembershipRole {\n  OWNER\n  ADMIN\n  MEMBER\n}\n\nenum TaskStatus {\n  TODO\n  IN_PROGRESS\n  DONE"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/prisma/seed.ts",
+      "preview": "import \"dotenv/config\";\nimport { PrismaPg } from \"@prisma/adapter-pg\";\nimport {\n  MembershipRole,\n  PrismaClient,\n} from \"../src/generated/prisma/client\";\n\nconst connectionString = process.env.DATABASE_URL;\n\nif (!connectionString) {\n  throw new Error(\"DATABASE_URL is required before running the seed.\");\n}\n\nconst prisma = new PrismaClient({\n  adapter: new PrismaPg({ connectionString }),\n});\n\nasync function main() {\n  const user = await prisma.user.upsert({\n    where: { email: \"learner@taskflow.local\" },"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/src/app.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\";\nimport { ConfigModule } from \"@nestjs/config\";\nimport { HealthModule } from \"./health/health.module\";\nimport { PrismaModule } from \"./prisma/prisma.module\";\nimport { TasksModule } from \"./tasks/tasks.module\";\n\n@Module({\n  imports: [\n    ConfigModule.forRoot({ isGlobal: true }),\n    PrismaModule,\n    HealthModule,\n    TasksModule,\n  ],\n})\nexport class AppModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/src/tasks/tasks.controller.ts",
+      "preview": "import {\n  Body,\n  Controller,\n  Delete,\n  Get,\n  HttpCode,\n  HttpStatus,\n  Param,\n  Patch,\n  Post,\n} from \"@nestjs/common\";\nimport { TasksService } from \"./tasks.service\";\nimport {\n  CreateTaskInput,\n  UpdateTaskInput,\n} from \"./tasks.types\";\n\n@Controller(\"tasks\")\nexport class TasksController {\n  constructor(private readonly tasksService: TasksService) {}"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/src/tasks/tasks.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\";\nimport { TasksController } from \"./tasks.controller\";\nimport { TasksService } from \"./tasks.service\";\n\n@Module({\n  controllers: [TasksController],\n  providers: [TasksService],\n})\nexport class TasksModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/src/tasks/tasks.service.ts",
+      "preview": "import {\n  Injectable,\n  NotFoundException,\n} from \"@nestjs/common\";\nimport { Prisma } from \"../generated/prisma/client\";\nimport { PrismaService } from \"../prisma/prisma.service\";\nimport {\n  CreateTaskInput,\n  UpdateTaskInput,\n} from \"./tasks.types\";\n\n@Injectable()\nexport class TasksService {\n  constructor(private readonly prisma: PrismaService) {}\n\n  findAll() {\n    return this.prisma.task.findMany({\n      orderBy: { createdAt: \"desc\" },\n    });\n  }"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/api/src/tasks/tasks.types.ts",
+      "preview": "import {\n  TaskPriority,\n  TaskStatus,\n} from \"../generated/prisma/client\";\n\n// These are compile-time shapes only. Phase 12 replaces this temporary\n// boundary with DTOs + runtime validation.\nexport type CreateTaskInput = {\n  projectId: string;\n  title: string;\n  description?: string | null;\n};\n\nexport type UpdateTaskInput = {\n  title?: string;\n  description?: string | null;\n  status?: TaskStatus;\n  priority?: TaskPriority;\n};"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/web/src/app/tasks/page.tsx",
+      "preview": "import { getTasks } from \"@/lib/api/tasks\";\n\nexport default async function TasksPage() {\n  const tasks = await getTasks();\n\n  return (\n    <main>\n      <h1>Tasks</h1>\n\n      {tasks.length === 0 ? (\n        <p>No persisted tasks yet.</p>\n      ) : (\n        <ul>\n          {tasks.map((task) => (\n            <li key={task.id}>\n              <strong>{task.title}</strong>\n              {\" - \"}\n              {task.status}\n            </li>\n          ))}"
+    },
+    {
+      "path": "reference/TaskFlow_Persistent_CRUD_Snapshot/apps/web/src/lib/api/tasks.ts",
+      "preview": "export type Task = {\n  id: string;\n  projectId: string;\n  title: string;\n  description: string | null;\n  status: \"TODO\" | \"IN_PROGRESS\" | \"DONE\" | \"CANCELED\";\n  priority: \"LOW\" | \"MEDIUM\" | \"HIGH\" | \"URGENT\";\n  createdAt: string;\n  updatedAt: string;\n};\n\nconst API_BASE_URL = process.env.API_BASE_URL;\n\nif (!API_BASE_URL) {\n  throw new Error(\"API_BASE_URL is required.\");\n}\n\nexport async function getTasks(): Promise<Task[]> {\n  const response = await fetch(`${API_BASE_URL}/tasks`, {\n    cache: \"no-store\","
+    }
+  ],
+  "exercises": [
+    "Guided: Define Task create/update/read response shapes before implementation.",
+    "Practice: Implement list/read with deterministic ordering and missing-record behavior.",
+    "Debugging: reproduce and diagnose — Controllers contain Prisma calls.",
+    "Independent: deliver Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.",
+    "Explain-back: Can build CRUD without copy-paste controller logic and Can map persistence failures to API semantics."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "CRUD endpoints are complete only when data persists and failure cases are handled deliberately.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "CRUD endpoints are complete only when data persists and failure cases are handled deliberately."
+    },
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Keep database calls behind service methods so controllers remain thin and testable.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Keep database calls behind service methods so controllers remain thin and testable."
+    },
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Return the created or updated resource contract consistently after successful mutations."
+      ],
+      "answer": 3,
+      "explanation": "Return the created or updated resource contract consistently after successful mutations."
+    },
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Verify persistence independently with API requests and database inspection instead of trusting only the UI.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Verify persistence independently with API requests and database inspection instead of trusting only the UI."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define Task create/update/read response shapes before implementation.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Controllers contain Prisma calls.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define Task create/update/read response shapes before implementation."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: PATCH treats omitted values as null/empty.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement create through the service and verify both HTTP response and database row."
+      ],
+      "answer": 3,
+      "explanation": "Implement create through the service and verify both HTTP response and database row."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Missing records bubble up as raw ORM exceptions.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement list/read with deterministic ordering and missing-record behavior.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Implement list/read with deterministic ordering and missing-record behavior."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement partial update without overwriting omitted fields accidentally.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: UI is considered proof without inspecting API/database."
+      ],
+      "answer": 1,
+      "explanation": "Implement partial update without overwriting omitted fields accidentally."
+    }
+  ],
+  "lessonCount": 14,
+  "wordCount": 5237
+}

@@ -1,0 +1,37 @@
+{
+  "number": 2,
+  "track": "f01-html-css",
+  "slug": "f01-html-css",
+  "title": "Build Static TaskFlow",
+  "goal": "Build an accessible, responsive TaskFlow interface before introducing JavaScript or React.",
+  "deliverables": [
+    "Semantic page shell",
+    "Create-task form",
+    "Task list/table",
+    "Responsive mobile layout",
+    "Keyboard-visible focus states"
+  ],
+  "steps": [
+    "Create the HTML document and semantic landmarks.",
+    "Add a labelled create-task form and explain the label/input relationship.",
+    "Render a small task list using meaningful list or table markup.",
+    "Build the desktop layout with normal flow plus Flexbox/Grid where appropriate.",
+    "Add a narrow mobile breakpoint and verify there is no horizontal page overflow.",
+    "Add hover, focus-visible, disabled, empty, and error presentation states.",
+    "Move repeated colors/spacing into CSS custom properties.",
+    "Test keyboard navigation from the first interactive control to the last."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

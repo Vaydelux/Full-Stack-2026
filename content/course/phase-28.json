@@ -1,0 +1,1237 @@
+{
+  "number": 28,
+  "slug": "phase-28",
+  "title": "Testing",
+  "volume": 8,
+  "readme": "Phase 28 - Testing\n\n13 focused PDFs + one combined book + TaskFlow testing reference snapshot.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "testing-strategy-and-confidence-pyramid",
+      "title": "Testing Strategy and Confidence Pyramid",
+      "summary": "Testing Strategy and Confidence Pyramid TaskFlow - Full Stack Developer 2026 Testing is risk management, not line counting Test the boundary you are trying to prove Pure rule Service Repository HTTP API Browser no framework fake repo real Postgres Nest + DB real UI flow…",
+      "body": "Testing Strategy and Confidence\nPyramid\nTaskFlow - Full Stack Developer 2026\n\nTesting is risk management, not line counting\nTest the boundary you are trying to prove\n\nPure rule                Service              Repository             HTTP API             Browser\n\nno framework               fake repo           real Postgres           Nest + DB           real UI flow\n\nDo not start a database to prove a pure status transition.\n\nDo not mock Prisma when the thing you need to prove is your Prisma query.\n\nA good suite puts many fast tests around business rules, fewer real-database/API tests around\nintegration boundaries, and a small number of expensive browser tests around revenue/security/critical\nworkflows.\n\nTaskFlow layers\n• Pure unit: status transition matrix, due-date policy, query normalization, path builders.\n\n• Service: TasksService orchestration with fake TaskRepository.\n\n• Repository integration: Prisma query shapes, tenant scoping, pagination, constraints.\n\n• HTTP/e2e: Nest pipeline, Zod validation, guards, filters, serialization, real DB.\n\n• Component/integration: form behavior, accessible errors, query mutation UX.\n\n• Browser E2E: sign in -> open workspace -> create/update Task -> persisted result.\n\nAnti-patterns\n• A giant E2E suite for every edge case: slow and brittle.\n\n• Mocking every dependency until the test proves only the mock setup.\n\n• Repository unit tests with mocked Prisma when the SQL/query semantics are the thing under test.\n\n• Snapshot tests as the primary way to prove application behavior.\n\n• Coverage percentage treated as proof of correctness.",
+      "wordCount": 214,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Testing Strategy and Confidence Pyramid in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Testing Strategy and Confidence Pyramid” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocking the thing the test is supposed to prove",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Testing Strategy and Confidence Pyramid” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Testing Strategy and Confidence Pyramid solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "vitest-monorepo-setup-and-test-commands",
+      "title": "Vitest Monorepo Setup and Test Commands",
+      "summary": "Vitest Monorepo Setup and Test Commands TaskFlow - Full Stack Developer 2026 Why Vitest now NestJS 12 newly generated projects use Vitest by default, while Next.js provides an official Vitest setup guide. Using one primary runner reduces cognitive overhead without forcing browser E2E into the…",
+      "body": "Vitest Monorepo Setup and Test\nCommands\nTaskFlow - Full Stack Developer 2026\n\nWhy Vitest now\nNestJS 12 newly generated projects use Vitest by default, while Next.js provides an official Vitest setup\nguide. Using one primary runner reduces cognitive overhead without forcing browser E2E into the same\ntool.\n\nInstall plan\n# API\npnpm --filter api add -D vitest@5.0.1 @nestjs/testing@12.0.3 supertest@7.2.2\n\n# Web\npnpm --filter web add -D vitest@5.0.1 jsdom@30.1.0 \\\n@testing-library/react@16.3.3 @testing-library/dom@10.4.2 \\\n@testing-library/jest-dom@7.0.1 @testing-library/user-event@14.6.7\n\n# Browser E2E at workspace root\npnpm add -Dw @playwright/test@1.63.0\npnpm exec playwright install\n\nScripts\n{\n\"scripts\": {\n\"test\": \"turbo run test\",\n\"test:unit\": \"turbo run test:unit\",\n\"test:integration\": \"turbo run test:integration\",\n\"test:e2e\": \"playwright test\"\n}\n}\n\nNaming conventions\n• *.spec.ts - unit/service tests colocated with code.\n\n• *.integration.spec.ts - tests that require a real external dependency such as PostgreSQL.\n\n• *.e2e-spec.ts - Nest application HTTP tests.\n\n• e2e/*.spec.ts - Playwright browser journeys.",
+      "wordCount": 176,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Vitest Monorepo Setup and Test Commands in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Vitest Monorepo Setup and Test Commands” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge number of brittle snapshot/UI implementation tests",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Vitest Monorepo Setup and Test Commands” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Vitest Monorepo Setup and Test Commands solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "pure-business-logic-unit-tests",
+      "title": "Pure Business Logic Unit Tests",
+      "summary": "Pure Business Logic Unit Tests TaskFlow - Full Stack Developer 2026 Extract deterministic rules first The easiest test is often enabled by the best code shape. A pure policy function accepts values and returns/throws based only on those values. No Nest module, no database, no…",
+      "body": "Pure Business Logic Unit Tests\nTaskFlow - Full Stack Developer 2026\n\nExtract deterministic rules first\nThe easiest test is often enabled by the best code shape. A pure policy function accepts values and\nreturns/throws based only on those values. No Nest module, no database, no HTTP, no global clock.\n\nStatus transition example\nexport function assertTaskStatusTransition(\nfrom: TaskStatus,\nto: TaskStatus,\n) {\nconst allowed = ALLOWED_TRANSITIONS[from]\nif (!allowed.includes(to)) {\nthrow new TaskStatusTransitionNotAllowed(from, to)\n}\n}\n\ndescribe(\"assertTaskStatusTransition\", () => {\nit.each([\n[\"TODO\", \"IN_PROGRESS\"],\n[\"TODO\", \"CANCELED\"],\n[\"IN_PROGRESS\", \"DONE\"],\n[\"DONE\", \"IN_PROGRESS\"],\n])(\"allows %s -> %s\", (from, to) => {\nexpect(() => assertTaskStatusTransition(from, to)).not.toThrow()\n})\n\nit(\"rejects DONE -> TODO\", () => {\nexpect(() => assertTaskStatusTransition(\"DONE\", \"TODO\"))\n.toThrow(TaskStatusTransitionNotAllowed)\n})\n})\n\nTime should be injectable\n• Avoid new Date() buried inside a rule if the rule needs deterministic testing.\n\n• Pass now into the policy or inject a Clock abstraction only when multiple services genuinely need it.\n\n• Use fake timers for code that is actually timer-driven, not as a default for ordinary date comparisons.",
+      "wordCount": 156,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Pure Business Logic Unit Tests in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Pure Business Logic Unit Tests” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared mutable test data causing order-dependent failures",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Pure Business Logic Unit Tests” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Pure Business Logic Unit Tests solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "nestjs-service-tests-with-fake-repositories",
+      "title": "NestJS Service Tests with Fake Repositories",
+      "summary": "NestJS Service Tests with Fake Repositories TaskFlow - Full Stack Developer 2026 What this layer proves TasksService tests prove application orchestration: which repository calls happen, how business rules are applied, and which application exceptions are produced. They should not verify Prisma syntax. Use the repository…",
+      "body": "NestJS Service Tests with Fake\nRepositories\nTaskFlow - Full Stack Developer 2026\n\nWhat this layer proves\nTasksService tests prove application orchestration: which repository calls happen, how business rules are\napplied, and which application exceptions are produced. They should not verify Prisma syntax.\n\nUse the repository seam from Phase 24\nconst fake = new FakeTaskRepository()\n\nconst moduleRef = await Test.createTestingModule({\nproviders: [\nTasksService,\n{\nprovide: TASK_REPOSITORY,\nuseValue: fake,\n},\n],\n}).compile()\n\nservice = moduleRef.get(TasksService)\n\nBehavior example\nit(\"sets completedAt when moving IN_PROGRESS -> DONE\", async () => {\nfake.seed(task({ status: \"IN_PROGRESS\", completedAt: null }))\n\nconst result = await service.updateStatus(\nTASK_ID,\nuser,\n\"DONE\",\n)\n\nexpect(result.status).toBe(\"DONE\")\nexpect(result.completedAt).not.toBeNull()\n})\n\nDo not assert implementation trivia\nPrefer outcomes and meaningful repository interactions over assertions like “private helper\nX was called once”. Private implementation can change while public behavior stays correct.",
+      "wordCount": 132,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain NestJS Service Tests with Fake Repositories in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS Service Tests with Fake Repositories” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "E2E used for every rule, making feedback too slow",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS Service Tests with Fake Repositories” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS Service Tests with Fake Repositories solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "prisma-repository-integration-tests-with-postgresql",
+      "title": "Prisma Repository Integration Tests with PostgreSQL",
+      "summary": "Prisma Repository Integration Tests with PostgreSQL TaskFlow - Full Stack Developer 2026 Why this layer must be real A Prisma repository exists specifically to encode persistence behavior. Its important risks are relation filters, tenant scoping, count queries, sort order, constraints and PostgreSQL behavior. Mocking Prisma…",
+      "body": "Prisma Repository Integration Tests\nwith PostgreSQL\nTaskFlow - Full Stack Developer 2026\n\nWhy this layer must be real\nA Prisma repository exists specifically to encode persistence behavior. Its important risks are relation\nfilters, tenant scoping, count queries, sort order, constraints and PostgreSQL behavior. Mocking Prisma\ncannot prove those things.\n\nDedicated test database lifecycle\n1. create/reset dedicated TEST_DATABASE_URL\n2. prisma migrate deploy\n3. seed minimal scenario data\n4. run repository integration tests\n5. cleanup/reset\n6. never point this command at development or production\n\nScoped query example\n• Seed Workspace A + User A membership + Task A.\n\n• Seed Workspace B + Task B with no membership for User A.\n\n• Call listScoped(userA).\n\n• Assert Task A is returned and Task B never appears.\n\n• Repeat with filtering/pagination/count so security scope and collection metadata are proven together.\n\nIsolation strategy\nStart simple: transaction/reset or ordered deleteMany cleanup against a dedicated database. Parallelize\nintegration tests only after data isolation is designed explicitly; speed is not worth cross-test\ncontamination.",
+      "wordCount": 162,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Prisma Repository Integration Tests with PostgreSQL in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Repository Integration Tests with PostgreSQL” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocking the thing the test is supposed to prove",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Repository Integration Tests with PostgreSQL” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Repository Integration Tests with PostgreSQL solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "nestjs-http-e2e-authentication-and-authorization",
+      "title": "NestJS HTTP E2E Authentication and Authorization",
+      "summary": "NestJS HTTP E2E: Authentication and Authorization TaskFlow - Full Stack Developer 2026 What the HTTP suite proves This layer exercises the assembled Nest request path: CORS-independent HTTP handling, validation pipes, AuthGuard, permission checks, controllers, exception filter, repository and PostgreSQL. Boot the real application module const…",
+      "body": "NestJS HTTP E2E: Authentication and\nAuthorization\nTaskFlow - Full Stack Developer 2026\n\nWhat the HTTP suite proves\nThis layer exercises the assembled Nest request path: CORS-independent HTTP handling, validation\npipes, AuthGuard, permission checks, controllers, exception filter, repository and PostgreSQL.\n\nBoot the real application module\nconst moduleRef = await Test.createTestingModule({\nimports: [AppModule],\n})\n.overrideProvider(SupabaseAuthService)\n.useValue(testAuthVerifier)\n.compile()\n\napp = moduleRef.createNestApplication(\nnew FastifyAdapter(),\n)\n\nawait configureApp(app)\nawait app.init()\nawait app.getHttpAdapter().getInstance().ready()\n\nSecurity matrix\n• No token -> 401.\n\n• Malformed/unknown token -> 401.\n\n• Authenticated TaskFlow user with no membership -> scoped 404/403 according to contract.\n\n• Workspace MEMBER can update assigned Task but cannot delete.\n\n• ADMIN can perform allowed elevated operations.\n\n• Changing Task ID to a different Workspace never bypasses scoping.\n\n• Invalid body still returns Phase 12 validation envelope.\n\n• Unexpected failure still returns Phase 13 safe 500 envelope with requestId.\n\nTest auth without testing Supabase itself\nThe HTTP suite may override the external token verifier with deterministic token-to-claims\nfixtures. That keeps focus on TaskFlow guards and authorization. A smaller separate\nsmoke/integration check can verify the real Supabase environment when needed.",
+      "wordCount": 177,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain NestJS HTTP E2E Authentication and Authorization in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS HTTP E2E Authentication and Authorization” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge number of brittle snapshot/UI implementation tests",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS HTTP E2E Authentication and Authorization” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS HTTP E2E Authentication and Authorization solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "react-component-and-form-testing",
+      "title": "React Component and Form Testing",
+      "summary": "React Component and Form Testing TaskFlow - Full Stack Developer 2026 Test through user-visible behavior React Testing Library encourages tests that resemble how users find and operate the UI. Prefer accessible roles/labels over CSS selectors, component internals, or implementation-specific state. Form example const user =…",
+      "body": "React Component and Form Testing\nTaskFlow - Full Stack Developer 2026\n\nTest through user-visible behavior\nReact Testing Library encourages tests that resemble how users find and operate the UI. Prefer\naccessible roles/labels over CSS selectors, component internals, or implementation-specific state.\n\nForm example\nconst user = userEvent.setup()\nrender(<TaskForm mode=\"create\" projectId={PROJECT_ID} />)\n\nawait user.click(screen.getByRole(\"button\", { name: /create task/i }))\n\nexpect(\nawait screen.findByText(/title is required/i),\n).toBeVisible()\n\nawait user.type(\nscreen.getByRole(\"textbox\", { name: /title/i }),\n\"Prepare payroll\",\n)\n\nHigh-value component behaviors\n• Accessible label/error association.\n\n• Blank title blocks submission.\n\n• Pending mutation disables duplicate submit.\n\n• 403/409 keeps user-entered values.\n\n• Edit mode starts clean and becomes dirty after change.\n\n• Permission-aware UI does not show an unavailable action - while API tests separately prove security.\n\nAsync Server Components\nNext.js currently recommends E2E coverage rather than relying on Vitest for async Server Components.\nKeep unit/component tests around synchronous Client Components and extracted logic, then prove\nasync route composition through Playwright.",
+      "wordCount": 162,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain React Component and Form Testing in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “React Component and Form Testing” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared mutable test data causing order-dependent failures",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “React Component and Form Testing” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does React Component and Form Testing solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "tanstack-query-testing-and-cache-isolation",
+      "title": "TanStack Query Testing and Cache Isolation",
+      "summary": "TanStack Query Testing and Cache Isolation TaskFlow - Full Stack Developer 2026 Never share a QueryClient across tests function createTestQueryClient() { return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false }, }, }) } Why retries are disabled in tests…",
+      "body": "TanStack Query Testing and Cache\nIsolation\nTaskFlow - Full Stack Developer 2026\n\nNever share a QueryClient across tests\nfunction createTestQueryClient() {\nreturn new QueryClient({\ndefaultOptions: {\nqueries: { retry: false },\nmutations: { retry: false },\n},\n})\n}\n\nWhy retries are disabled in tests\nApplication retry behavior has dedicated tests. Disabling default retry loops makes ordinary failure tests\ndeterministic and prevents “expected error” tests from waiting through backoff.\n\nOptimistic update scenarios from Phase 25\n• Prediction appears immediately.\n\n• Server success reconciles with authoritative Task.\n\n• 403/409 restores rollback snapshot.\n\n• Old in-flight query cannot overwrite the optimistic cache after cancellation.\n\n• Same-Task serialized mutations preserve ordering.\n\n• Query invalidation happens at the intended key scope.\n\nNetwork boundary\nMock the HTTP API boundary for component/query tests rather than mocking TanStack Query itself. The\nthing under test is how TaskFlow uses Query behavior, not whether TanStack Query can cache data.",
+      "wordCount": 136,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain TanStack Query Testing and Cache Isolation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “TanStack Query Testing and Cache Isolation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "E2E used for every rule, making feedback too slow",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TanStack Query Testing and Cache Isolation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TanStack Query Testing and Cache Isolation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "playwright-critical-end-to-end-workflows",
+      "title": "Playwright Critical End to End Workflows",
+      "summary": "Playwright Critical End-to-End Workflows TaskFlow - Full Stack Developer 2026 What belongs in browser E2E Critical TaskFlow user journey Browser Next.js NestJS Prisma Postgres sign in form auth/rules query state Playwright critical-path test one test can prove the wiring across the stack Browser tests are…",
+      "body": "Playwright Critical End-to-End\nWorkflows\nTaskFlow - Full Stack Developer 2026\n\nWhat belongs in browser E2E\nCritical TaskFlow user journey\n\nBrowser                Next.js                 NestJS                   Prisma          Postgres\nsign in                form                 auth/rules                  query           state\n\nPlaywright critical-path test\none test can prove the wiring across the stack\n\nBrowser tests are expensive but high-confidence. Reserve them for workflows where broken wiring,\nnavigation, authentication, JavaScript behavior or browser semantics would hurt users materially.\n\nRecommended TaskFlow journey\n• Start with a known test account/session fixture.\n\n• Open authorized Workspace Tasks.\n\n• Create a Task through the real form.\n\n• Observe it in the list.\n\n• Change status and confirm UI converges.\n\n• Reload the page and confirm persistence.\n\n• Attempt one forbidden action with a lower-privilege user.\n\nLocator rule\nawait page.getByRole(\"button\", {\nname: \"Create task\",\n}).click()\n\nawait page.getByLabel(\"Title\")\n.fill(\"Prepare payroll\")\n\nawait expect(\npage.getByText(\"Prepare payroll\"),\n).toBeVisible()\n\nProduction-like execution\nNext.js recommends running Playwright against a built/running app for production-like behavior.\nPlaywright gives each test an isolated browser context and supports Chromium, Firefox and WebKit.",
+      "wordCount": 167,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Playwright Critical End to End Workflows in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Playwright Critical End to End Workflows” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocking the thing the test is supposed to prove",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Playwright Critical End to End Workflows” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Playwright Critical End to End Workflows solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "fixtures-factories-determinism-and-isolation",
+      "title": "Fixtures Factories Determinism and Isolation",
+      "summary": "Fixtures, Factories, Determinism and Isolation TaskFlow - Full Stack Developer 2026 A test fixture is a scenario, not a dump of production data Build the smallest domain graph that explains the test: one user, one Workspace membership, one Project, one Task. Large global fixtures make…",
+      "body": "Fixtures, Factories, Determinism and\nIsolation\nTaskFlow - Full Stack Developer 2026\n\nA test fixture is a scenario, not a dump of production\ndata\nBuild the smallest domain graph that explains the test: one user, one Workspace membership, one\nProject, one Task. Large global fixtures make failures harder to understand.\n\nFactory example\nexport function task(overrides: Partial<TaskRecord> = {}): TaskRecord {\nreturn {\nid: \"00000000-0000-4000-8000-000000000001\",\nprojectId: PROJECT_ID,\nassigneeId: USER_ID,\ntitle: \"Test task\",\nstatus: \"TODO\",\npriority: \"MEDIUM\",\ncompletedAt: null,\ncreatedAt: FIXED_TIME,\nupdatedAt: FIXED_TIME,\n...overrides,\n}\n}\n\nSources of flakiness to control\n• Current time and timezone.\n\n• Random UUIDs when identity matters to assertions.\n\n• Shared database rows across parallel tests.\n\n• Retries and background refetches.\n\n• Unawaited async work.\n\n• Network calls to external providers.\n\n• Order-dependent tests.\n\nTest independence\nA test should pass by itself, after any other test, and in a shuffled order. If it requires “test\n3” to run first, the suite is describing a script rather than independent evidence.",
+      "wordCount": 149,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Fixtures Factories Determinism and Isolation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Fixtures Factories Determinism and Isolation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge number of brittle snapshot/UI implementation tests",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Fixtures Factories Determinism and Isolation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Fixtures Factories Determinism and Isolation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "coverage-test-quality-and-ci-readiness",
+      "title": "Coverage Test Quality and CI Readiness",
+      "summary": "Coverage, Test Quality and CI Readiness TaskFlow - Full Stack Developer 2026 Coverage is a signal, not a target game • High line coverage can still miss authorization mistakes, bad assertions and incorrect requirements. • Prefer coverage around business branches and security decisions, not trivial…",
+      "body": "Coverage, Test Quality and CI\nReadiness\nTaskFlow - Full Stack Developer 2026\n\nCoverage is a signal, not a target game\n• High line coverage can still miss authorization mistakes, bad assertions and incorrect requirements.\n\n• Prefer coverage around business branches and security decisions, not trivial getters.\n\n• Use uncovered lines to ask “is there meaningful behavior here?” rather than blindly chasing 100%.\n\nSuggested gates before CI phase\npnpm lint\npnpm typecheck\npnpm test:unit\npnpm test:integration\npnpm build\npnpm test:e2e\n\nFailure diagnostics\n• Unit failure: show expected/actual values and focused stack trace.\n\n• Repository integration: log scenario IDs and keep DB reset commands explicit.\n\n• HTTP test: print response body on mismatch, never tokens/secrets.\n\n• Playwright: retain trace/screenshot/video on retry/failure, not every passing run.\n\nDo not make slow tests the local default\nDevelopers need a fast inner loop. Unit/component tests should run constantly; repository/API/browser\nsuites can run explicitly or at pre-push/CI boundaries depending on cost.",
+      "wordCount": 158,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Coverage Test Quality and CI Readiness in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Coverage Test Quality and CI Readiness” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Liveness and readiness answer different questions",
+          "code": "GET /health/live  -> process is running\nGET /health/ready -> required dependencies can serve traffic"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared mutable test data causing order-dependent failures",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Coverage Test Quality and CI Readiness” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Coverage Test Quality and CI Readiness solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit TaskFlow - Full Stack Developer 2026 Lab 1 - Pure policy • Write table-driven tests for every allowed and rejected Task status transition. • Add one deterministic due-date policy test with a fixed clock input. Lab 2 - Service •…",
+      "body": "Hands-On Lab and Phase Exit\nTaskFlow - Full Stack Developer 2026\n\nLab 1 - Pure policy\n• Write table-driven tests for every allowed and rejected Task status transition.\n\n• Add one deterministic due-date policy test with a fixed clock input.\n\nLab 2 - Service\n• Use FakeTaskRepository.\n\n• Prove MEMBER can update an assigned Task.\n\n• Prove a denied transition produces the expected application exception.\n\nLab 3 - Repository + PostgreSQL\n• Create two Workspaces and two Tasks.\n\n• Prove listScoped never leaks the unrelated Workspace.\n\n• Prove pagination totalItems is computed inside the same authorization filter.\n\nLab 4 - HTTP security\n• 401 without identity.\n\n• 403 or scoped 404 for unauthorized resource/action.\n\n• 400 for invalid DTO.\n\n• 200/201 for valid authorized request.\n\nLab 5 - Frontend\n• Form error can be found by accessible text/role.\n\n• TanStack optimistic failure rolls back.\n\n• No shared QueryClient state leaks between tests.\n\nLab 6 - Browser\n• Playwright: sign in fixture -> create Task -> update status -> reload -> persisted state.\n\n• Repeat one permission-denied workflow with MEMBER role.\n\nPhase exit checklist\n• I can explain unit vs integration vs HTTP/e2e vs browser E2E.\n\n• I know when a fake repository is appropriate and when a real database is required.\n\n• I can test authentication/authorization without trusting the browser.\n\n• I can test a React form through accessible interactions rather than internals.\n\n• I can keep TanStack Query tests isolated.\n\n• I can design one critical Playwright journey instead of browser-testing every edge case.\n\n• I understand that coverage is evidence, not correctness.\n\nSources\nSource                                                          Used for\n\nNestJS Testing                                                  Nest 12 uses runner-agnostic testing utilities; new projects use\nhttps://docs.nestjs.com/fundamentals/testing                    Vitest by default and Nest integrates with Supertest for HTTP e2e\ntests.\n\nPrisma ORM v7 Testing                                           Use a dedicated resettable test database for integration tests; unit\nhttps://www.prisma.io/docs/orm/v7/more/best-practices           tests should isolate logic from external dependencies.\n\nPrisma Unit Testing                                             Unit testing isolates logic; dependency injection/mocking can keep\nhttps://docs.prisma.io/docs/orm/prisma-client/testing/unit-te   database calls out of unit suites.\nsting\n\nNext.js Vitest                                                  Next.js documents Vitest + React Testing Library for\nhttps://nextjs.org/docs/app/guides/testing/vitest               unit/component testing; async Server Components are better\ncovered by E2E.\n\nNext.js Playwright                                              Next.js recommends Playwright for browser end-to-end tests and\nhttps://nextjs.org/docs/app/guides/testing/playwright           production-like testing.\n\nReact Testing Library                                           Tests should resemble how users interact with the UI rather than\nhttps://testing-library.com/docs/react-testing-library/intro/   assert implementation details.\n\nTanStack Query Testing                                          Tests should isolate QueryClient instances and avoid shared cache\nhttps://tanstack.com/query/latest/docs/framework/react/gui      state across tests.\ndes/testing\n\nPlaywright                                                      Playwright runs Chromium, Firefox and WebKit with isolated\nhttps://playwright.dev/docs/browsers                            browser contexts.\n\nVitest npm                                                      Current stable used in this phase: 5.0.1.\nhttps://www.npmjs.com/package/vitest\n\nReact Testing Library npm                                       Current stable used in this phase: 16.3.3.\nhttps://www.npmjs.com/package/@testing-library/react\n\nPlaywright npm                                                  Current stable used in this phase: 1.63.0.\nhttps://www.npmjs.com/package/@playwright/test",
+      "wordCount": 496,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "E2E used for every rule, making feedback too slow",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild a testing strategy that proves pure rules, service orchestration, repositories, HTTP contracts, frontend behavior, and critical browser flows at the right cost.",
+      "body": "Guided Build Lab — Phase 28: Testing\n\nPurpose\nBuild a testing strategy that proves pure rules, service orchestration, repositories, HTTP contracts, frontend behavior, and critical browser flows at the right cost.\n\nDeliverable\nVitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nrisk/question -> choose boundary -> arrange controlled state -> execute behavior -> assert outcome/contract -> cleanup\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — List the highest-risk TaskFlow behaviors before choosing test counts.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Write a pure unit test for one deterministic business policy.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Test a service with controlled dependencies and assert business outcome rather than private calls.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Run a repository integration test against real PostgreSQL with isolated data.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Run an API test through NestJS for validation/auth/error contract.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Write one Playwright flow for a critical user journey and make setup/cleanup reproducible.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npnpm test\npnpm --filter api test\npnpm --filter web test\npnpm exec playwright test\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 687,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Mocking the thing the test is supposed to prove",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 28: Testing\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nrisk/question -> choose boundary -> arrange controlled state -> execute behavior -> assert outcome/contract -> cleanup\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Mocking the thing the test is supposed to prove\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Huge number of brittle snapshot/UI implementation tests\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Shared mutable test data causing order-dependent failures\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — E2E used for every rule, making feedback too slow\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 452,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Huge number of brittle snapshot/UI implementation tests",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 28 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Testing\n\nMission\nRebuild the capability of Phase 28 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild a testing strategy that proves pure rules, service orchestration, repositories, HTTP contracts, frontend behavior, and critical browser flows at the right cost.\n\nRequired artifact\nVitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can choose test level by risk.\n• Can write deterministic tests.\n• Can test real persistence when needed.\n• Can explain what each test does not prove.\n\nIndependent build sequence\n1. List the highest-risk TaskFlow behaviors before choosing test counts.\n2. Write a pure unit test for one deterministic business policy.\n3. Test a service with controlled dependencies and assert business outcome rather than private calls.\n4. Run a repository integration test against real PostgreSQL with isolated data.\n5. Run an API test through NestJS for validation/auth/error contract.\n6. Write one Playwright flow for a critical user journey and make setup/cleanup reproducible.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 367,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Shared mutable test data causing order-dependent failures",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 28 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 28: Testing. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nVitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 195,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Build a testing strategy that proves pure rules, service orchestration, repositories, HTTP contracts, frontend behavior, and critical browser flows at the right cost.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "risk/question",
+          "choose boundary",
+          "arrange controlled state",
+          "execute behavior",
+          "assert outcome/contract",
+          "cleanup"
+        ],
+        "steps": [
+          "List the highest-risk TaskFlow behaviors before choosing test counts.",
+          "Write a pure unit test for one deterministic business policy.",
+          "Test a service with controlled dependencies and assert business outcome rather than private calls.",
+          "Run a repository integration test against real PostgreSQL with isolated data.",
+          "Run an API test through NestJS for validation/auth/error contract.",
+          "Write one Playwright flow for a critical user journey and make setup/cleanup reproducible.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can choose test level by risk",
+          "Can write deterministic tests",
+          "Can test real persistence when needed",
+          "Can explain what each test does not prove"
+        ],
+        "breakIt": [
+          "Mocking the thing the test is supposed to prove",
+          "Huge number of brittle snapshot/UI implementation tests"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 28 Testing Snapshot\n\nThis snapshot demonstrates the intended testing boundaries. It is reference code, not a wholesale replacement for every existing file.\n\nTest layers:\n1. Pure unit policies\n2. Nest service tests with fake repositories\n3. Prisma repository integration tests with a dedicated PostgreSQL database\n4. Nest HTTP e2e tests\n5. React/TanStack component tests\n6. Playwright critical browser journeys"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/SOURCES.md",
+      "preview": "- NestJS Testing: https://docs.nestjs.com/fundamentals/testing\n- Prisma ORM v7 Testing: https://www.prisma.io/docs/orm/v7/more/best-practices\n- Prisma Unit Testing: https://docs.prisma.io/docs/orm/prisma-client/testing/unit-testing\n- Next.js Vitest: https://nextjs.org/docs/app/guides/testing/vitest\n- Next.js Playwright: https://nextjs.org/docs/app/guides/testing/playwright\n- React Testing Library: https://testing-library.com/docs/react-testing-library/intro/\n- TanStack Query Testing: https://tanstack.com/query/latest/docs/framework/react/guides/testing\n- Playwright: https://playwright.dev/docs/browsers\n- Vitest npm: https://www.npmjs.com/package/vitest\n- React Testing Library npm: https://www.npmjs.com/package/@testing-library/react\n- Playwright npm: https://www.npmjs.com/package/@playwright/test"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/TESTING_STRATEGY.md",
+      "preview": "# Testing strategy\n\n- Pure rules: no framework, no database.\n- TasksService: FakeTaskRepository.\n- PrismaTaskRepository: real PostgreSQL.\n- API security/contracts: boot Nest application, use Supertest.\n- React components/forms: Vitest + Testing Library + jsdom.\n- Query behavior: isolated QueryClient per test.\n- Critical user journeys: Playwright.\n\nDo not mock the dependency whose real behavior is the subject of the test."
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/VERSION_LOCK.md",
+      "preview": "- vitest: 5.0.1\n- @nestjs/testing: 12.0.3\n- supertest: 7.2.2\n- @testing-library/react: 16.3.3\n- @testing-library/dom: 10.4.2\n- @testing-library/jest-dom: 7.0.1\n- @testing-library/user-event: 14.6.7\n- jsdom: 30.1.0\n- @playwright/test: 1.63.0"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/api/src/tasks/task-status.policy.spec.ts",
+      "preview": "import { describe, expect, it } from \"vitest\";\nimport { assertTaskStatusTransition, TaskStatusTransitionNotAllowed } from \"./task-status.policy\";\n\ndescribe(\"assertTaskStatusTransition\", () => {\n  it.each([\n    [\"TODO\", \"IN_PROGRESS\"],\n    [\"TODO\", \"CANCELED\"],\n    [\"IN_PROGRESS\", \"DONE\"],\n    [\"DONE\", \"IN_PROGRESS\"],\n  ] as const)(\"allows %s -> %s\", (from, to) => {\n    expect(() => assertTaskStatusTransition(from, to)).not.toThrow();\n  });\n\n  it(\"rejects DONE -> TODO\", () => {\n    expect(() => assertTaskStatusTransition(\"DONE\", \"TODO\"))\n      .toThrow(TaskStatusTransitionNotAllowed);\n  });\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/api/src/tasks/task-status.policy.ts",
+      "preview": "export type TaskStatus = \"TODO\" | \"IN_PROGRESS\" | \"DONE\" | \"CANCELED\";\n\nconst allowed: Record<TaskStatus, readonly TaskStatus[]> = {\n  TODO: [\"IN_PROGRESS\", \"CANCELED\"],\n  IN_PROGRESS: [\"TODO\", \"DONE\", \"CANCELED\"],\n  DONE: [\"IN_PROGRESS\"],\n  CANCELED: [],\n};\n\nexport class TaskStatusTransitionNotAllowed extends Error {}\n\nexport function assertTaskStatusTransition(from: TaskStatus, to: TaskStatus) {\n  if (!allowed[from].includes(to)) {\n    throw new TaskStatusTransitionNotAllowed(`${from} -> ${to}`);\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/api/test/fake-task.repository.ts",
+      "preview": "import type { TaskRepository, TaskRecord } from \"../src/tasks/repositories/task.repository\";\n\nexport class FakeTaskRepository implements TaskRepository {\n  readonly items = new Map<string, TaskRecord>();\n  seed(task: TaskRecord) { this.items.set(task.id, structuredClone(task)); }\n  async findById(id: string) { return this.items.get(id) ?? null; }\n  // Implement the rest of the contract with the minimum behavior each service test needs.\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/api/test/prisma-task.repository.integration.spec.ts",
+      "preview": "import { beforeEach, describe, expect, it } from \"vitest\";\n// Reference skeleton: point PrismaService at TEST_DATABASE_URL only.\n// Apply migrations before this suite, reset rows between tests, and seed two workspaces.\n\ndescribe(\"PrismaTaskRepository integration\", () => {\n  beforeEach(async () => {\n    // resetTestDatabase(); seedScenario();\n  });\n\n  it(\"never returns tasks outside the caller workspace scope\", async () => {\n    // const result = await repository.listScoped(USER_A, query);\n    // expect(result.data.map(x => x.id)).toEqual([TASK_A]);\n    expect(true).toBe(true);\n  });\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/api/test/tasks.e2e-spec.ts",
+      "preview": "import { afterAll, beforeAll, describe, expect, it } from \"vitest\";\nimport { Test } from \"@nestjs/testing\";\nimport request from \"supertest\";\nimport { AppModule } from \"../src/app.module\";\nimport { SupabaseAuthService } from \"../src/auth/supabase-auth.service\";\n\ndescribe(\"Tasks HTTP\", () => {\n  let app: any;\n  beforeAll(async () => {\n    const mod = await Test.createTestingModule({ imports: [AppModule] })\n      .overrideProvider(SupabaseAuthService)\n      .useValue({ getClaims: async (token: string) => token === \"member-token\" ? { sub: \"member-sub\" } : null })\n      .compile();\n    app = mod.createNestApplication();\n    await app.init();\n  });\n  afterAll(async () => app?.close());\n\n  it(\"rejects a missing bearer token\", async () => {\n    await request(app.getHttpServer()).get(\"/tasks\").expect(401);"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/api/test/tasks.service.spec.ts",
+      "preview": "import { beforeEach, describe, expect, it } from \"vitest\";\nimport { Test } from \"@nestjs/testing\";\nimport { TasksService } from \"../src/tasks/tasks.service\";\nimport { TASK_REPOSITORY } from \"../src/tasks/repositories/task.repository\";\nimport { FakeTaskRepository } from \"./fake-task.repository\";\n\ndescribe(\"TasksService\", () => {\n  let service: TasksService;\n  let repo: FakeTaskRepository;\n\n  beforeEach(async () => {\n    repo = new FakeTaskRepository();\n    const moduleRef = await Test.createTestingModule({\n      providers: [TasksService, { provide: TASK_REPOSITORY, useValue: repo }],\n    }).compile();\n    service = moduleRef.get(TasksService);\n  });\n\n  it(\"is tested through business outcomes, not Prisma calls\", async () => {\n    expect(service).toBeDefined();"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/web/src/components/tasks/task-form.spec.tsx",
+      "preview": "import { render, screen } from \"@testing-library/react\";\nimport userEvent from \"@testing-library/user-event\";\nimport { describe, expect, it } from \"vitest\";\n\ndescribe(\"TaskForm\", () => {\n  it(\"shows an accessible title error before sending invalid input\", async () => {\n    const user = userEvent.setup();\n    // render(<TaskForm ... />);\n    // await user.click(screen.getByRole(\"button\", { name: /create task/i }));\n    // expect(await screen.findByText(/title is required/i)).toBeVisible();\n    expect(user).toBeDefined();\n  });\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/web/src/test/create-test-query-client.ts",
+      "preview": "import { QueryClient } from \"@tanstack/react-query\";\n\nexport function createTestQueryClient() {\n  return new QueryClient({\n    defaultOptions: {\n      queries: { retry: false },\n      mutations: { retry: false },\n    },\n  });\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/web/vitest.config.mts",
+      "preview": "import { defineConfig } from \"vitest/config\";\nimport react from \"@vitejs/plugin-react\";\nimport tsconfigPaths from \"vite-tsconfig-paths\";\n\nexport default defineConfig({\n  plugins: [tsconfigPaths(), react()],\n  test: {\n    environment: \"jsdom\",\n    setupFiles: [\"./vitest.setup.ts\"],\n  },\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/apps/web/vitest.setup.ts",
+      "preview": "import \"@testing-library/jest-dom/vitest\";"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/e2e/playwright.config.ts",
+      "preview": "import { defineConfig, devices } from \"@playwright/test\";\n\nexport default defineConfig({\n  testDir: \"./tests\",\n  use: {\n    baseURL: \"http://127.0.0.1:3000\",\n    trace: \"on-first-retry\",\n  },\n  projects: [\n    { name: \"chromium\", use: { ...devices[\"Desktop Chrome\"] } },\n  ],\n  webServer: {\n    command: \"pnpm --filter web start\",\n    url: \"http://127.0.0.1:3000\",\n    reuseExistingServer: !process.env.CI,\n  },\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/e2e/tests/task-critical-flow.spec.ts",
+      "preview": "import { test, expect } from \"@playwright/test\";\n\ntest(\"member creates a task and persisted state survives reload\", async ({ page }) => {\n  // Reuse a test-auth storageState fixture in the real project.\n  await page.goto(\"/tasks\");\n  await page.getByRole(\"button\", { name: /create task/i }).click();\n  await page.getByLabel(\"Title\").fill(\"Prepare payroll\");\n  await page.getByRole(\"button\", { name: /save/i }).click();\n  await expect(page.getByText(\"Prepare payroll\")).toBeVisible();\n  await page.reload();\n  await expect(page.getByText(\"Prepare payroll\")).toBeVisible();\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Testing_Snapshot/tests/TEST_MATRIX.md",
+      "preview": "# Phase 28 test matrix\n\n## Unit\n- allowed/rejected status transitions\n- due-date policy with fixed time\n\n## Service\n- completedAt derived correctly\n- business conflicts become domain exceptions\n\n## Repository integration\n- tenant scope never leaks rows\n- filters/count/pagination share authorization scope\n\n## HTTP\n- 400 validation\n- 401 unauthenticated\n- 403/404 authorization semantics\n- 409 business conflict\n- safe 500 error contract"
+    }
+  ],
+  "exercises": [
+    "Guided: List the highest-risk TaskFlow behaviors before choosing test counts.",
+    "Practice: Test a service with controlled dependencies and assert business outcome rather than private calls.",
+    "Debugging: reproduce and diagnose — Mocking the thing the test is supposed to prove.",
+    "Independent: deliver Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.",
+    "Explain-back: Can choose test level by risk and Can write deterministic tests."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Use unit tests for focused behavior, integration tests for collaborating infrastructure, and end-to-end tests for critical user flows.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Use unit tests for focused behavior, integration tests for collaborating infrastructure, and end-to-end tests for critical user flows."
+    },
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Test business outcomes and contracts rather than coupling every test to private implementation details."
+      ],
+      "answer": 3,
+      "explanation": "Test business outcomes and contracts rather than coupling every test to private implementation details."
+    },
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Keep tests deterministic by controlling clocks, random values, external services, and database state where necessary.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Keep tests deterministic by controlling clocks, random values, external services, and database state where necessary."
+    },
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "A useful test suite catches regressions while remaining fast enough to run continuously in development and CI.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "A useful test suite catches regressions while remaining fast enough to run continuously in development and CI."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Mocking the thing the test is supposed to prove.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List the highest-risk TaskFlow behaviors before choosing test counts."
+      ],
+      "answer": 3,
+      "explanation": "List the highest-risk TaskFlow behaviors before choosing test counts."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Huge number of brittle snapshot/UI implementation tests.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write a pure unit test for one deterministic business policy.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write a pure unit test for one deterministic business policy."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Test a service with controlled dependencies and assert business outcome rather than private calls.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Shared mutable test data causing order-dependent failures."
+      ],
+      "answer": 1,
+      "explanation": "Test a service with controlled dependencies and assert business outcome rather than private calls."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Run a repository integration test against real PostgreSQL with isolated data.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: E2E used for every rule, making feedback too slow.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Run a repository integration test against real PostgreSQL with isolated data."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3986
+}

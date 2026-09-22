@@ -1,0 +1,1210 @@
+{
+  "number": 33,
+  "slug": "phase-33",
+  "title": "CI/CD with GitHub Actions",
+  "volume": 8,
+  "readme": "Phase 33 - CI/CD with GitHub Actions\n13 focused PDFs + combined edition + TaskFlow GitHub Actions reference snapshot.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "ci-cd-mental-model-and-pipeline-architecture",
+      "title": "CI/CD Mental Model and Pipeline Architecture",
+      "summary": "CI/CD Mental Model and Pipeline Architecture Continuous Integration answers: can this change safely join the main branch? Continuous Delivery answers: do we have a verified artifact that could be deployed? Continuous Deployment goes one step further and actually promotes it automatically. TaskFlow separates these responsibilities…",
+      "body": "CI/CD Mental Model and Pipeline Architecture\nContinuous Integration answers: can this change safely join the main branch? Continuous Delivery answers: do we have\na verified artifact that could be deployed? Continuous Deployment goes one step further and actually promotes it\nautomatically. TaskFlow separates these responsibilities instead of hiding them in one giant workflow.\n\nImmutable               Environment\nCommit SHA        →      Verified source    →           image          →       promotion\n\nBuild once, promote many\n\nWhat this changes in TaskFlow\n• Source commit is the identity of a release\n\n• Build once; promote the same artifact\n\n• Failures stop at the earliest honest boundary\n\n• Production deployment is Phase 34\n\nCI/CD terminology here is an engineering model used by TaskFlow; deployment implementation intentionally remains Phase 34.",
+      "wordCount": 114,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain CI/CD Mental Model and Pipeline Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “CI/CD Mental Model and Pipeline Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using pull_request_target with untrusted checkout/secrets",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “CI/CD Mental Model and Pipeline Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does CI/CD Mental Model and Pipeline Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "github-actions-workflow-triggers-permissions-and-concurrency",
+      "title": "GitHub Actions Workflow Triggers Permissions and Concurrency",
+      "summary": "Workflow Triggers, Permissions, and Concurrency Use pull_request for untrusted PR verification and push/main for trusted release work. Give GITHUB_TOKEN the minimum permissions required. Concurrency should cancel stale CI runs, but production release/deployment groups normally should not cancel an in-progress release. Untrusted PR → Read-only CI…",
+      "body": "Workflow Triggers, Permissions, and\nConcurrency\nUse pull_request for untrusted PR verification and push/main for trusted release work. Give GITHUB_TOKEN the\nminimum permissions required. Concurrency should cancel stale CI runs, but production release/deployment groups\nnormally should not cancel an in-progress release.\n\nUntrusted PR     →      Read-only CI      →      Trusted main      →       Release job\n\nTrust boundary\n\nWhat this changes in TaskFlow\n• CI: contents: read\n\n• Registry publish: packages: write\n\n• Cloud OIDC: id-token: write only where needed\n\n• Avoid unsafe pull_request_target checkout patterns\n\nWorkflow baseline\npermissions:\ncontents: read\n\nconcurrency:\ngroup: ci-${{ github.workflow }}-${{ github.ref }}\ncancel-in-progress: true\n\nGitHub recommends least-privilege GITHUB_TOKEN permissions and warns about untrusted workflow execution contexts.",
+      "wordCount": 102,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain GitHub Actions Workflow Triggers Permissions and Concurrency in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “GitHub Actions Workflow Triggers Permissions and Concurrency” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Broad write permissions for all jobs",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “GitHub Actions Workflow Triggers Permissions and Concurrency” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does GitHub Actions Workflow Triggers Permissions and Concurrency solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "node-pnpm-monorepo-cache-and-deterministic-install",
+      "title": "Node pnpm Monorepo Cache and Deterministic Install",
+      "summary": "Node, pnpm, Monorepo Cache, and Deterministic Install CI reproduces the repository using the committed lockfile. pnpm install --frozen-lockfile should fail if package manifests and the lockfile disagree. Setup-node can cache pnpm package downloads, but the lockfile remains the dependency truth. Cache speeds installation; it must…",
+      "body": "Node, pnpm, Monorepo Cache, and Deterministic\nInstall\nCI reproduces the repository using the committed lockfile. pnpm install --frozen-lockfile should fail if package manifests\nand the lockfile disagree. Setup-node can cache pnpm package downloads, but the lockfile remains the dependency\ntruth. Cache speeds installation; it must never replace correctness.\n\nSame\nLockfile        →        pnpm cache        →        Frozen install   →        dependency\ngraph\n\nDeterministic install\n\nWhat this changes in TaskFlow\n• Node 24.21.0 course lock\n\n• pnpm 12.3.4 course lock\n\n• pnpm-lock.yaml committed\n\n• Cache dependency path points at the lockfile\n\nDeterministic setup\nuses: pnpm/action-setup@v6\nwith:\nversion: 12.3.4\n\nuses: actions/setup-node@v7\nwith:\nnode-version: 24.21.0\ncache: pnpm\n\nrun: pnpm install --frozen-lockfile\n\nactions/setup-node v7 can cache pnpm dependencies; the committed lockfile remains the reproducibility anchor.",
+      "wordCount": 125,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Node pnpm Monorepo Cache and Deterministic Install in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Node pnpm Monorepo Cache and Deterministic Install” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rebuilding different artifacts in each environment",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Node pnpm Monorepo Cache and Deterministic Install” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Node pnpm Monorepo Cache and Deterministic Install solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "quality-gates-lint-typecheck-test-and-build",
+      "title": "Quality Gates Lint Typecheck Test and Build",
+      "summary": "Quality Gates: Lint, Typecheck, Test, and Build A pull request should fail before merge when static analysis, typechecking, tests, or a production build fails. These checks answer different questions, so a green lint step does not replace TypeScript compilation or application tests. Lint → Typecheck…",
+      "body": "Quality Gates: Lint, Typecheck, Test, and Build\nA pull request should fail before merge when static analysis, typechecking, tests, or a production build fails. These checks\nanswer different questions, so a green lint step does not replace TypeScript compilation or application tests.\n\nLint         →       Typecheck        →           Tests   →     Build\n\nIndependent quality gates\n\nWhat this changes in TaskFlow\n• lint -> code-quality conventions\n\n• typecheck -> compile-time correctness\n\n• test -> behavior\n\n• build -> deployable source graph\n\nRequired checks become useful when branch protection requires them before merge.",
+      "wordCount": 77,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Quality Gates Lint Typecheck Test and Build in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Quality Gates Lint Typecheck Test and Build” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CI green because important workspace checks never ran",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Quality Gates Lint Typecheck Test and Build” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Quality Gates Lint Typecheck Test and Build solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "postgresql-service-containers-and-prisma-migrations-in-ci",
+      "title": "PostgreSQL Service Containers and Prisma Migrations in CI",
+      "summary": "PostgreSQL Service Containers and Prisma Migrations in CI Repository and HTTP integration tests need a real PostgreSQL database. GitHub Actions service containers provide an isolated test database on Linux runners. Apply committed Prisma migrations with migrate deploy before integration tests so CI catches migration drift…",
+      "body": "PostgreSQL Service Containers and Prisma\nMigrations in CI\nRepository and HTTP integration tests need a real PostgreSQL database. GitHub Actions service containers provide an\nisolated test database on Linux runners. Apply committed Prisma migrations with migrate deploy before integration tests\nso CI catches migration drift instead of silently creating schema from models.\n\nRepository\nPostgres 18      →        Migrations         →          tests        →        HTTP E2E\n\nIntegration path\n\nWhat this changes in TaskFlow\n• postgres:18 service container\n\n• health check before tests\n\n• prisma generate\n\n• prisma migrate deploy\n\n• integration + HTTP E2E\n\nIntegration database\nservices:\npostgres:\nimage: postgres:18\noptions: --health-cmd=\"pg_isready ...\"\n\nrun: pnpm --filter api exec prisma migrate deploy\n\nGitHub documents PostgreSQL service containers on Ubuntu/Linux runners; Prisma migrate deploy applies committed migrations.",
+      "wordCount": 115,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain PostgreSQL Service Containers and Prisma Migrations in CI in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “PostgreSQL Service Containers and Prisma Migrations in CI” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using pull_request_target with untrusted checkout/secrets",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “PostgreSQL Service Containers and Prisma Migrations in CI” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does PostgreSQL Service Containers and Prisma Migrations in CI solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "test-matrices-artifacts-and-failure-diagnostics",
+      "title": "Test Matrices Artifacts and Failure Diagnostics",
+      "summary": "Test Matrices, Artifacts, and Failure Diagnostics Artifacts should help diagnose failed or expensive jobs, not become an uncontrolled data dump. Upload browser traces, coverage, release manifests, or test reports with explicit retention. Matrix jobs are useful when the same contract genuinely needs multiple environments; do…",
+      "body": "Test Matrices, Artifacts, and Failure Diagnostics\nArtifacts should help diagnose failed or expensive jobs, not become an uncontrolled data dump. Upload browser traces,\ncoverage, release manifests, or test reports with explicit retention. Matrix jobs are useful when the same contract\ngenuinely needs multiple environments; do not multiply cost without a compatibility requirement.\n\nEngineer\nJob fails        →        Collect report      →       Upload artifact   →   inspects\n\nEvidence on failure\n\nWhat this changes in TaskFlow\n• Upload useful diagnostics\n\n• Set retention deliberately\n\n• Do not upload secrets or .env files\n\n• Use matrices for real compatibility coverage\n\nactions/upload-artifact current v7 line stores diagnostic/release files; never upload secrets.",
+      "wordCount": 99,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Test Matrices Artifacts and Failure Diagnostics in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Test Matrices Artifacts and Failure Diagnostics” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Broad write permissions for all jobs",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Test Matrices Artifacts and Failure Diagnostics” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Test Matrices Artifacts and Failure Diagnostics solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "docker-buildx-cache-and-immutable-image-tags",
+      "title": "Docker Buildx Cache and Immutable Image Tags",
+      "summary": "Docker Buildx, Cache, and Immutable Image Tags Phase 32 created reproducible images. Phase 33 builds them in CI using Buildx and GitHub Actions cache. Every release image receives an immutable tag tied to the full Git commit SHA. Mutable labels such as main can exist…",
+      "body": "Docker Buildx, Cache, and Immutable Image Tags\nPhase 32 created reproducible images. Phase 33 builds them in CI using Buildx and GitHub Actions cache. Every release\nimage receives an immutable tag tied to the full Git commit SHA. Mutable labels such as main can exist for convenience,\nbut deployments should record and promote the immutable SHA-tagged artifact.\n\nsha-tagged\ngithub.sha        →           Buildx          →             image      →   GHCR\n\nImmutable image identity\n\nWhat this changes in TaskFlow\n• web image + api image\n\n• Buildx gha cache\n\n• sha- tag\n\n• Do not rebuild during deployment\n\nRelease identity\ntags:\ntype=sha,format=long,prefix=sha-\n\n# deployment candidate\nghcr.io/<owner>/taskflow-api:sha-${{ github.sha }}\n\nCurrent Docker action lines verified: setup-buildx v4, metadata v6, build-push v7.",
+      "wordCount": 114,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "docker",
+        "objectives": [
+          "Explain Docker Buildx Cache and Immutable Image Tags in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this docker concept.",
+          "Diagnose one representative docker failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Containers package a process and its runtime assumptions. The lesson is not memorizing Docker commands; it is making those assumptions repeatable and observable.",
+        "mentalModel": [
+          "source + lockfile",
+          "build context",
+          "image layers",
+          "container process",
+          "health signal"
+        ],
+        "steps": [
+          "Restate the goal of “Docker Buildx Cache and Immutable Image Tags” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source + lockfile → build context → image layers → container process → health signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "dockerfile",
+          "caption": "Start explicit, then optimize deliberately",
+          "code": "FROM node:24-alpine AS build\nWORKDIR /app\nRUN corepack enable\nCOPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./\nCOPY apps/api/package.json apps/api/package.json\nRUN pnpm install --frozen-lockfile\nCOPY . .\nRUN pnpm --filter api build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rebuilding different artifacts in each environment",
+          "Change one assumption in the docker example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Container exits immediately",
+            "investigation": "Inspect container logs and PID 1 command; confirm the process stays in foreground and required config exists."
+          },
+          {
+            "symptom": "Works inside container but not from host",
+            "investigation": "Check bind address, exposed/published ports, network namespace, and health endpoint."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Docker Buildx Cache and Immutable Image Tags” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Docker Buildx Cache and Immutable Image Tags solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the docker boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "ghcr-github-token-and-release-manifests",
+      "title": "GHCR GITHUB TOKEN and Release Manifests",
+      "summary": "GHCR, GITHUB_TOKEN, and Release Manifests GitHub Container Registry can be authenticated with the workflow-scoped GITHUB_TOKEN. Only the image-publishing job needs packages: write. A release manifest records the commit and exact image reference so Phase 34 can deploy a known candidate rather than guessing which mutable…",
+      "body": "GHCR, GITHUB_TOKEN, and Release Manifests\nGitHub Container Registry can be authenticated with the workflow-scoped GITHUB_TOKEN. Only the image-publishing\njob needs packages: write. A release manifest records the commit and exact image reference so Phase 34 can deploy a\nknown candidate rather than guessing which mutable tag is current.\n\nrelease\ncontents:read     →     packages:write     →          GHCR   →   manifest\n\nRegistry permissions\n\nWhat this changes in TaskFlow\n• Least privilege per workflow/job\n\n• GHCR image namespace\n\n• Commit SHA -> image tag\n\n• Artifact manifest -> deployment input\n\nGHCR workflows can publish with GITHUB_TOKEN when packages: write is granted.",
+      "wordCount": 89,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain GHCR GITHUB TOKEN and Release Manifests in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “GHCR GITHUB TOKEN and Release Manifests” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CI green because important workspace checks never ran",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “GHCR GITHUB TOKEN and Release Manifests” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does GHCR GITHUB TOKEN and Release Manifests solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "secrets-oidc-and-protected-environments",
+      "title": "Secrets OIDC and Protected Environments",
+      "summary": "Secrets, OIDC, and Protected Environments Long-lived cloud keys in repository secrets are avoidable on providers that support GitHub OIDC. The deployment job requests a short-lived identity token with id-token: write and exchanges it with the cloud provider. Production environments can require approval and delay access…",
+      "body": "Secrets, OIDC, and Protected Environments\nLong-lived cloud keys in repository secrets are avoidable on providers that support GitHub OIDC. The deployment job\nrequests a short-lived identity token with id-token: write and exchanges it with the cloud provider. Production\nenvironments can require approval and delay access to environment secrets until protection rules pass.\n\nCloud trust                Short-lived\nGitHub OIDC        →          policy          →          token          →           Deploy\n\nShort-lived deployment trust\n\nWhat this changes in TaskFlow\n• Prefer OIDC to static cloud keys\n\n• Environment secrets are deployment-scoped\n\n• Approval before secret access\n\n• Separate staging and production trust\n\nDeployment job trust\npermissions:\ncontents: read\nid-token: write\n\njobs:\ndeploy:\nenvironment: production\n\nGitHub environments can gate jobs and delay environment-secret access; OIDC uses id-token: write for short-lived cloud auth.",
+      "wordCount": 116,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Secrets OIDC and Protected Environments in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Secrets OIDC and Protected Environments” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using pull_request_target with untrusted checkout/secrets",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Secrets OIDC and Protected Environments” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Secrets OIDC and Protected Environments solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "supply-chain-hardening-action-pinning-and-dependabot",
+      "title": "Supply Chain Hardening Action Pinning and Dependabot",
+      "summary": "Supply-Chain Hardening: Action Pinning and Dependabot A GitHub Action executes code inside your workflow. GitHub recommends full-length commit SHA pinning as the immutable reference. The readable examples in this phase use current major tags, but a hardened repository should pin reviewed SHAs and allow Dependabot…",
+      "body": "Supply-Chain Hardening: Action Pinning and\nDependabot\nA GitHub Action executes code inside your workflow. GitHub recommends full-length commit SHA pinning as the\nimmutable reference. The readable examples in this phase use current major tags, but a hardened repository should pin\nreviewed SHAs and allow Dependabot to propose maintenance updates.\n\nDependabot\nReview action      →          Pin SHA         →          update          →          CI verify\n\nSupply-chain defense\n\nWhat this changes in TaskFlow\n• Pin full commit SHA in hardened production\n\n• Review action publisher/source\n\n• Keep GITHUB_TOKEN least-privileged\n\n• Dependabot can track GitHub Actions dependencies\n\nProduction hardening rule\nuses: actions/checkout@<full-verified-commit-sha> # v7.x\n# Tags are easier to read; SHA pinning is immutable.\n\nGitHub secure-use guidance says full-length action SHAs are the only immutable action release references.",
+      "wordCount": 116,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Supply Chain Hardening Action Pinning and Dependabot in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Supply Chain Hardening Action Pinning and Dependabot” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Broad write permissions for all jobs",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Supply Chain Hardening Action Pinning and Dependabot” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Supply Chain Hardening Action Pinning and Dependabot solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "branch-protection-release-gates-and-rollback-friendly-design",
+      "title": "Branch Protection Release Gates and Rollback Friendly Design",
+      "summary": "Branch Protection, Release Gates, and Rollback-Friendly Design CI becomes meaningful when protected branches require its checks before merge. Release and deployment pipelines should serialize production changes and preserve old immutable images. Rollback then means selecting the previously known-good image, not trying to reconstruct yesterday’s source…",
+      "body": "Branch Protection, Release Gates, and\nRollback-Friendly Design\nCI becomes meaningful when protected branches require its checks before merge. Release and deployment pipelines\nshould serialize production changes and preserve old immutable images. Rollback then means selecting the previously\nknown-good image, not trying to reconstruct yesterday’s source and dependencies.\n\nSelect previous                Redeploy\nBad release       →           SHA            →           artifact      →         Verify health\n\nRollback model\n\nWhat this changes in TaskFlow\n• Require CI status checks\n\n• Do not overlap production deployments\n\n• Keep deployment history\n\n• Rollback by immutable artifact reference\n\nGitHub concurrency can serialize release/deployment work; environments can add review/protection rules.",
+      "wordCount": 93,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain Branch Protection Release Gates and Rollback Friendly Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “Branch Protection Release Gates and Rollback Friendly Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rebuilding different artifacts in each environment",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Branch Protection Release Gates and Rollback Friendly Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Branch Protection Release Gates and Rollback Friendly Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Implement CI, integration testing, and release-image workflows in a branch. Break each gate deliberately and prove it fails for the expected reason. Then restore the repository, publish SHA-tagged images from main, and verify that the release manifest points at exactly…",
+      "body": "Hands-On Lab and Phase Exit\nImplement CI, integration testing, and release-image workflows in a branch. Break each gate deliberately and prove it fails\nfor the expected reason. Then restore the repository, publish SHA-tagged images from main, and verify that the release\nmanifest points at exactly that commit.\n\nIntegration                    Images          Candidate\nPR green         →            green          →           published    →   recorded\n\nExit criteria\n\nWhat this changes in TaskFlow\n• Break lint -> CI must fail\n\n• Break migration -> integration must fail\n\n• Break Docker build -> release must fail\n\n• Verify packages permission only in release job\n\n• Verify production gate does not rebuild images\n\nPhase exit requires reproducible green CI plus an immutable artifact tied to the tested commit.",
+      "wordCount": 107,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "CI green because important workspace checks never ran",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild a trustworthy GitHub Actions pipeline that verifies pull requests, creates immutable release artifacts, uses least privilege, caches safely, and controls deployment concurrency.",
+      "body": "Guided Build Lab — Phase 33: CI/CD with GitHub Actions\n\nPurpose\nBuild a trustworthy GitHub Actions pipeline that verifies pull requests, creates immutable release artifacts, uses least privilege, caches safely, and controls deployment concurrency.\n\nDeliverable\n.github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\npull request -> deterministic install -> lint/typecheck/test/build -> trusted main -> immutable artifact -> environment gate -> deployment\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Add dependency/package cache only after correctness works; key it from lockfile inputs.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Create trusted-main release workflow that tags an image/artifact with the commit SHA rather than latest only.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Add environment protection/permissions for deployment and ensure stale production runs are not silently canceled mid-release.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 668,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using pull_request_target with untrusted checkout/secrets",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 33: CI/CD with GitHub Actions\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\npull request -> deterministic install -> lint/typecheck/test/build -> trusted main -> immutable artifact -> environment gate -> deployment\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Using pull_request_target with untrusted checkout/secrets\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Broad write permissions for all jobs\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Rebuilding different artifacts in each environment\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — CI green because important workspace checks never ran\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 451,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Broad write permissions for all jobs",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 33 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — CI/CD with GitHub Actions\n\nMission\nRebuild the capability of Phase 33 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild a trustworthy GitHub Actions pipeline that verifies pull requests, creates immutable release artifacts, uses least privilege, caches safely, and controls deployment concurrency.\n\nRequired artifact\n.github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can read/write a GitHub Actions workflow.\n• Can explain trigger trust boundaries.\n• Can enforce deterministic install.\n• Can build once/promote same artifact.\n\nIndependent build sequence\n1. Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.\n2. Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile.\n3. Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.\n4. Add dependency/package cache only after correctness works; key it from lockfile inputs.\n5. Create trusted-main release workflow that tags an image/artifact with the commit SHA rather than latest only.\n6. Add environment protection/permissions for deployment and ensure stale production runs are not silently canceled mid-release.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 397,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rebuilding different artifacts in each environment",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 33 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 33: CI/CD with GitHub Actions. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\n.github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 206,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Build a trustworthy GitHub Actions pipeline that verifies pull requests, creates immutable release artifacts, uses least privilege, caches safely, and controls deployment concurrency.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "pull request",
+          "deterministic install",
+          "lint/typecheck/test/build",
+          "trusted main",
+          "immutable artifact",
+          "environment gate",
+          "deployment"
+        ],
+        "steps": [
+          "Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.",
+          "Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile.",
+          "Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.",
+          "Add dependency/package cache only after correctness works; key it from lockfile inputs.",
+          "Create trusted-main release workflow that tags an image/artifact with the commit SHA rather than latest only.",
+          "Add environment protection/permissions for deployment and ensure stale production runs are not silently canceled mid-release.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can read/write a GitHub Actions workflow",
+          "Can explain trigger trust boundaries",
+          "Can enforce deterministic install",
+          "Can build once/promote same artifact"
+        ],
+        "breakIt": [
+          "Using pull_request_target with untrusted checkout/secrets",
+          "Broad write permissions for all jobs"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/.github/dependabot.yml",
+      "preview": "version: 2\nupdates:\n  - package-ecosystem: npm\n    directory: /\n    schedule:\n      interval: weekly\n\n  - package-ecosystem: github-actions\n    directory: /\n    schedule:\n      interval: weekly"
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/.github/workflows/ci.yml",
+      "preview": "name: CI\n\non:\n  pull_request:\n    branches: [main]\n  push:\n    branches: [main]\n\npermissions:\n  contents: read\n\nconcurrency:\n  group: ci-${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 20\n"
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/.github/workflows/deployment-gate.example.yml",
+      "preview": "name: Deployment Gate Example\n\non:\n  workflow_dispatch:\n    inputs:\n      image_sha:\n        description: Full commit SHA already published by release-images\n        required: true\n\npermissions:\n  contents: read\n  id-token: write\n\nconcurrency:\n  group: production\n  cancel-in-progress: false\n\njobs:\n  gate:\n    runs-on: ubuntu-latest"
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/.github/workflows/integration.yml",
+      "preview": "name: Integration Tests\n\non:\n  pull_request:\n    branches: [main]\n  push:\n    branches: [main]\n\npermissions:\n  contents: read\n\njobs:\n  api-integration:\n    runs-on: ubuntu-latest\n    timeout-minutes: 25\n\n    services:\n      postgres:\n        image: postgres:18\n        env:"
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/.github/workflows/release-images.yml",
+      "preview": "name: Build Release Images\n\non:\n  push:\n    branches: [main]\n  workflow_dispatch:\n\npermissions:\n  contents: read\n  packages: write\n\nconcurrency:\n  group: release-images-${{ github.ref }}\n  cancel-in-progress: false\n\njobs:\n  images:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n"
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/CI_CD_ARCHITECTURE.md",
+      "preview": "# TaskFlow CI/CD Architecture\n\nPull request -> CI + integration tests -> merge protection -> main -> build immutable web/api images -> GHCR -> protected environment -> Phase 34 deployment.\n\nRules:\n1. CI proves source.\n2. Release builds one immutable artifact per commit.\n3. Deployment promotes an already-built artifact; it does not rebuild source.\n4. Production environment may require approval and exposes secrets only after protection rules pass.\n5. Prefer OIDC to long-lived cloud credentials.\n6. `GITHUB_TOKEN` gets only the permissions required by each workflow/job."
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/README.md",
+      "preview": "# TaskFlow GitHub Actions Snapshot\n\nThis snapshot is educational and intentionally stops before actual cloud deployment. Phase 33 produces tested, immutable container candidates. Phase 34 connects those candidates to the selected hosting platform.\n\nWorkflow examples use current major action tags for readability. GitHub's security guidance recommends full-length commit SHA pinning for immutable third-party action references in hardened production repositories."
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/SOURCES.md",
+      "preview": "# Sources used for Phase 33\n\n- GitHub Docs: PostgreSQL service containers\n- GitHub Docs: Secure use reference\n- GitHub Docs: workflow syntax and GITHUB_TOKEN permissions\n- GitHub Docs: OpenID Connect reference\n- GitHub Docs: deployments, environments, concurrency\n- Official action release pages for checkout, setup-node, upload-artifact\n- Official Docker action release pages for setup-buildx, login, metadata, build-push\n- pnpm/action-setup official releases"
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/VERSION_LOCK.md",
+      "preview": "# Phase 33 verified action lines (2026-09-18)\n\n- actions/checkout: v7 line (latest observed v7.0.1)\n- actions/setup-node: v7 line (latest observed v7.0.0)\n- pnpm/action-setup: v6 line (latest observed v6.0.9)\n- actions/upload-artifact: v7 line (latest observed v7.0.1)\n- docker/setup-buildx-action: v4 line (latest observed v4.3.0)\n- docker/login-action: v4 line (latest observed v4.6.0)\n- docker/metadata-action: v6 line (latest observed v6.2.0)\n- docker/build-push-action: v7 line (latest observed v7.2.0)\n\nFor production hardening, pin third-party actions to verified full commit SHAs and let Dependabot maintain them. The workflow examples use major tags for readability."
+    },
+    {
+      "path": "reference/TaskFlow_GitHub_Actions_Snapshot/tests/ci-cd-test-matrix.md",
+      "preview": "# Phase 33 verification matrix\n\n- PR lint failure blocks CI.\n- Type error blocks CI.\n- Unit test failure blocks CI.\n- PostgreSQL integration test uses committed migrations.\n- Missing migration causes integration failure rather than schema drift.\n- Docker build succeeds for web and API.\n- Release image is tagged with full commit SHA.\n- Release workflow has `packages: write` but CI does not.\n- Production deployment concurrency prevents overlapping releases.\n- Production environment can require approval before secrets are exposed.\n- Workflow action dependencies are reviewed/pinned for production.\n- Secrets are never echoed.\n- Fork PRs do not receive production secrets.\n- OIDC-based cloud auth is preferred over static cloud access keys."
+    }
+  ],
+  "exercises": [
+    "Guided: Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.",
+    "Practice: Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.",
+    "Debugging: reproduce and diagnose — Using pull_request_target with untrusted checkout/secrets.",
+    "Independent: deliver .github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.",
+    "Explain-back: Can read/write a GitHub Actions workflow and Can explain trigger trust boundaries."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "CI verifies changes on pull requests; release workflows should operate from trusted code and immutable commit identities."
+      ],
+      "answer": 3,
+      "explanation": "CI verifies changes on pull requests; release workflows should operate from trusted code and immutable commit identities."
+    },
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Use frozen lockfile installs so CI fails when dependency manifests and the lockfile disagree.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Use frozen lockfile installs so CI fails when dependency manifests and the lockfile disagree."
+    },
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Give GitHub Actions tokens the minimum permissions each job requires.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Give GitHub Actions tokens the minimum permissions each job requires."
+    },
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Build once and promote the same artifact instead of rebuilding different binaries for each environment.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Build once and promote the same artifact instead of rebuilding different binaries for each environment."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using pull_request_target with untrusted checkout/secrets.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Broad write permissions for all jobs."
+      ],
+      "answer": 1,
+      "explanation": "Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Rebuilding different artifacts in each environment.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: CI green because important workspace checks never ran.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add dependency/package cache only after correctness works; key it from lockfile inputs."
+      ],
+      "answer": 3,
+      "explanation": "Add dependency/package cache only after correctness works; key it from lockfile inputs."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 2989
+}

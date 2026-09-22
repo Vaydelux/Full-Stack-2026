@@ -1,0 +1,1205 @@
+{
+  "number": 21,
+  "slug": "phase-21",
+  "title": "Forms with React Hook Form + Zod",
+  "volume": 6,
+  "readme": "Full-Stack Developer 2026 - Phase 21\nForms with React Hook Form + Zod\n\nThis phase continues Volume 06 after Phase 20 Production Application UI. It adds professional create/edit forms while preserving NestJS as the authoritative validation, authorization and business-rule boundary.\n\nUse 13_Phase_21_Complete_Book.pdf for continuous reading, or the numbered focused PDFs for targeted study.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "form-state-and-submission-mental-model",
+      "title": "Form State and Submission Mental Model",
+      "summary": "Form State & Submission Mental Model Understand what a form owns before installing a form library Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend A form is a temporary editing workspace A form is not the database record…",
+      "body": "Form State & Submission Mental\nModel\nUnderstand what a form owns before installing a form library\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nA form is a temporary editing workspace\nA form is not the database record itself. It is a temporary client-side editing model that collects user\nintent. Until the server accepts the request, the form contains proposed data, not authoritative\napplication state.\n\nFORM STATE                                                SERVER STATE\n\ntyped title                                                stored Task\n\nselected priority                                            authorization\n\ndirty fields                                              business rules\n\nclient errors                                          database constraints\nFigure 1 - Form state and authoritative server state have different owners.\n\nThe lifecycle\n\nUser edits fields\n\nReact Hook Form tracks values, touched/dirty state and errors\n\nZod validates the client-side form shape\n\nSubmit maps form values to API input\n\nNestJS validates the request again\n\nBusiness rules and authorization run\n\nPrisma persists accepted state\n\nUI refreshes from authoritative server result\n\nWhy not plain useState for every field?\nYou can build forms with useState, but large forms quickly accumulate repetitive value, touched, error,\nreset and pending logic. React Hook Form provides a focused form-state model and works especially\nwell with native uncontrolled inputs.\n\nWhat stays local?\nState                                Best owner\n\nInput values                         React Hook Form\n\nTouched / dirty / field errors       React Hook Form\n\nReusable validation rules            Zod\n\nAuthoritative Task list              Server / later TanStack Query\n\nAuthorization                        NestJS\n\nBusiness rules                       NestJS service\n\nPersistent constraints               PostgreSQL\n\nAnti-pattern\n\nDo not put every form keystroke into a global store or TanStack Query cache. Form state is inherently local and\ntransient.",
+      "wordCount": 248,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Form State and Submission Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Form State and Submission Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Form State and Submission Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating server data into form state without reset strategy",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Form State and Submission Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Form State and Submission Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "react-hook-form-architecture-and-version-lock",
+      "title": "React Hook Form Architecture and Version Lock",
+      "summary": "React Hook Form Architecture Install the library and understand its local form-state model Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Install from the web workspace Run the packages from the frontend application, not from the monorepo root…",
+      "body": "React Hook Form Architecture\nInstall the library and understand its local form-state model\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nInstall from the web workspace\nRun the packages from the frontend application, not from the monorepo root unless you intentionally\nuse a workspace filter.\n\n# From: taskflow\\apps\\web\npnpm add react-hook-form@7.88.0 @hookform/resolvers@5.9.1\n\nMinimal React Hook Form\n\"use client\";\n\nimport { useForm } from \"react-hook-form\";\n\ntype Values = { title: string };\n\nexport function ExampleForm() {\nconst {\nregister,\nhandleSubmit,\nformState: { errors, isSubmitting, isDirty },\n} = useForm<Values>({\ndefaultValues: { title: \"\" },\n});\n\nreturn (\n<form onSubmit={handleSubmit(async (values) => {\nconsole.log(values);\n})}>\n<input {...register(\"title\")} />\n<button disabled={isSubmitting} type=\"submit\">Save</button>\n</form>\n);\n}\n\nImportant pieces\nAPI                           Meaning\n\nregister                      Connect a native field to RHF\n\nhandleSubmit                  Validate/collect before invoking submit handler\n\nformState.errors              Current field/form errors\n\nisSubmitting                  True while the submit promise is pending\n\nisDirty                       Current values differ from defaults\n\nreset                         Replace defaults/current values and reset state\n\nsetError                      Attach client-visible errors, including server errors\n\nWhy a Client Component?\nReact Hook Form uses hooks and browser interaction, so the form component needs \"use client\". The\npage that loads initial data can still remain a Server Component and pass serializable defaults into the\nform.\n\nServer Component loads Task / permissions\n\nPass serializable form defaults\n\nClient TaskForm owns interaction\n\nSubmit to NestJS API\n\nFigure 1 - Keep the client boundary around the interactive form, not around the entire route.",
+      "wordCount": 235,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain React Hook Form Architecture and Version Lock in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "React Hook Form Architecture and Version Lock matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “React Hook Form Architecture and Version Lock” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming client validation secures the API",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “React Hook Form Architecture and Version Lock” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does React Hook Form Architecture and Version Lock solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "zod-resolver-and-shared-validation-rules",
+      "title": "Zod Resolver and Shared Validation Rules",
+      "summary": "Zod Resolver & Shared Validation Rules Reuse rules without confusing form, transport and persistence contracts Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Why Zod appears again NestJS already validates transport input with Zod. The frontend also needs…",
+      "body": "Zod Resolver & Shared Validation\nRules\nReuse rules without confusing form, transport and persistence contracts\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nWhy Zod appears again\nNestJS already validates transport input with Zod. The frontend also needs immediate validation\nfeedback. This is the first time the same field-level rules are genuinely useful in two workspace\npackages, so a small shared validators package has now earned its place.\n\npackages/validators: reusable field primitives\n\napps/api: HTTP transport schema\n\napps/web: UI form schema\n\nBoth use Zod 4.6.5\n\nShared field primitives\n// packages/validators/src/tasks.ts\nimport { z } from \"zod\";\n\nexport const taskTitleSchema = z\n.string()\n.trim()\n.min(1, \"Title is required.\")\n.max(200, \"Title must be 200 characters or fewer.\");\n\nexport const taskDescriptionSchema = z\n.string()\n.trim()\n.max(2000, \"Description must be 2000 characters or fewer.\");\n\nexport const taskPrioritySchema = z.enum([\n\"LOW\", \"MEDIUM\", \"HIGH\",\n]);\n\nUI form schema\n\n// apps/web/src/components/tasks/task-form.schema.ts\nimport { z } from \"zod\";\nimport {\ntaskDescriptionSchema,\ntaskPrioritySchema,\ntaskTitleSchema,\n} from \"@taskflow/validators/tasks\";\n\nexport const taskFormSchema = z.object({\ntitle: taskTitleSchema,\ndescription: taskDescriptionSchema,\npriority: taskPrioritySchema,\ndueAtLocal: z.string(),\n});\n\nexport type TaskFormValues = z.infer<typeof taskFormSchema>;\n\nConnect Zod to React Hook Form\nconst form = useForm<TaskFormValues>({\nresolver: zodResolver(taskFormSchema),\ndefaultValues,\nmode: \"onBlur\",\n});\n\nImportant boundary\n\nThe UI form schema is allowed to differ from the API transport schema. For example, an HTML datetime-local\nvalue is a local string; the API may require an ISO timestamp. Map between them deliberately on submit.\n\nWhy not share the Prisma model?\nA Prisma model describes persistence. A form schema describes editing. A transport schema describes\nan HTTP request. They overlap, but they are not interchangeable contracts.",
+      "wordCount": 276,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Zod Resolver and Shared Validation Rules in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Zod Resolver and Shared Validation Rules matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Zod Resolver and Shared Validation Rules” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clearing user input on every failed request",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Zod Resolver and Shared Validation Rules” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Zod Resolver and Shared Validation Rules solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "accessible-fields-errors-and-validation-ux",
+      "title": "Accessible Fields Errors and Validation UX",
+      "summary": "Accessible Fields, Errors & Validation UX Make forms understandable to keyboard, screen-reader and sighted users Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend A form field is more than an input A production field needs a visible label,…",
+      "body": "Accessible Fields, Errors &\nValidation UX\nMake forms understandable to keyboard, screen-reader and sighted users\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nA form field is more than an input\nA production field needs a visible label, optional help text, an input control, and an error relationship\nthat assistive technology can understand.\n\n<div className={styles.field}>\n<label htmlFor=\"title\">Task title</label>\n\n<input\nid=\"title\"\n{...register(\"title\")}\naria-invalid={errors.title ? \"true\" : \"false\"}\naria-describedby={errors.title ? \"title-error\" : undefined}\n/>\n\n{errors.title ? (\n<p id=\"title-error\" role=\"alert\">\n{errors.title.message}\n</p>\n) : null}\n</div>\n\nError UX rules\nShow errors next to the relevant field, use human language, preserve the user's input, and move focus\nor provide a summary when a large form fails in a way that would otherwise be difficult to discover.\n\nDo                                                 Avoid\n\nVisible                                            Placeholder as the only label\n\naria-invalid on invalid fields                     Color-only error indication\n\naria-describedby to the error                      Unrelated error text with no relationship\n\nrole=\"alert\" for newly appearing concise errors    Dozens of noisy live regions\n\nKeep focus behavior predictable                    Automatically moving focus after every keystroke\n\nClient validation timing\nTaskFlow uses mode: \"onBlur\" for most field validation: the user can type without constant interruption,\nthen receives feedback after leaving a field. Submission still validates everything.\n\nServer remains authoritative\n\nA perfect client form does not secure an API. A caller can bypass the browser completely. NestJS must validate\nthe transport request again.",
+      "wordCount": 235,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Accessible Fields Errors and Validation UX in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Accessible Fields Errors and Validation UX matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Accessible Fields Errors and Validation UX” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Showing only generic toast instead of actionable field errors",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Accessible Fields Errors and Validation UX” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Accessible Fields Errors and Validation UX solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "create-task-form-end-to-end",
+      "title": "Create Task Form End to End",
+      "summary": "Create Task Form - End to End Build the first real browser form against the secured NestJS API Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Build CreateTaskForm The create form starts with empty defaults, validates locally, maps…",
+      "body": "Create Task Form - End to End\nBuild the first real browser form against the secured NestJS API\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nBuild CreateTaskForm\nThe create form starts with empty defaults, validates locally, maps UI values to the API contract,\nacquires a current Supabase access token, submits to NestJS, and then refreshes the Task list after\nsuccess.\n\nconst defaultValues: TaskFormValues = {\ntitle: \"\",\ndescription: \"\",\npriority: \"MEDIUM\",\ndueAtLocal: \"\",\n};\n\nMap UI values to API input\nfunction toCreateTaskInput(\nprojectId: string,\nvalues: TaskFormValues,\n) {\nreturn {\nprojectId,\ntitle: values.title,\ndescription: values.description || null,\npriority: values.priority,\ndueAt: values.dueAtLocal\n? new Date(values.dueAtLocal).toISOString()\n: null,\n};\n}\n\nSubmission\nconst onSubmit = handleSubmit(async (values) => {\nclearErrors(\"root.server\");\n\ntry {\nconst input = toCreateTaskInput(projectId, values);\nawait createTaskFromBrowser(input);\nreset(defaultValues);\nrouter.push(\"/tasks\");\nrouter.refresh();\n} catch (error) {\nsetError(\"root.server\", {\nmessage: messageForApiError(error),\n});\n}\n});\n\nUser edits form\n\nzodResolver validates UI shape\n\nMap local values -> API input\n\nBrowser sends Bearer token + JSON\n\nNestJS validates again\n\nAuthorization + business rules\n\nPostgreSQL accepts / rejects\n\nUI handles authoritative result\n\nPrevent duplicate submissions\nUse isSubmitting to disable the submit button while the promise returned by the submit handler is\npending. Do not maintain a second manual loading flag for the same form operation unless it\nrepresents different state.\n\n<button type=\"submit\" disabled={isSubmitting}>\n{isSubmitting ? \"Creating...\" : \"Create task\"}\n</button>",
+      "wordCount": 216,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Create Task Form End to End in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Create Task Form End to End matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Create Task Form End to End” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating server data into form state without reset strategy",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Create Task Form End to End” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Create Task Form End to End solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "edit-forms-reset-dirty-and-default-values",
+      "title": "Edit Forms Reset Dirty and Default Values",
+      "summary": "Edit Forms, Reset, Dirty State & Defaults Model the difference between loaded data, unsaved edits and saved server state Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Edit forms begin with authoritative defaults An edit form should receive…",
+      "body": "Edit Forms, Reset, Dirty State &\nDefaults\nModel the difference between loaded data, unsaved edits and saved server state\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nEdit forms begin with authoritative defaults\nAn edit form should receive values derived from the server record, not independently refetch the same\nTask just because the form is a Client Component.\n\nServer Component loads authorized Task\n\nConvert Task -> TaskFormValues\n\nRender <TaskForm defaultValues=...>\n\nReact Hook Form tracks edits locally\n\nDirty state\nisDirty answers whether current form values differ from the form's defaults. That enables a useful Save\nbutton and unsaved-change messaging without manually comparing every field.\n\nconst {\nformState: { isDirty, isSubmitting },\n} = useForm<TaskFormValues>({\nresolver: zodResolver(taskFormSchema),\ndefaultValues,\n});\n\n<button disabled={!isDirty || isSubmitting}>\nSave changes\n</button>\n\nReset after a successful save\nAfter the server accepts updated values, reset the form to the accepted representation. That tells\nReact Hook Form that the saved values are now the baseline and clears dirty state.\n\nconst saved = await updateTaskFromBrowser(taskId, input);\n\nconst nextDefaults = taskToFormValues(saved);\nreset(nextDefaults);\n\nWhen initial record identity changes\n\nReact Hook Form reads defaultValues as initialization. If the same mounted form starts editing another\nTask, explicitly call reset(newValues), or key the form by Task ID so React remounts it.\n\nDo not use reset as data fetching\n\nreset() changes local form state. It does not fetch or prove server freshness. The server remains the source of\ntruth.",
+      "wordCount": 232,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Edit Forms Reset Dirty and Default Values in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Edit Forms Reset Dirty and Default Values matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Edit Forms Reset Dirty and Default Values” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming client validation secures the API",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Edit Forms Reset Dirty and Default Values” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Edit Forms Reset Dirty and Default Values solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "nullable-optional-date-select-and-coercion-rules",
+      "title": "Nullable Optional Date Select and Coercion Rules",
+      "summary": "Nullable, Optional, Dates, Selects & Coercion Translate browser-native values into deliberate API semantics Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Optional, nullable and empty are different Representation Meaning field omitted Caller is not sending this property null…",
+      "body": "Nullable, Optional, Dates, Selects\n& Coercion\nTranslate browser-native values into deliberate API semantics\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nOptional, nullable and empty are different\nRepresentation                    Meaning\n\nfield omitted                     Caller is not sending this property\n\nnull                              Caller explicitly clears the value\n\n\"\"                                UI string is currently empty\n\nundefined                         JavaScript property/value is absent\n\nHTML inputs naturally produce strings, so the form layer often needs to translate empty strings into null\nor omitted transport properties.\n\nDescription\ndescription: values.description.trim()\n? values.description.trim()\n: null,\n\ndatetime-local\nThe browser's datetime-local control does not include a timezone offset. TaskFlow treats the entered\nwall-clock value as the user's local time, converts it to a JavaScript Date, and then sends an ISO\ntimestamp to the API.\n\ndueAt: values.dueAtLocal\n? new Date(values.dueAtLocal).toISOString()\n: null,\n\nTime-zone warning\n\nFor systems where the intended time zone can differ from the browser zone, add an explicit time-zone field or\ndomain rule. Do not assume datetime-local is globally unambiguous.\n\nSelects and enums\n<select {...register(\"priority\")}>\n<option value=\"LOW\">Low</option>\n<option value=\"MEDIUM\">Medium</option>\n<option value=\"HIGH\">High</option>\n</select>\n\nNumbers and coercion\n\nHTML number inputs also produce strings unless you opt into conversion. Use RHF options such as\nvalueAsNumber when appropriate, or transform at the form boundary. Avoid hidden coercion for\nidentifiers and security-sensitive values.",
+      "wordCount": 221,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Nullable Optional Date Select and Coercion Rules in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Nullable Optional Date Select and Coercion Rules matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Nullable Optional Date Select and Coercion Rules” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clearing user input on every failed request",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Nullable Optional Date Select and Coercion Rules” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Nullable Optional Date Select and Coercion Rules solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "submission-pending-server-errors-and-duplicate-submits",
+      "title": "Submission Pending Server Errors and Duplicate Submits",
+      "summary": "Submission, Pending State & Server Errors Handle asynchronous failures without losing user input Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Client validation is only the first failure layer Form field error - fix locally Network failure -…",
+      "body": "Submission, Pending State &\nServer Errors\nHandle asynchronous failures without losing user input\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nClient validation is only the first failure layer\nForm field error - fix locally\n\nNetwork failure - no HTTP response\n\n401 - session/token recovery\n\n403 - authenticated but not allowed\n\n409 / business conflict - explain operation conflict\n\n500 - generic safe message + requestId\n\nRoot server error\nsetError(\"root.server\", {\ntype: \"server\",\nmessage: \"Unable to save this task.\",\n});\n\nField-level server error\nIf the API returns a structured error that clearly belongs to one field, map it back with\nsetError(\"fieldName\", ...). Do not guess based on message text. Prefer stable API error codes or\nstructured validation details.\n\nKeep the form after failure\nDo not erase the form because the server returned 409 or the network disconnected. Preserve the\nuser's work and let them correct or retry.\n\nDuplicate-submit protection\n\nA disabled submit button prevents accidental double clicks in the browser, but it is not a distributed\nidempotency guarantee. Payments and other sensitive operations may need a server-side idempotency\nstrategy later.\n\nError contract reuse\n\nPhase 13 gave TaskFlow stable error codes and request IDs. Phase 21 consumes that contract rather than\ncreating a second frontend-only error language.",
+      "wordCount": 202,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Submission Pending Server Errors and Duplicate Submits in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Submission Pending Server Errors and Duplicate Submits matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Submission Pending Server Errors and Duplicate Submits” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Showing only generic toast instead of actionable field errors",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Submission Pending Server Errors and Duplicate Submits” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Submission Pending Server Errors and Duplicate Submits solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "controller-custom-components-and-field-composition",
+      "title": "Controller Custom Components and Field Composition",
+      "summary": "Controller & Custom Components Know when native registration ends and an adapter is justified Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Prefer register for native inputs React Hook Form works naturally with native input, textarea and select…",
+      "body": "Controller & Custom Components\nKnow when native registration ends and an adapter is justified\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nPrefer register for native inputs\nReact Hook Form works naturally with native input, textarea and select elements. Start with register.\nUse Controller/useController only when a component is controlled by design or does not expose a\nstandard input ref/value contract.\n\nregister                                   Controller\n\ninput                                     date picker\n\ntextarea                                    rich select\n\nselect                                custom combobox\n\ncheckbox                               third-party UI control\n\nController pattern\n<Controller\nname=\"assigneeId\"\ncontrol={control}\nrender={({ field, fieldState }) => (\n<AssigneeCombobox\nvalue={field.value}\nonChange={field.onChange}\nonBlur={field.onBlur}\nerror={fieldState.error?.message}\n/>\n)}\n/>\n\nDo not wrap everything in Controller\nController adds an adapter layer. Native controls already integrate well through register and are\nusually simpler and more accessible. Reach for Controller when the component API requires it, not\nbecause a form library example happened to use it.\n\nReusable form-field components\nA reusable Field component can own label/help/error layout, but avoid hiding register/control behavior\nbehind a component so generic that no one can understand where values and errors come from.",
+      "wordCount": 184,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Controller Custom Components and Field Composition in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Controller Custom Components and Field Composition matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Controller Custom Components and Field Composition” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating server data into form state without reset strategy",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Controller Custom Components and Field Composition” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Controller Custom Components and Field Composition solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "shared-validator-package-and-form-boundaries",
+      "title": "Shared Validator Package and Form Boundaries",
+      "summary": "Shared Validator Package & Boundaries Extract only validation concepts with a real second consumer Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Now a shared package has earned its place In Phase 12 we deliberately kept API schemas…",
+      "body": "Shared Validator Package &\nBoundaries\nExtract only validation concepts with a real second consumer\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nNow a shared package has earned its place\nIn Phase 12 we deliberately kept API schemas in the API because the frontend did not yet need them.\nPhase 21 introduces a real second consumer. This is the moment when a small validators workspace\npackage becomes justified.\n\npackages/validators/\npackage.json\nsrc/\ntasks.ts\nindex.ts\n\napps/api/\nimports shared field rules into transport schemas\n\napps/web/\nimports shared field rules into form schemas\n\nWhat belongs in the package?\nGood shared candidates                              Keep app-specific\n\nTitle/description field rules                       Browser-only form layout\n\nTransport-neutral enums                             NestJS exceptions\n\nReusable Zod primitives                             Prisma client\n\nCross-app DTO schema when truly identical           Next.js routing\n\nSmall type exports derived from schemas             Database service logic\n\nAvoid a shared junk drawer\nDo not turn packages/validators into packages/shared-everything. Every export should be\ntransport-neutral or validation-focused.\n\nForm schema can still be web-specific\nThe shared package does not force the browser form to mirror the HTTP body. The web can compose\nshared field rules into a UI-specific schema and then map the result into a transport DTO.\n\nArchitecture rule\n\nShare concepts because two applications truly use them. Do not share them merely because a monorepo makes\nimports easy.",
+      "wordCount": 223,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Shared Validator Package and Form Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Shared Validator Package and Form Boundaries matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Shared Validator Package and Form Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming client validation secures the API",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Shared Validator Package and Form Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Shared Validator Package and Form Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "form-testing-debugging-and-common-failures",
+      "title": "Form Testing Debugging and Common Failures",
+      "summary": "Form Testing, Debugging & Common Failures Verify user-visible behavior and diagnose the correct layer Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Test behavior, not library internals A form test should prove what the user can do and…",
+      "body": "Form Testing, Debugging &\nCommon Failures\nVerify user-visible behavior and diagnose the correct layer\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nTest behavior, not library internals\nA form test should prove what the user can do and what the application sends, not whether React Hook\nForm happens to store a particular internal property.\n\nScenario                                        Expected\n\nSubmit blank title                              Inline title error; no API request\n\nEnter valid title                               Error clears according to configured validation timing\n\nDouble click submit                             One active browser submission; button disabled while pending\n\nAPI 403                                         Form preserved; permission message shown\n\nAPI 409                                         Form preserved; conflict message shown\n\nAPI 500                                         Safe message and requestId surfaced when available\n\nSuccessful create                               Navigate/refresh to Task list\n\nSuccessful edit                                 reset accepted values; isDirty becomes false\n\nDebugging order\n\nIs the field registered / controlled?\n\nWhat are current values/defaultValues?\n\nDid Zod reject the UI shape?\n\nDid handleSubmit run?\n\nWas the request sent?\n\nWhat HTTP status/error code returned?\n\nDid reset/navigation run after success?\n\nUseful tooling\nUse browser DevTools Network for HTTP, React DevTools for component boundaries, and temporary\nRHF watch/getValues logging only while diagnosing. Do not ship logs containing sensitive form values.\n\nCommon failure: default mismatch\nIf the form appears dirty immediately, compare the actual initialized values with defaultValues. Empty\nstring, null and undefined differences are a frequent cause.\n\nCommon failure: custom component never blurs\nA custom controlled component must forward onChange and onBlur correctly if your validation mode\ndepends on blur events.",
+      "wordCount": 245,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Form Testing Debugging and Common Failures in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Form Testing Debugging and Common Failures” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clearing user input on every failed request",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Form Testing Debugging and Common Failures” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Form Testing Debugging and Common Failures solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Move from tutorial form code to independent form architecture decisions Phase 21 - Forms with React Hook Form + Zod Volume 06 - Professional Frontend Hands-on lab Implement the complete create/edit Task form flow in the course repository. Do the…",
+      "body": "Hands-On Lab & Phase Exit\nMove from tutorial form code to independent form architecture decisions\n\nPhase 21 - Forms with React Hook Form + Zod\nVolume 06 - Professional Frontend\n\nHands-on lab\nImplement the complete create/edit Task form flow in the course repository. Do the work in small\ncheckpoints; do not paste the final reference snapshot first.\n\nLevel 1 - Follow\nInstall the locked packages, create the shared validators package, add the Task form schema, render\naccessible title/description/priority/due-date fields, and verify client validation.\n\nLevel 2 - Modify\nAdd a character counter for description that does not replace the server-side maximum-length rule.\nAdd a clear due-date button that sets the form value to an empty string and maps to null on submit.\n\nLevel 3 - Implement\nBuild the Edit Task page. It must load server data, initialize the form, disable Save while unchanged,\npreserve input after a 409 failure, and reset dirty state after a successful save.\n\nLevel 4 - Engineer\nDesign a reusable form architecture for an HRIS leave request with leave type, start/end dates, half-day\noption and reason. Identify which rules belong in: shared Zod primitives, web form schema, NestJS\ntransport validation, service business rules, and PostgreSQL constraints.\n\nPhase exit oral exam\nQuestion                                        You should be able to explain\n\nWhy validate twice?                             Browser UX vs untrusted API boundary\n\nWhy can form schema differ from DTO?            UI controls and HTTP transport have different shapes\n\nWhat does isDirty mean?                         Current values differ from current defaults\n\nWhen use Controller?                            Controlled/custom component needs an adapter\n\nWhy preserve values on failure?                 Server rejection should not destroy user work\n\nWhy not put form state in TanStack              Form state is local transient editing state\nQuery?\n\nGraduation checkpoint\n\nPhase 21 is complete when a user can create and edit a Task with accessible validation, secure authenticated\nsubmission, clear pending/error behavior, and the server remains authoritative for validation and business rules.",
+      "wordCount": 312,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Showing only generic toast instead of actionable field errors",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild robust forms with React Hook Form and Zod while separating transient form state from authoritative server state.",
+      "body": "Guided Build Lab — Phase 21: Forms with React Hook Form + Zod\n\nPurpose\nBuild robust forms with React Hook Form and Zod while separating transient form state from authoritative server state.\n\nDeliverable\nCreate/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\ninput controls -> React Hook Form state -> Zod resolver -> submit mutation -> API validation/business rules -> field/non-field feedback\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Define form values and defaults before wiring UI fields.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Register basic fields and observe dirty/touched/submitting state intentionally.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Implement accessible field errors and focus behavior after invalid submit.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Send data through the mutation layer and map server validation/conflict errors back to fields or form-level feedback.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Implement edit/reset/cancel semantics and test what happens when server data changes while a form is open.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 656,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating server data into form state without reset strategy",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 21: Forms with React Hook Form + Zod\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\ninput controls -> React Hook Form state -> Zod resolver -> submit mutation -> API validation/business rules -> field/non-field feedback\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Duplicating server data into form state without reset strategy\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Assuming client validation secures the API\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Clearing user input on every failed request\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Showing only generic toast instead of actionable field errors\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 459,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming client validation secures the API",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 21 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Forms with React Hook Form + Zod\n\nMission\nRebuild the capability of Phase 21 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild robust forms with React Hook Form and Zod while separating transient form state from authoritative server state.\n\nRequired artifact\nCreate/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can distinguish form state from server state.\n• Can build schema-backed forms.\n• Can handle async errors.\n• Can reason about create vs edit/reset lifecycles.\n\nIndependent build sequence\n1. Define form values and defaults before wiring UI fields.\n2. Register basic fields and observe dirty/touched/submitting state intentionally.\n3. Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.\n4. Implement accessible field errors and focus behavior after invalid submit.\n5. Send data through the mutation layer and map server validation/conflict errors back to fields or form-level feedback.\n6. Implement edit/reset/cancel semantics and test what happens when server data changes while a form is open.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 384,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Clearing user input on every failed request",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 21 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 21: Forms with React Hook Form + Zod. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nCreate/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 206,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Build robust forms with React Hook Form and Zod while separating transient form state from authoritative server state.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "input controls",
+          "React Hook Form state",
+          "Zod resolver",
+          "submit mutation",
+          "API validation/business rules",
+          "field/non-field feedback"
+        ],
+        "steps": [
+          "Define form values and defaults before wiring UI fields.",
+          "Register basic fields and observe dirty/touched/submitting state intentionally.",
+          "Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.",
+          "Implement accessible field errors and focus behavior after invalid submit.",
+          "Send data through the mutation layer and map server validation/conflict errors back to fields or form-level feedback.",
+          "Implement edit/reset/cancel semantics and test what happens when server data changes while a form is open.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can distinguish form state from server state",
+          "Can build schema-backed forms",
+          "Can handle async errors",
+          "Can reason about create vs edit/reset lifecycles"
+        ],
+        "breakIt": [
+          "Duplicating server data into form state without reset strategy",
+          "Assuming client validation secures the API"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 21 reference snapshot\n\nThis snapshot demonstrates the form architecture taught in Phase 21. It is a teaching reference, not a drop-in replacement for earlier phase source files. Integrate the changes deliberately.\n\nThe key design is: React Hook Form owns transient form state; Zod validates the client experience; NestJS validates the HTTP request again; business rules remain in services; PostgreSQL remains authoritative persistence."
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/apps/api/src/tasks/tasks.schemas.phase21.ts",
+      "preview": "import { z } from \"zod\";\nimport { taskDescriptionSchema, taskPrioritySchema, taskTitleSchema } from \"@taskflow/validators/tasks\";\n\nexport const createTaskSchema = z.strictObject({\n  projectId: z.uuid(),\n  title: taskTitleSchema,\n  description: taskDescriptionSchema.nullable().optional(),\n  priority: taskPrioritySchema.default(\"MEDIUM\"),\n  dueAt: z.iso.datetime().nullable().optional(),\n});\n\nexport const updateTaskSchema = createTaskSchema.omit({ projectId: true }).partial().refine(\n  (value) => Object.keys(value).length > 0,\n  { message: \"At least one field must be provided.\" },\n);"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/apps/web/src/components/tasks/task-form.module.css",
+      "preview": ".form { display: grid; gap: 1rem; max-width: 48rem; }\n.field { display: grid; gap: .375rem; }\n.field label { font-weight: 650; }\n.field input, .field textarea, .field select { width: 100%; padding: .75rem; border: 1px solid var(--border); border-radius: .625rem; background: var(--surface); color: var(--text); }\n.field [aria-invalid=\"true\"] { border-color: #b42318; }\n.field [role=\"alert\"], .formError { margin: 0; color: #b42318; font-size: .875rem; }\n.row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }\n.actions { display: flex; justify-content: flex-end; }\n.actions button { min-height: 2.75rem; padding: .625rem 1rem; }\n.actions button:disabled { opacity: .6; cursor: not-allowed; }\n@media (max-width: 640px) { .row { grid-template-columns: 1fr; } .actions button { width: 100%; } }"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/apps/web/src/components/tasks/task-form.schema.ts",
+      "preview": "import { z } from \"zod\";\nimport { taskDescriptionSchema, taskPrioritySchema, taskTitleSchema } from \"@taskflow/validators/tasks\";\n\nexport const taskFormSchema = z.object({\n  title: taskTitleSchema,\n  description: taskDescriptionSchema,\n  priority: taskPrioritySchema,\n  dueAtLocal: z.string(),\n});\n\nexport type TaskFormValues = z.infer<typeof taskFormSchema>;"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/apps/web/src/components/tasks/task-form.tsx",
+      "preview": "\"use client\";\n\nimport { zodResolver } from \"@hookform/resolvers/zod\";\nimport { useRouter } from \"next/navigation\";\nimport { useForm } from \"react-hook-form\";\nimport { createTask, updateTask } from \"@/lib/api/task-mutations\";\nimport { taskFormSchema, type TaskFormValues } from \"./task-form.schema\";\nimport styles from \"./task-form.module.css\";\n\ntype Props = {\n  mode: \"create\" | \"edit\";\n  projectId: string;\n  taskId?: string;\n  defaultValues: TaskFormValues;\n};\n\nexport function TaskForm({ mode, projectId, taskId, defaultValues }: Props) {\n  const router = useRouter();\n  const { register, handleSubmit, reset, setError, clearErrors, formState: { errors, isDirty, isSubmitting } } = useForm<TaskFormValues>({\n    resolver: zodResolver(taskFormSchema),"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/apps/web/src/lib/api/task-mutations.ts",
+      "preview": "import { createClient } from \"@/lib/supabase/client\";\n\nconst API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;\n\nasync function authHeaders() {\n  const supabase = createClient();\n  const { data, error } = await supabase.auth.getSession();\n  if (error || !data.session?.access_token) throw new Error(\"Authentication required.\");\n  return {\n    \"Content-Type\": \"application/json\",\n    Authorization: `Bearer ${data.session.access_token}`,\n  };\n}\n\nexport async function createTask(input: unknown) {\n  const response = await fetch(`${API_BASE_URL}/tasks`, {\n    method: \"POST\",\n    headers: await authHeaders(),\n    body: JSON.stringify(input),\n  });"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/packages/validators/package.json",
+      "preview": "{\n  \"name\": \"@taskflow/validators\",\n  \"version\": \"0.0.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"exports\": {\n    \"./tasks\": \"./src/tasks.ts\"\n  },\n  \"dependencies\": {\n    \"zod\": \"4.6.5\"\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/packages/validators/src/tasks.ts",
+      "preview": "import { z } from \"zod\";\n\nexport const taskTitleSchema = z.string().trim().min(1, \"Title is required.\").max(200);\nexport const taskDescriptionSchema = z.string().trim().max(2000);\nexport const taskPrioritySchema = z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]);\nexport const taskStatusSchema = z.enum([\"TODO\", \"IN_PROGRESS\", \"DONE\", \"CANCELED\"]);"
+    },
+    {
+      "path": "reference/TaskFlow_Form_Snapshot/tests/form-test-matrix.md",
+      "preview": "# Phase 21 form test matrix\n\n- Blank title -> inline error; request not sent.\n- Unknown browser-only field -> not included in transport mapping.\n- Create success -> navigate/refresh Task list.\n- Edit success -> reset accepted values and clear dirty state.\n- API 401 -> preserve values and show authentication/recovery message.\n- API 403 -> preserve values and show permission message.\n- API 409 -> preserve values and show conflict message.\n- API 500 -> generic safe message; include requestId when client error helper exposes it.\n- Double-click submit -> submit control disabled while isSubmitting is true.\n- Keyboard-only -> labels, focus, errors and submit remain operable.\n- Mobile width -> fields stack; button remains reachable without horizontal page overflow."
+    }
+  ],
+  "exercises": [
+    "Guided: Define form values and defaults before wiring UI fields.",
+    "Practice: Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.",
+    "Debugging: reproduce and diagnose — Duplicating server data into form state without reset strategy.",
+    "Independent: deliver Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.",
+    "Explain-back: Can distinguish form state from server state and Can build schema-backed forms."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "React Hook Form should own transient form interaction while Zod defines the input contract."
+      ],
+      "answer": 3,
+      "explanation": "React Hook Form should own transient form interaction while Zod defines the input contract."
+    },
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Validate close to the user for feedback, but repeat trust-boundary validation on the backend.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Validate close to the user for feedback, but repeat trust-boundary validation on the backend."
+    },
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Map server validation errors back to fields without losing non-field errors.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Map server validation errors back to fields without losing non-field errors."
+    },
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Reset or preserve form state deliberately after successful mutations based on the workflow.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Reset or preserve form state deliberately after successful mutations based on the workflow."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicating server data into form state without reset strategy.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Define form values and defaults before wiring UI fields.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Define form values and defaults before wiring UI fields."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Register basic fields and observe dirty/touched/submitting state intentionally.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Assuming client validation secures the API."
+      ],
+      "answer": 1,
+      "explanation": "Register basic fields and observe dirty/touched/submitting state intentionally."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Clearing user input on every failed request.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Showing only generic toast instead of actionable field errors.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement accessible field errors and focus behavior after invalid submit."
+      ],
+      "answer": 3,
+      "explanation": "Implement accessible field errors and focus behavior after invalid submit."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4534
+}

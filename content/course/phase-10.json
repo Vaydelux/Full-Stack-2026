@@ -1,0 +1,1050 @@
+{
+  "number": 10,
+  "slug": "phase-10",
+  "title": "Relational Data Modeling",
+  "volume": 3,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 03 - Database Engineering\nPhase 10 - Relational Data Modeling\n\nThis phase converts the working PostgreSQL + Prisma infrastructure into the first production-oriented TaskFlow relational model.\n\nRead 00 first, continue in numeric order, then use 11_Phase_10_Complete_Book.pdf as the combined edition.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "entities-relationships-cardinality-and-ownership",
+      "title": "Entities Relationships Cardinality and Ownership",
+      "summary": "Entities, Relationships, Cardinality & Ownership Turn product language into relational structure Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable data should mean…",
+      "body": "Entities, Relationships, Cardinality &\nOwnership\nTurn product language into relational structure\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nStart with business language, not tables\nA common modeling mistake is to begin by inventing table names. Start instead with statements the business expects to\nremain true. Example: a workspace has many projects; a project belongs to exactly one workspace; a task belongs to\none project; a workspace has many members; a user can belong to many workspaces.\n\nFigure 1 - Business rules become relationships\n\nBusiness statement\n\n↓\n\nCardinality\n\n↓\n\nForeign key / join model\n\n↓\n\nDatabase invariant\n\nThe schema is a durable encoding of business relationships, not a mirror of one screen.\n\nEntity candidates\nCandidate                 Why it exists                                       Not just a field because...\n\nUser                      Identity referenced across workspaces               It has its own lifecycle and relationships\n\nWorkspace                 Collaboration/security boundary                     Many projects and memberships depend on it\n\nMembership                User-to-workspace participation                     It has role/status metadata\n\nProject                   Groups tasks inside a workspace                     It has ownership, dates and task relationships\n\nTask                      Work item tracked by the system                     It has state, priority and relationships\n\nCardinality\nRelationship                        Meaning                                                     Relational shape\n\nWorkspace 1 -> many Projects        Each project belongs to one workspace                       projects.workspace_id FK\n\nProject 1 -> many Tasks             Each task belongs to one project                            tasks.project_id FK\n\nUser many <-> many Workspace        Users join many workspaces and vice versa                   memberships join table\n\nOptionality is part of cardinality\n\"A task may have an assignee\" is different from \"every task must have an assignee.\" The first permits a NULL assignee\nreference. The second should be NOT NULL. Optionality should follow domain rules, not convenience.\n\nOwnership vs association\n\nA task can be associated with an assignee without the assignee owning the containing project. Ownership affects\nsecurity and lifecycle decisions. Model this distinction explicitly rather than assuming every foreign key means\nownership.\nA useful review question: If the parent disappears, should the child disappear too? If the answer is unclear, you have not\nfinished modeling lifecycle ownership.\n\nExercise\nFor each statement below, identify entity candidates, cardinality, optionality, and the likely foreign key or join entity: (1)\nprojects may have an optional due date, (2) users can join many workspaces, (3) each project belongs to one\nworkspace, (4) a task can optionally be assigned to one workspace member.",
+      "wordCount": 399,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Entities Relationships Cardinality and Ownership in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Entities Relationships Cardinality and Ownership” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "JSON arrays replacing relational join tables without reason",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Entities Relationships Cardinality and Ownership” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Entities Relationships Cardinality and Ownership solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "optionality-keys-and-constraints",
+      "title": "Optionality Keys and Constraints",
+      "summary": "Optionality, Keys & Constraints Put invariants in the database instead of only in application code Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the…",
+      "body": "Optionality, Keys & Constraints\nPut invariants in the database instead of only in application code\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nA valid row is more than a TypeScript object\nDatabase constraints remain active regardless of which application code writes the row. They are therefore the final line\nof defense for structural integrity.\n\nFigure 1 - Integrity layers\n\nUI validation\n\n↓\n\nAPI validation\n\n↓\n\nBusiness rules\n\n↓\n\nDatabase constraints\n\nThe closer a rule is to a permanent data invariant, the stronger the case for enforcing it in the database too.\n\nPrimary keys\nEvery durable entity needs a stable identity. For TaskFlow, UUID-style IDs are appropriate for entities that may cross\nservice/API boundaries. The course will use UUID-compatible Prisma String IDs generated with uuid() for production\nentities.\n\nNatural vs surrogate keys\nKey type                    Example                              Trade-off\n\nNatural                     email address                        Readable but business values can change\n\nSurrogate                   generated UUID                       Stable identity independent of business attributes\n\nUniqueness\nUniqueness should reflect business invariants. Example: a workspace slug may be globally unique; a membership\nshould be unique for the pair (workspaceId, userId); project names may or may not be unique depending on product\nrules.\n@@unique([workspaceId, userId])\n\nNULL is a domain decision\nField                             Possible rule                                              Schema implication\n\nProject.name                      Always required                                            NOT NULL\n\nTask.description                  Optional narrative                                         nullable\n\nTask.assigneeId                   Unassigned is allowed                                      nullable FK\n\nField                             Possible rule                                    Schema implication\n\nTask.completedAt                  Only present when completed                      nullable timestamp\n\nCheck-like invariants\nPrisma schema syntax does not express every possible PostgreSQL CHECK constraint directly. When the database\nmust guarantee an invariant that exceeds ORM-level expressiveness, use reviewed SQL migrations rather than\npretending the invariant does not exist.\nDo not encode every business rule as a database constraint. Workflow rules that require external state, permissions, or\nmultiple aggregates usually belong in application services. Use the database for structural invariants it can enforce reliably.\n\nExercise\nClassify each rule as primarily database constraint, service rule, or both: unique workspace slug; user must be\nworkspace member before task assignment; task title required; invoice approval requires manager role; membership\npair must be unique.",
+      "wordCount": 367,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Optionality Keys and Constraints in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Optionality Keys and Constraints matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Optionality Keys and Constraints” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Ambiguous cascade-delete behavior",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Optionality Keys and Constraints” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Optionality Keys and Constraints solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "many-to-many-membership-and-composite-uniqueness",
+      "title": "Many to Many Membership and Composite Uniqueness",
+      "summary": "Many-to-Many Membership & Composite Uniqueness Model collaboration as a first-class relationship Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable data should mean…",
+      "body": "Many-to-Many Membership & Composite\nUniqueness\nModel collaboration as a first-class relationship\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nWhy a bare many-to-many is not enough\nUsers and workspaces are many-to-many, but their relationship has meaningful data: role, status, joinedAt, and possibly\ninvitation metadata. That means the relationship deserves its own entity: Membership.\n\nFigure 1 - Explicit join entity\n\nUser\n\n↓\n\nMembership\nrole / status / joinedAt\n\n↓\n\nWorkspace\n\nMembership is not plumbing. It is a domain record with its own behavior and constraints.\n\nCore invariant\nA user should normally have at most one active membership record per workspace. Encode the structural uniqueness\nwith a composite unique constraint.\nmodel Membership {\nid          String   @id @default(uuid())\nuserId      String\nworkspaceId String\nrole        MembershipRole @default(MEMBER)\njoinedAt    DateTime @default(now())\n\nuser           User      @relation(fields: [userId], references: [id])\nworkspace      Workspace @relation(fields: [workspaceId], references: [id])\n\n@@unique([workspaceId, userId])\n@@index([userId])\n}\n\nWhy both an id and composite uniqueness?\nThe surrogate id gives the membership a stable independent identity for APIs/audit events. The composite uniqueness\nprotects the relationship invariant. They solve different problems.\n\nRole belongs on membership\nA user can be ADMIN in Workspace A and MEMBER in Workspace B. Therefore role cannot be modeled as one global\nUser.role if role is workspace-scoped.\nThis is a foundational enterprise pattern: identity is global, permissions are often contextual. HRIS department\nmembership, tenant membership, project membership and organization membership all use similar relational reasoning.\n\nAssignment should target membership or user?\nFor TaskFlow, a task assignee ultimately represents a user participating in the workspace. Modeling assignee as userId\nis simpler, but then service logic must verify workspace membership. Modeling assigneeMembershipId makes\nmembership validity structural but couples task assignment to membership row lifecycle. The course will use assigneeId\n-> User for clarity and enforce membership in the service layer later.",
+      "wordCount": 323,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Many to Many Membership and Composite Uniqueness in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Many to Many Membership and Composite Uniqueness matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Many to Many Membership and Composite Uniqueness” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "prisma",
+          "caption": "Model membership as a first-class relation",
+          "code": "model WorkspaceMember {\n  workspaceId String\n  userId      String\n  role        WorkspaceRole\n  workspace Workspace @relation(fields: [workspaceId], references: [id])\n  user      User      @relation(fields: [userId], references: [id])\n  @@id([workspaceId, userId])\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicate membership rows permitted",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Many to Many Membership and Composite Uniqueness” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Many to Many Membership and Composite Uniqueness solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "enums-lookup-tables-and-state-modeling",
+      "title": "Enums Lookup Tables and State Modeling",
+      "summary": "Enums, Lookup Tables & State Modeling Choose the right representation for finite business states Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable…",
+      "body": "Enums, Lookup Tables & State Modeling\nChoose the right representation for finite business states\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nNot every string should be free text\nValues such as task status and priority usually come from a constrained set. Free-text values create invalid states such\nas \"INPROGRESS\", \"in_progress\", and \"Doing\" describing the same concept.\n\nThree common options\nApproach                        Good for                                     Cost\n\nApplication string              Prototype-only values                        Weak integrity\n\nDatabase/Prisma enum            Small stable finite set                      Schema migration to change values\n\nLookup table                    Admin-configurable or metadata-rich set      More joins and lifecycle complexity\n\nTaskFlow choice\nenum TaskStatus {\nTODO\nIN_PROGRESS\nDONE\nCANCELED\n}\n\nenum TaskPriority {\nLOW\nMEDIUM\nHIGH\nURGENT\n}\n\nenum MembershipRole {\nOWNER\nADMIN\nMEMBER\n}\n\nWhy enums here?\nThese values are small, have clear semantics, and are expected to change infrequently. They are part of the application\ncontract and are good candidates for enums.\n\nWhen a lookup table would be better\nIf each status needs configurable color, ordering, SLA behavior, translations, or customer-defined values, it has become\ndata rather than a fixed code-level state. A lookup table may then be more appropriate.\nDo not use enums for values likely to be customized per tenant. Schema migrations are a poor substitute for normal\napplication data management.\n\nState transitions are not automatically database constraints\nAn enum can guarantee that status is one of the allowed values, but it does not guarantee valid transitions such as\nTODO -> DONE. Transition permissions and workflow rules belong in the service layer unless a database trigger is\nintentionally part of the architecture.",
+      "wordCount": 280,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Enums Lookup Tables and State Modeling in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Enums Lookup Tables and State Modeling matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Enums Lookup Tables and State Modeling” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using nullable foreign keys where the domain requires ownership",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Enums Lookup Tables and State Modeling” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Enums Lookup Tables and State Modeling solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "deletion-referential-actions-and-lifecycle",
+      "title": "Deletion Referential Actions and Lifecycle",
+      "summary": "Deletion, Referential Actions & Lifecycle Design what happens when related data disappears Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable data should…",
+      "body": "Deletion, Referential Actions & Lifecycle\nDesign what happens when related data disappears\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nDelete is a business operation\nA foreign key answers whether related rows may exist. A referential action answers what the database should do when\nthe referenced row is updated or deleted. This should follow ownership and retention requirements.\n\nAction                       Meaning                                                 Typical use\n\nCascade                      Delete children automatically                           Strong ownership, e.g. project-local tasks\n\nRestrict / NoAction          Block parent deletion                                   Records must be handled deliberately\n\nSetNull                      Keep child, clear optional reference                    Optional assignee/reference\n\nApplication-managed          Service performs explicit archival/deletion workflow    Audited enterprise processes\n\nTaskFlow lifecycle choices\nRelationship                           Suggested behavior                 Reason\n\nWorkspace -> Project                   Cascade in learning model          Projects have no meaning outside workspace\n\nProject -> Task                        Cascade                            Tasks belong to project\n\nUser -> Membership                     Cascade/explicit cleanup dependingMembership\naudit needs depends on user identity\n\nUser -> Task assignee                  SetNull                            Task should survive account removal\n\nWorkspace -> Membership                Cascade                            Membership is scoped to workspace\n\nworkspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)\nassignee User?      @relation(fields: [assigneeId], references: [id], onDelete: SetNull)\n\nSoft deletion is not free\nAdding deletedAt looks simple but changes almost every query, uniqueness rule, reporting workflow, restore behavior\nand index strategy. Do not add soft deletion merely because enterprise systems often use it.\nProduction retention requirements may require archival instead of cascading hard deletes. The course model teaches\nrelational ownership, but a regulated HRIS or accounting system should derive lifecycle from explicit retention policy.\n\nExercise\nChoose and justify an on-delete behavior for comments, file attachments, activity log rows, and workspace invitations.\nThere is no universally correct answer; the point is to connect lifecycle semantics to referential actions.",
+      "wordCount": 301,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Deletion Referential Actions and Lifecycle in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deletion Referential Actions and Lifecycle matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Deletion Referential Actions and Lifecycle” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "JSON arrays replacing relational join tables without reason",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Deletion Referential Actions and Lifecycle” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Deletion Referential Actions and Lifecycle solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "indexes-and-query-driven-design",
+      "title": "Indexes and Query Driven Design",
+      "summary": "Indexes & Query-Driven Design Design access paths from real application queries Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable data should mean…",
+      "body": "Indexes & Query-Driven Design\nDesign access paths from real application queries\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nDo not index every column\nIndexes trade storage and write cost for faster access paths. Index design should start from important query patterns,\nnot from a desire to \"optimize\" every field.\n\nFigure 1 - Query-driven indexing\n\nProduct requirement\n\n↓\n\nFrequent query\n\n↓\n\nFilter / join / sort columns\n\n↓\n\nCandidate index\n\n↓\n\nMeasure with real workload\n\nIndexes are consequences of access patterns.\n\nExpected TaskFlow queries\nQuery                                                 Likely columns\n\nList projects in workspace                            workspaceId + createdAt/name\n\nList tasks in project                                 projectId + status + createdAt\n\nMy assigned tasks                                     assigneeId + status\n\nFind memberships for user                             userId\n\nResolve workspace by slug                             slug unique\n\nCandidate Prisma indexes\nmodel Task {\n// ...\n@@index([projectId, status])\n@@index([assigneeId, status])\n@@index([createdAt])\n}\n\nmodel Project {\n// ...\n@@index([workspaceId])\n}\n\nComposite index order matters\nAn index on (projectId, status) is naturally useful for queries beginning with projectId. It is not equivalent to (status,\nprojectId) for every workload. The order should reflect leading filter/selectivity and sort patterns.\n\nForeign keys are not automatically all the indexes you need\nA foreign-key constraint protects referential integrity. Query performance is a separate concern. PostgreSQL does not\nautomatically create an index on the referencing foreign-key column simply because the foreign key exists.\nPerformance design rule: model correctness first, then choose indexes from observed high-value queries, and validate with\nEXPLAIN/production-like data later.",
+      "wordCount": 252,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Indexes and Query Driven Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Indexes and Query Driven Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Ambiguous cascade-delete behavior",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Indexes and Query Driven Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Indexes and Query Driven Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "normalization-and-denormalization",
+      "title": "Normalization and Denormalization",
+      "summary": "Normalization & Denormalization Avoid duplicated truth without turning the schema into theory theater Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable data…",
+      "body": "Normalization & Denormalization\nAvoid duplicated truth without turning the schema into theory theater\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nWhat normalization is trying to prevent\nNormalization reduces contradictory copies of the same fact. If workspace name is repeated on every task, renaming\nthe workspace requires changing many rows and creates opportunities for inconsistency.\n\nFigure 1 - One source of truth\n\nTask rows repeat workspaceName\n\n↓\n\nUpdate anomaly\n\n↓\n\nNormalize Workspace\n\n↓\n\nTasks reference workspace indirectly through Project\n\nRelationships replace duplicated facts with references to authoritative records.\n\nPractical normal form mindset\nQuestion                                                     Healthy direction\n\nDoes each row represent one thing?                           Yes - avoid repeating groups\n\nDoes an attribute depend on the whole identity?              Yes - avoid partial dependencies\n\nIs a fact stored in the entity that owns it?                 Yes - avoid transitive duplication\n\nDo not over-normalize labels into pointless tables\nA three-value stable priority does not automatically need a task_priorities table. Normalization is about dependency and\ntruth, not maximizing table count.\n\nWhen denormalization can be intentional\nRead-heavy reporting, immutable historical snapshots, analytics, search documents, or expensive aggregate views can\njustify duplicated derived data. But denormalization should name the consistency strategy explicitly.\nNever duplicate a field because JOINs \"feel slow\" without measurement. Relational databases are designed to join\nnormalized data efficiently when keys and indexes are appropriate.\n\nTaskFlow examples\n•\nWorkspace name belongs on Workspace, not Task.\n•\nMembership role belongs on Membership, not globally on User.\n•\nTask status belongs on Task because it is a fact about that task.\n\n•\nA future immutable audit event may snapshot labels because history should not change when the live record\nchanges.",
+      "wordCount": 287,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Normalization and Denormalization in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Normalization and Denormalization matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Normalization and Denormalization” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicate membership rows permitted",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Normalization and Denormalization” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Normalization and Denormalization solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "taskflow-production-data-model",
+      "title": "TaskFlow Production Data Model",
+      "summary": "TaskFlow Production Data Model Assemble the first coherent relational model used by later phases Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable…",
+      "body": "TaskFlow Production Data Model\nAssemble the first coherent relational model used by later phases\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nThe model we are committing to\nFigure 1 - TaskFlow production relational model\n\nUser\n\n↓\n\nMembership\n\n↓\n\nWorkspace\n\n↓\n\nProject\n\n↓\n\nTask\n\nThe visual is simplified: Membership connects User <-> Workspace; Workspace owns Projects; Project owns Tasks; Task may reference\nan assignee User.\n\nModel overview\nModel                       Core responsibility\n\nUser                        Application identity/profile reference\n\nWorkspace                   Tenant/collaboration boundary\n\nMembership                  User participation and workspace-scoped role\n\nProject                     Container of related work inside workspace\n\nTask                        Work item inside project\n\nPrisma schema snapshot\nenum MembershipRole {\nOWNER\nADMIN\nMEMBER\n}\n\nenum TaskStatus {\nTODO\nIN_PROGRESS\nDONE\nCANCELED\n}\n\nenum TaskPriority {\nLOW\n\nMEDIUM\nHIGH\nURGENT\n}\n\nmodel User {\nid          String                @id @default(uuid())\nemail       String                @unique\ndisplayName String?\ncreatedAt   DateTime              @default(now())\nupdatedAt   DateTime              @updatedAt\n\nmemberships Membership[]\nassignedTasks Task[]     @relation(\"TaskAssignee\")\n}\n\nmodel Workspace {\nid          String                @id @default(uuid())\nname        String\nslug        String                @unique\ncreatedAt   DateTime              @default(now())\nupdatedAt   DateTime              @updatedAt\n\nmemberships Membership[]\nprojects    Project[]\n}\n\nmodel Membership {\nid          String         @id @default(uuid())\nuserId      String\nworkspaceId String\nrole        MembershipRole @default(MEMBER)\njoinedAt    DateTime       @default(now())\n\nuser           User      @relation(fields: [userId], references: [id], onDelete: Cascade)\nworkspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)\n\n@@unique([workspaceId, userId])\n@@index([userId])\n}\n\nmodel Project {\nid          String            @id @default(uuid())\nworkspaceId String\nname        String\ndescription String?\ncreatedAt   DateTime          @default(now())\nupdatedAt   DateTime          @updatedAt\n\nworkspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)\ntasks          Task[]\n\n@@index([workspaceId])\n}\n\nmodel Task {\nid          String       @id @default(uuid())\nprojectId   String\nassigneeId String?\ntitle       String\ndescription String?\nstatus      TaskStatus   @default(TODO)\npriority    TaskPriority @default(MEDIUM)\ndueAt       DateTime?\ncompletedAt DateTime?\ncreatedAt   DateTime     @default(now())\nupdatedAt   DateTime     @updatedAt\n\nproject        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)\nassignee       User?   @relation(\"TaskAssignee\", fields: [assigneeId], references: [id], onDelete: SetNull)\n\n@@index([projectId, status])\n\n@@index([assigneeId, status])\n}\n\nImportant service-layer invariant\nThe schema can prove that assigneeId references a real User, but it does not prove that the user belongs to the task\nproject's workspace. Later Todos/Tasks service logic must verify workspace membership before assignment. This is a\nperfect example of database integrity plus application business rules working together.\n\nWhy User exists before Supabase Auth integration\nSupabase Auth identity will arrive later. TaskFlow still benefits from an application-facing User/Profile model that can\nparticipate in relational data. Phase 17 will define how authenticated identity maps to this model without trusting\nbrowser-supplied user IDs.\nThe production model is intentionally capable but not maximal. Comments, attachments, activity events, labels, invitations,\nnotifications and audit logs will be added only when later product phases create concrete requirements.",
+      "wordCount": 448,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "deployment",
+        "objectives": [
+          "Explain TaskFlow Production Data Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this deployment concept.",
+          "Diagnose one representative deployment failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Deployment is the controlled movement of a versioned artifact into a configured runtime with evidence of health and a credible rollback path.",
+        "mentalModel": [
+          "versioned artifact",
+          "production config",
+          "runtime",
+          "health/smoke test",
+          "rollback path"
+        ],
+        "steps": [
+          "Restate the goal of “TaskFlow Production Data Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: versioned artifact → production config → runtime → health/smoke test → rollback path. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Release runbook, not a vague deploy button",
+          "code": "1. Build an immutable artifact.\n2. Apply production configuration/secrets.\n3. Run compatible migrations.\n4. Start the new version.\n5. Check readiness and smoke tests.\n6. Observe errors/latency.\n7. Promote or execute rollback."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using nullable foreign keys where the domain requires ownership",
+          "Change one assumption in the deployment example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Deployment is green but app fails",
+            "investigation": "Separate platform deploy status from application readiness; run smoke tests against real routes and dependencies."
+          },
+          {
+            "symptom": "New release breaks schema compatibility",
+            "investigation": "Use expand/contract migrations and keep rollback compatibility explicit before release."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TaskFlow Production Data Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TaskFlow Production Data Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the deployment boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "migration-planning-and-safe-schema-evolution",
+      "title": "Migration Planning and Safe Schema Evolution",
+      "summary": "Migration Planning & Safe Schema Evolution Change durable data without treating migrations as generated noise Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the…",
+      "body": "Migration Planning & Safe Schema\nEvolution\nChange durable data without treating migrations as generated noise\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nA schema change is a data change\nOnce production data exists, changing schema can affect stored rows, constraints, application compatibility, indexes,\nlock duration, and rollback strategy. Migrations deserve code review.\n\nFigure 1 - Safe change workflow\n\nChange business requirement\n\n↓\n\nEdit schema\n\n↓\n\nGenerate migration\n\n↓\n\nReview SQL\n\n↓\n\nBackfill / stage if needed\n\n↓\n\nApply + verify\n\nThe migration file is part of the application codebase and deployment story.\n\nAdditive changes are easiest\nAdding a nullable column is usually easier than immediately adding a required column to a populated table. For required\nnew data, use a staged migration: add nullable/default, backfill, validate, then enforce NOT NULL.\n\nExample staged change\nStep                Action\n\n1                   Add optional workspace timezone\n\n2                   Deploy code that can write it\n\n3                   Backfill existing workspaces\n\n4                   Add required constraint if product truly requires it\n\n5                   Remove temporary compatibility code\n\nRenames can be destructive if generated naively\n\nAn ORM may interpret a field rename as drop-old + add-new, which can lose data. Review generated SQL and use\ndeliberate SQL rename operations or migration edits when preserving existing data matters.\n\nEnvironment workflow\nEnvironment                               Command intent\n\nDevelopment                               migrate dev creates/tests migration\n\nCI / staging / production                 migrate deploy applies committed migrations\n\nNever production                          ad-hoc migrate dev against live data\n\nA rollback is not automatically \"run the migration backward.\" Many database changes are irreversible after data is\ntransformed or deleted. Production change planning should prefer forward fixes, backups, compatibility windows, and explicit\nrestore strategy.\n\nPhase 10 migration plan\n•\nReplace the minimal Todo-only learning model with the TaskFlow production model in a controlled development\nmigration.\n•\nReview generated SQL before applying.\n•\nUse a development database/shadow workflow only.\n•\nVerify tables, foreign keys, uniqueness and indexes after migration.\n•\nDo not seed production-like identities until authentication design is introduced.",
+      "wordCount": 336,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Migration Planning and Safe Schema Evolution in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Migration Planning and Safe Schema Evolution” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "JSON arrays replacing relational join tables without reason",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Migration Planning and Safe Schema Evolution” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Migration Planning and Safe Schema Evolution solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Practice relational reasoning before persistent CRUD Phase 10 - Relational Data Modeling Volume 03 - Database Engineering Architecture milestone PostgreSQL + Prisma infrastructure ↓ Production-ready relational model ↓ Persistent TaskFlow CRUD Phase 10 decides what the durable data should mean…",
+      "body": "Hands-On Lab & Phase Exit\nPractice relational reasoning before persistent CRUD\n\nPhase 10 - Relational Data Modeling\nVolume 03 - Database Engineering\n\nArchitecture milestone\n\nPostgreSQL + Prisma infrastructure\n\n↓\n\nProduction-ready relational model\n\n↓\n\nPersistent TaskFlow CRUD\n\nPhase 10 decides what the durable data should mean before Phase 11 writes application behavior against it.\n\nLevel 1 - Follow\nRecreate the TaskFlow production model on paper or in a diagram. For every foreign key, write the sentence it\nrepresents. Example: Project.workspaceId means every project belongs to one existing workspace.\n\nLevel 2 - Modify\nAdd an optional Project.dueAt and decide whether it needs an index. Explain your decision from query patterns rather\nthan intuition.\n\nLevel 3 - Implement\nDesign a Comment model for tasks. Decide its author relationship, deletion behavior, timestamps, and indexes. Do not\ncopy a generic schema; justify each choice.\n\nLevel 4 - Engineer\nDesign workspace invitations without writing application code. Requirements: invite by email, invitation expires,\naccepting creates membership, repeated active invitations should be controlled, history may need to remain after\nacceptance. Produce entities, constraints, indexes, and lifecycle policy.\n\nArchitecture oral exam\nQuestion                                          Expected reasoning\n\nWhy is Membership an entity?                      Many-to-many relationship carries role/status/time metadata\n\nWhy role is not User.role?                        Role is workspace-scoped\n\nWhy assigneeId can be nullable?                   Unassigned task is valid\n\nWhy FK does not prove membership?                 FK proves user exists, not contextual workspace membership\n\nWhy composite unique membership?                  Prevents duplicate user-workspace relationship\n\nWhy not index every field?                        Indexes cost storage and write maintenance\n\nPhase exit checklist\n•\nI can distinguish entity, attribute and relationship.\n•\nI can identify 1:1, 1:many and many:many relationships.\n•\nI can justify NULL vs NOT NULL.\n•\nI can identify database invariants vs service-layer business rules.\n•\nI can design a join entity when a relationship has data.\n•\nI understand composite uniqueness.\n•\nI can choose cascade/restrict/set-null intentionally.\n•\nI can propose indexes from query patterns.\n•\nI understand normalization as one-source-of-truth reasoning.\n•\nI can review a schema change as a migration/data operation.\n•\nI can explain the complete TaskFlow relational model without reading the code.\n\nCheckpoint\n\nPhase 10 is complete when you can explain not only what tables exist, but why each relationship, constraint,\noptional field, index, and lifecycle decision exists. Phase 11 will then implement persistent CRUD against this model.",
+      "wordCount": 371,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Ambiguous cascade-delete behavior",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nTranslate TaskFlow business relationships into a relational model that can enforce membership, ordering, labels, comments, ownership, and lifecycle rules.",
+      "body": "Guided Build Lab — Phase 10: Relational Data Modeling\n\nPurpose\nTranslate TaskFlow business relationships into a relational model that can enforce membership, ordering, labels, comments, ownership, and lifecycle rules.\n\nDeliverable\nA complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nBusiness nouns -> entities -> relationships/cardinality -> constraints -> Prisma models -> migration -> seeded graph\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — List TaskFlow nouns and separate entities from attributes and events.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Model workspace membership as an explicit relation carrying role/state rather than an array on User.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Model boards/lists/tasks and decide which parent IDs should be required.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Model labels through a join table and explain composite uniqueness.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Add comments and timestamps with intentional delete behavior.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Seed a small realistic graph and query it from several directions to validate the model.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npnpm exec prisma migrate dev --name taskflow-core-model\npnpm exec prisma studio\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 688,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicate membership rows permitted",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 10: Relational Data Modeling\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nBusiness nouns -> entities -> relationships/cardinality -> constraints -> Prisma models -> migration -> seeded graph\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — JSON arrays replacing relational join tables without reason\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Ambiguous cascade-delete behavior\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Duplicate membership rows permitted\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Using nullable foreign keys where the domain requires ownership\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 443,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using nullable foreign keys where the domain requires ownership",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 10 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Relational Data Modeling\n\nMission\nRebuild the capability of Phase 10 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nTranslate TaskFlow business relationships into a relational model that can enforce membership, ordering, labels, comments, ownership, and lifecycle rules.\n\nRequired artifact\nA complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain every cardinality.\n• Can justify join tables.\n• Can identify invariants enforced by constraints.\n• Can query the model from parent and child directions.\n\nIndependent build sequence\n1. List TaskFlow nouns and separate entities from attributes and events.\n2. Model workspace membership as an explicit relation carrying role/state rather than an array on User.\n3. Model boards/lists/tasks and decide which parent IDs should be required.\n4. Model labels through a join table and explain composite uniqueness.\n5. Add comments and timestamps with intentional delete behavior.\n6. Seed a small realistic graph and query it from several directions to validate the model.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 372,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this modeling concept.",
+          "Diagnose one representative modeling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "business noun",
+          "invariant",
+          "table/relation",
+          "constraint",
+          "query shape"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: business noun → invariant → table/relation → constraint → query shape. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "JSON arrays replacing relational join tables without reason",
+          "Change one assumption in the modeling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the modeling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 10 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 10: Relational Data Modeling. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 203,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "modeling",
+        "objectives": [
+          "Translate TaskFlow business relationships into a relational model that can enforce membership, ordering, labels, comments, ownership, and lifecycle rules.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Business nouns",
+          "entities",
+          "relationships/cardinality",
+          "constraints",
+          "Prisma models",
+          "migration",
+          "seeded graph"
+        ],
+        "steps": [
+          "List TaskFlow nouns and separate entities from attributes and events.",
+          "Model workspace membership as an explicit relation carrying role/state rather than an array on User.",
+          "Model boards/lists/tasks and decide which parent IDs should be required.",
+          "Model labels through a join table and explain composite uniqueness.",
+          "Add comments and timestamps with intentional delete behavior.",
+          "Seed a small realistic graph and query it from several directions to validate the model.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain every cardinality",
+          "Can justify join tables",
+          "Can identify invariants enforced by constraints",
+          "Can query the model from parent and child directions"
+        ],
+        "breakIt": [
+          "JSON arrays replacing relational join tables without reason",
+          "Ambiguous cascade-delete behavior"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Data_Model/README.txt",
+      "preview": "TaskFlow Phase 10 relational model reference\n\nThis snapshot is the teaching model used at the end of Phase 10.\nIt is not a complete final enterprise schema. Later phases add features only when their requirements become concrete.\n\nImportant service invariant:\n- Task.assigneeId references User. Service logic must verify that the assignee is a member of the task project's workspace.\n\nPrisma remains locked to 7.9.1 for this course."
+    },
+    {
+      "path": "reference/TaskFlow_Data_Model/modeling-checklist.md",
+      "preview": "# Relational modeling checklist\n\n- What durable business fact does this model represent?\n- What is its stable identity?\n- Which fields are required vs optional?\n- Which values must be unique?\n- What relationships exist and what is their cardinality?\n- Does the relationship carry its own metadata?\n- What happens when each parent is deleted?\n- Which invariants belong in database constraints?\n- Which rules require application/service context?\n- What high-value queries will need indexes?\n- Is any fact duplicated unnecessarily?\n- How will this schema evolve after data exists?"
+    },
+    {
+      "path": "reference/TaskFlow_Data_Model/schema.prisma",
+      "preview": "generator client {\n  provider     = \"prisma-client\"\n  output       = \"../src/generated/prisma\"\n  moduleFormat = \"cjs\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum MembershipRole {\n  OWNER\n  ADMIN\n  MEMBER\n}\n\nenum TaskStatus {\n  TODO\n  IN_PROGRESS\n  DONE"
+    }
+  ],
+  "exercises": [
+    "Guided: List TaskFlow nouns and separate entities from attributes and events.",
+    "Practice: Model boards/lists/tasks and decide which parent IDs should be required.",
+    "Debugging: reproduce and diagnose — JSON arrays replacing relational join tables without reason.",
+    "Independent: deliver A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.",
+    "Explain-back: Can explain every cardinality and Can justify join tables."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Normalize relationships enough to preserve correctness before optimizing for convenience.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Normalize relationships enough to preserve correctness before optimizing for convenience."
+    },
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Choose cardinality intentionally: one-to-one, one-to-many, and many-to-many model different business rules.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Choose cardinality intentionally: one-to-one, one-to-many, and many-to-many model different business rules."
+    },
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Use unique constraints and foreign keys to encode invariants where the database can enforce them.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Use unique constraints and foreign keys to encode invariants where the database can enforce them."
+    },
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Design TaskFlow entities around actual workflows such as workspaces, members, boards, lists, tasks, comments, and labels."
+      ],
+      "answer": 3,
+      "explanation": "Design TaskFlow entities around actual workflows such as workspaces, members, boards, lists, tasks, comments, and labels."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List TaskFlow nouns and separate entities from attributes and events.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: JSON arrays replacing relational join tables without reason."
+      ],
+      "answer": 1,
+      "explanation": "List TaskFlow nouns and separate entities from attributes and events."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Model workspace membership as an explicit relation carrying role/state rather than an array on User.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Ambiguous cascade-delete behavior.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Model workspace membership as an explicit relation carrying role/state rather than an array on User."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Duplicate membership rows permitted.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Model boards/lists/tasks and decide which parent IDs should be required."
+      ],
+      "answer": 3,
+      "explanation": "Model boards/lists/tasks and decide which parent IDs should be required."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using nullable foreign keys where the domain requires ownership.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Model labels through a join table and explain composite uniqueness.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Model labels through a join table and explain composite uniqueness."
+    }
+  ],
+  "lessonCount": 14,
+  "wordCount": 5070
+}

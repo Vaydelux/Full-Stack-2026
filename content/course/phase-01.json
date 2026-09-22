@@ -1,0 +1,837 @@
+{
+  "number": 1,
+  "slug": "phase-01",
+  "title": "Windows Development Environment & Professional Tooling",
+  "volume": 1,
+  "readme": "Full-Stack Developer 2026\nVolume 01 - Engineering Foundation\nPhase 01 - Windows Development Environment and Professional Tooling\n\nRead order:\n00 Phase Guide\n01 PowerShell and Windows Mental Model\n02 Node Runtime and Version Management\n03 pnpm Package Management and Permissions\n04 Git and Professional Version Control\n05 VS Code and Developer Workspace\n06 PATH Permissions and Troubleshooting\n07 Hands-On Lab Exercises and Phase Exit\n08 Complete combined book\n\nCourse baseline date: 2026-09-17\nPrimary environment: Windows PowerShell\nLocked Phase 01 baseline: Node 24.21.0 LTS, npm 11.19.0, pnpm 12.4.2, Git for Windows 2.55.0.windows.5",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "powershell-and-windows-mental-model",
+      "title": "PowerShell and Windows Mental Model",
+      "summary": "",
+      "body": "Phase 01\n\nPowerShell & the\nWindows Developer\nMental Model\nLearn the shell, paths, PATH lookup, environment\nvariables, working directories, and failure evidence\nbefore frameworks enter the picture.\n\nBook 1 · Windows & terminal foundations\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. The shell mental model                  6. Exit codes\n\n2. Working directories                     7. PowerShell vs Bash\n\n3. Navigation                              8. Mini lab\n\n4. PATH lookup                             9. Common failures\n\n5. Environment variables                 10. Knowledge check\n\nPhase 01 | Page 2 of 6\n\nYour terminal is an engineering\ninstrument\nMany learners treat a terminal as a place where tutorials tell them to paste commands. A full-stack\ndeveloper needs a better model: the shell is a programmable interface to the operating system. It\nhas a current working directory, environment variables, executable lookup rules, command parsing\nrules, and an exit status.\n\nYou type a command           →         PowerShell parses it     →\n\nWindows locates executable           →       Program runs        →      Exit/output returns\n\nFigure 1 - What happens when you press Enter\n\nStep 1 - Observe where you are\n\nGet-Location\nGet-ChildItem\nGet-ChildItem -Force\n\nGet-Location answers one of the most important debugging questions in this entire course: where is\nthis command running? Get-ChildItem lists directory contents; -Force also reveals hidden items\nsuch as .git .\n\nMENTAL MODEL\n\nA relative path is interpreted from the current working directory. If the current directory is\nwrong, a perfectly valid command can appear broken.\n\nStep 2 - Navigate without fear\n\nSet-Location $HOME\nNew-Item -ItemType Directory -Path \"$HOME\\Developer\" -Force\nSet-Location \"$HOME\\Developer\"\nGet-Location\n\nPowerShell aliases such as cd and ls are convenient, but the course sometimes shows the full\ncmdlet name so you understand what PowerShell is actually doing.\n\nPhase 01 | Page 3 of 6\n\nPaths with spaces\n\nSet-Location \"C:\\Users\\YourName\\Desktop\\Full Stack Learning\"\n\nQuotes are not decoration. They tell the shell that spaces belong to one path argument.\n\nStep 3 - Inspect commands instead of guessing\n\nGet-Command node -ErrorAction SilentlyContinue\nGet-Command git -ErrorAction SilentlyContinue\nGet-Command pnpm -ErrorAction SilentlyContinue\n$env:Path -split ';'\n\nGet-Command tells you which executable PowerShell will run. This becomes crucial when two Node\ninstallations exist and the wrong one appears first on PATH.\n\nPowerShell receives: node\n\nSearch PATH entries from left to right\n\nFirst matching node.exe wins\n\nThat executable starts\n\nFigure 2 - PATH lookup - Version mismatches often come from executable lookup, not from the project.\n\nEnvironment variables\n\nEnvironment variables are named values inherited by processes. They are how shells and\napplications discover paths, configuration, and later secrets.\n\nPhase 01 | Page 4 of 6\n\n$env:Path\n$env:USERPROFILE\n$env:APPDATA\n$env:LOCALAPPDATA\n\nTEMPORARY VS PERSISTENT\n\n$env:Path += \";C:\\something\" changes PATH for the current PowerShell process. It does not\nautomatically rewrite the user's persistent environment settings. This distinction prevents the\nclassic “it worked until I opened a new terminal” confusion.\n\nExit codes and evidence\n\ngit --version\n$LASTEXITCODE\n\nHuman-readable output is useful, but programs also communicate success or failure through exit\ncodes. Later, CI/CD systems rely on exactly this behavior.\n\nPowerShell vs Bash\n\nIntent                               PowerShell                          Bash equivalent\n\nEnvironment value                    $env:NAME                           $NAME\n\nSet environment value                $env:NAME=\"x\"                       export NAME=x\n\nDelete file tree                     Remove-Item -Recurse                rm -rf\n\nHome                                 $HOME                               $HOME\n\nMini lab\n\n1. Create $HOME\\Developer\\full-stack-2026-lab .\n2. Move into it.\n3. Create notes.txt with New-Item .\n4. List normal and hidden files.\n5. Print your PATH one entry per line.\n6. Use Get-Command for PowerShell itself.\n\nPhase 01 | Page 5 of 6\n\nCommon failures\n\n“The term ... is not recognized”\nPowerShell could not resolve the command. Check whether the tool is installed, then Get-Command ,\nthen PATH. Do not reinstall the entire project.\n\nPath not found\nCheck Get-Location , spelling, quoting, and whether the directory actually exists.\n\nKnowledge check\n\n1. Why can the same command work in one terminal and fail in another?\n2. What does PATH control?\n3. Why does a working directory matter to project tools?\n4. What is the difference between shell output and an exit code?\n\nPhase 01 · Book 1 · Windows & terminal foundations\n\nPhase 01 | Page 6 of 6",
+      "wordCount": 653,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Explain PowerShell and Windows Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this tooling concept.",
+          "Diagnose one representative tooling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "PowerShell and Windows Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "source file",
+          "tool/runtime",
+          "process",
+          "OS environment",
+          "terminal evidence"
+        ],
+        "steps": [
+          "Restate the goal of “PowerShell and Windows Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source file → tool/runtime → process → OS environment → terminal evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Terminal still using an old executable after installation",
+          "Change one assumption in the tooling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “PowerShell and Windows Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does PowerShell and Windows Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the tooling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "node-runtime-and-version-management",
+      "title": "Node Runtime and Version Management",
+      "summary": "",
+      "body": "Phase 01\n\nNode.js Runtime &\nVersion Management\nInstall and reason about the JavaScript runtime as a\ncontrolled dependency, not a mysterious global\nprerequisite.\n\nBook 2 · Node runtime\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Why Node comes first                         6. PowerShell shell setup\n\n2. LTS vs Current                               7. Install Node 24.21.0\n\n3. Why version managers matter                  8. npm mental model\n\n4. Inspect first                                9. Common errors\n\n5. Install fnm                                10. Checkpoint\n\nPhase 01 | Page 2 of 6\n\nNode.js is the runtime beneath our\nJavaScript tooling\nNext.js, NestJS, pnpm, Prisma tooling, test runners, build systems, and many developer utilities\nultimately run on Node.js. If the runtime is wrong, every layer above it can become confusing.\n\nWindows process\n\nNode.js runtime 24.21.0 LTS\n\nPackage manager and CLIs\n\nNext.js / NestJS / tooling\n\nFigure 1 - Why Node comes before frameworks - Framework commands are programs running on a specific Node\nruntime, not independent magic.\n\nWhy use LTS instead of Current?\n\nAs of September 17, 2026, Node 24.21.0 is an LTS release while Node 26 is the Current line. This\ncourse chooses the LTS line because a long multi-phase curriculum benefits from stability and\necosystem compatibility more than early access to the newest runtime features.\n\nWhy use a version manager?\n\nInstalling one global Node version seems simpler until project A requires Node 24 and a future\nexperiment requires Node 26. A version manager turns runtime selection into an explicit action.\n\nPhase 01 | Page 3 of 6\n\nProject requirements          →       fnm        →         Selected Node version   →\n\nnode.exe\n\nFigure 2 - Runtime selection instead of global guesswork\n\nStep 1 - Inspect the machine first\n\nnode -v\nnpm -v\nGet-Command node -ErrorAction SilentlyContinue\nGet-Command npm -ErrorAction SilentlyContinue\n\nIf Node already exists, do not immediately uninstall it. First learn where it came from.\n\nStep 2 - Install fnm on Windows\n\nThe official fnm documentation supports WinGet on Windows:\n\nwinget install Schniz.fnm\n\nAfter installation, open a new PowerShell and verify:\n\nfnm --version\n\nStep 3 - Configure fnm for PowerShell\n\nfnm works by updating environment variables for the shell. The official project recommends\nevaluating fnm env for the current shell. For a PowerShell profile, a common setup is:\n\nif (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force }\nnotepad $PROFILE\n\nAdd the shell-initialization line appropriate to the installed fnm version, based on fnm env --shell\npowershell . Reopen PowerShell and verify fnm --version .\n\nWHY WE DO NOT BLINDLY OVERWRITE THE PROFILE\n\nPowerShell profiles are personal configuration files. Inspect them before editing. A course\nshould never erase existing developer configuration just to add one tool.\n\nPhase 01 | Page 4 of 6\n\nStep 4 - Install the locked Node runtime\n\nfnm install 24.21.0\nfnm use 24.21.0\nnode -v\nnpm -v\n\nExpected baseline:\n\nv24.21.0\n11.19.0\n\nStep 5 - Make the choice reproducible\n\nLater we can place a runtime version file in the repository. For now, the important skill is being able\nto select and verify the runtime explicitly.\n\nWhat npm is\n\nnpm ships with Node and serves two roles: package registry client and project/package command\ntool. In this course we will use pnpm as the primary package manager, but npm remains useful for\nbootstrapping pnpm into the user profile when needed.\n\nCommon errors\n\nfnm   works, but node does not change\nThe shell environment probably has not loaded fnm's environment changes. Inspect fnm env --shell\npowershell , your PowerShell profile, and Get-Command node .\n\nWrong Node after opening a new terminal\nCheck whether fnm initialization loads in that new shell and whether another Node path appears\nearlier on PATH.\n\nCompany machine blocks WinGet\nUse an approved installer mechanism from IT or the fnm release binary. The engineering principle\nstays the same: install in user-accessible locations and make PATH explicit.\n\nPhase 01 | Page 5 of 6\n\nCheckpoint\n\n□ fnm --version works.\n□ fnm use 24.21.0 works.\n□ node -v is v24.21.0.\n□ npm -v is 11.19.0.\n□ Get-Command node points to the runtime selected through fnm.\n\nPhase 01 · Book 2 · Node runtime\n\nPhase 01 | Page 6 of 6",
+      "wordCount": 672,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Explain Node Runtime and Version Management in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this tooling concept.",
+          "Diagnose one representative tooling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Node Runtime and Version Management matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "source file",
+          "tool/runtime",
+          "process",
+          "OS environment",
+          "terminal evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Node Runtime and Version Management” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source file → tool/runtime → process → OS environment → terminal evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "EPERM caused by writing to protected locations",
+          "Change one assumption in the tooling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Node Runtime and Version Management” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Node Runtime and Version Management solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the tooling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "pnpm-package-management-and-permissions",
+      "title": "pnpm Package Management and Permissions",
+      "summary": "",
+      "body": "Phase 01\n\npnpm, Package\nManagement &\nWindows Permissions\nUnderstand dependency installation, user-profile\ntooling, local executables, build-script approvals, and\nwhy permission errors are filesystem evidence.\n\nBook 3 · Package management\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Package-manager mental model                  6. Core pnpm commands\n\n2. Why pnpm 12.4.2                               7. Local executables\n\n3. Inspect existing tools                        8. Build-script approval\n\n4. Non-admin installation                        9. Checkpoint\n\n5. Corepack EPERM\n\nPhase 01 | Page 2 of 6\n\npnpm is the package manager for\nthis course\nA package manager resolves dependencies, downloads packages, records exact versions, creates\nexecutable shims, and runs project scripts. pnpm adds a content-addressable store and workspace\nfeatures that make it a strong fit for the monorepo we will build in Phase 02.\n\nRead package.json\n\nResolve dependency graph\n\nRead/write lockfile\n\nUse pnpm content-addressable store\n\nLink project node_modules\n\nExpose package executables\n\nFigure 1 - Package installation lifecycle - A package manager is performing dependency graph and filesystem work,\nnot merely downloading ZIP files.\n\nWhy pnpm 12.4.2?\n\nPhase 00 froze the course baseline. pnpm 12.4.2 was released September 15, 2026 and includes\ncurrent security and Windows installation fixes. We keep that exact version throughout the generated\ncourse unless an explicit migration is approved.\n\nPhase 01 | Page 3 of 6\n\nStep 1 - See what already exists\n\npnpm -v\nGet-Command pnpm -ErrorAction SilentlyContinue\nnpm config get prefix\n\nStep 2 - Non-admin user-profile installation\n\nOn a machine where the user does not have administrator rights, avoid depending on C:\\Program\nFiles\\nodejs for package-manager shims.\n\nnpm config set prefix \"$env:APPDATA\\npm\"\nnpm install -g pnpm@12.4.2\n$env:Path += \";$env:APPDATA\\npm\"\npnpm -v\n\nThe temporary PATH append makes the current shell see the user-profile npm bin directory. If your\npersistent user PATH does not already contain it, add that directory through Windows user\nenvironment settings or an approved PowerShell profile mechanism.\n\nWHY THIS SOLVES EPERM\n\nGlobal npm packages are written under the current user profile instead of a protected Program\nFiles directory. The principle is least privilege: use administrator rights only when the operation\nactually requires them.\n\nCorepack and the permission trap\n\nOn some Windows installations, corepack enable attempts to create or update shims beside Node in\nC:\\Program Files\\nodejs\\ . A standard user may receive EPERM: operation not permitted . That does\nnot mean pnpm is broken; it means the requested filesystem location is protected.\n\ncorepack enable       →         tries protected Node directory        →\n\nWindows access check              →    EPERM\n\nFigure 2 - Permission failure path\n\nPhase 01 | Page 4 of 6\n\npnpm commands you should understand now\n\nCommand                        Meaning\n\npnpm -v                        Verify the package-manager executable selected by PATH.\n\npnpm install                   Resolve/install dependencies using the lockfile and manifest.\n\npnpm add package               Add a runtime dependency to the current package.\n\npnpm add -D package            Add a development-only dependency.\n\npnpm remove package            Remove a dependency cleanly.\n\npnpm exec tool                 Run a locally installed project executable.\n\npnpm run script                Run a script defined in package.json.\n\nWhy local executables matter\n\nLater, Prisma is intentionally local. We will run pnpm exec prisma so the project controls the exact\nPrisma version. This is a general professional principle: project tools should usually be versioned with\nthe project.\n\nBuild-script approval\n\nModern pnpm may refuse unapproved dependency build scripts and report ERR_PNPM_IGNORED_BUILDS .\nTreat that as a security signal, not an invitation to disable protection globally.\n\npnpm approve-builds\n\nApprove only packages the project genuinely requires, and understand why their install scripts\nexecute.\n\nCheckpoint\n\n□ pnpm -v returns 12.4.2.\n□ You know where the pnpm command is resolved from.\n□ You can explain local vs global package tools.\n□ You can explain why pnpm exec improves reproducibility.\n□ You understand what an ignored build script warning is protecting.\n\nPhase 01 | Page 5 of 6\n\nPhase 01 · Book 3 · Package management\n\nPhase 01 | Page 6 of 6",
+      "wordCount": 628,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain pnpm Package Management and Permissions in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “pnpm Package Management and Permissions” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Different shells resolving different PATH values",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “pnpm Package Management and Permissions” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does pnpm Package Management and Permissions solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "git-and-professional-version-control",
+      "title": "Git and Professional Version Control",
+      "summary": "",
+      "body": "Phase 01\n\nGit & Professional\nVersion Control\nBuild a correct mental model of working tree, staging,\ncommits, diffs, identity, repository hygiene, and safe\nengineering history.\n\nBook 4 · Version control\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Git mental model                         7. .gitignore\n\n2. Install Git for Windows                  8. Commit design\n\n3. Configure identity                       9. Branches\n\n4. Practice repository                    10. What not to do\n\n5. Stage and commit                       11. Checkpoint\n\n6. Understand diffs\n\nPhase 01 | Page 2 of 5\n\nGit is the memory of the engineering\nprocess\nGit is not merely a cloud backup mechanism. It records intentional snapshots of a project's state so\ndevelopers can compare, review, branch, integrate, and recover changes.\n\nWorking tree - files you edit\n\nStaging area - changes selected for next snapshot\n\nCommit - named project snapshot\n\nRemote - shared repository history\n\nFigure 1 - Git mental model - The staging area lets you decide exactly what belongs in a commit instead of committing\nevery modified file by accident.\n\nStep 1 - Install Git for Windows\n\nThe official Git install page lists Git 2.55.0(5) as the maintained Windows build as of the Phase 01\nbaseline. WinGet is supported:\n\nwinget install --id Git.Git -e --source winget\n\nOpen a new PowerShell and verify:\n\ngit --version\nGet-Command git\n\nPhase 01 | Page 3 of 5\n\nStep 2 - Configure identity\n\ngit config --global user.name \"Your Name\"\ngit config --global user.email \"you@example.com\"\ngit config --global init.defaultBranch main\ngit config --global --list\n\nYour Git identity becomes metadata on commits. It is not the same thing as logging in to GitHub.\n\nStep 3 - Create a disposable practice repository\n\nSet-Location \"$HOME\\Developer\\full-stack-2026-lab\"\ngit init\ngit status\n\"Phase 01 Git practice\" | Set-Content README.md\ngit status\n\nStep 4 - Stage and commit intentionally\n\ngit add README.md\ngit status\ngit commit -m \"docs: add Phase 01 practice readme\"\ngit log --oneline --decorate -5\n\nProfessional habit: read git status before and after every important Git action.\n\nStep 5 - Learn the three diffs\n\ngit diff\ngit diff --staged\ngit show HEAD\n\nCommand                         Question it answers\n\ngit diff                        What changed in the working tree but is not staged?\n\ngit diff --staged               What exactly will the next commit contain?\n\ngit show HEAD                   What did the latest commit record?\n\nPhase 01 | Page 4 of 5\n\n.gitignore is part of architecture hygiene\n\nGenerated output, dependencies, logs, editor state, and secrets should not pollute version history.\nLater we will ignore node_modules , .env , build artifacts, and other generated files.\n\nCommit design\n\nA good commit is a coherent engineering statement. Avoid a week of unrelated changes under\nupdate stuff . Prefer messages such as feat: add health endpoint , fix: validate missing task\ntitle , or docs: document local setup .\n\nMake one coherent change            →      Review diff             →     Stage intentionally   →\n\nCommit with useful message             →       Continue\n\nFigure 2 - Professional commit loop\n\nBranches - concept before workflow\n\nA branch is a movable name pointing at a commit. We will use branches more seriously when\ncollaboration and CI/CD arrive. For now, understand that branches isolate lines of work without\nduplicating the entire project manually.\n\nWhat not to do\n\n• Do not commit .env secrets.\n• Do not delete .git because a command feels confusing.\n• Do not run destructive reset/clean commands copied from the internet before understanding\nwhat they remove.\n• Do not use GitHub Desktop or an IDE as a substitute for understanding Git state.\n\nCheckpoint\n\n□ git --version works.\n□ Name, email, and default branch are configured.\n□ You can explain working tree, staging area, commit, and remote.\n□ You can create a repository, stage one file, commit, inspect log, and inspect diffs.\n\nPhase 01 · Book 4 · Version control\n\nPhase 01 | Page 5 of 5",
+      "wordCount": 600,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Explain Git and Professional Version Control in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this tooling concept.",
+          "Diagnose one representative tooling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Git and Professional Version Control matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "source file",
+          "tool/runtime",
+          "process",
+          "OS environment",
+          "terminal evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Git and Professional Version Control” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source file → tool/runtime → process → OS environment → terminal evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Port already in use by a forgotten development process",
+          "Change one assumption in the tooling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Git and Professional Version Control” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Git and Professional Version Control solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the tooling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "vscode-and-developer-workspace",
+      "title": "VSCode and Developer Workspace",
+      "summary": "",
+      "body": "Phase 01\n\nVS Code & the\nProfessional Developer\nWorkspace\nUse the editor as a transparent view of the repository,\nkeep extensions intentional, and understand future\nquality gates.\n\nBook 5 · Editor & workspace\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Editor philosophy                       6. Formatter vs linter vs types vs tests\n\n2. Install/verify VS Code                  7. Workspace hygiene\n\n3. Open current folder                     8. Line endings\n\n4. Important panels                        9. Checkpoint\n\n5. Extension discipline\n\nPhase 01 | Page 2 of 5\n\nYour editor should reveal the system,\nnot hide it\nA good editor improves navigation, feedback, refactoring, and inspection while keeping the project\nunderstandable outside the editor. The terminal and repository remain authoritative.\n\nVS Code installation\n\nIf VS Code is already installed, verify rather than reinstall. If not, use the official installer or WinGet\naccording to your organization's policy. After installation:\n\ncode --version\nGet-Command code\n\nIf code is not recognized but VS Code opens normally, the shell command may not yet be on PATH.\nReopen the terminal after installation and inspect PATH before reinstalling the editor.\n\nOpen the current folder\n\nSet-Location \"$HOME\\Developer\\full-stack-2026-lab\"\ncode .\n\nThe dot means “this directory.” This habit matters because the folder you open becomes the editor's\nworkspace context.\n\nPowerShell working directory             →        code .            →   VS Code workspace root         →\n\nExplorer / Search / Git / Terminal\n\nFigure 1 - One folder, multiple developer views\n\nPhase 01 | Page 3 of 5\n\nThe panels that matter\n\nExplorer                                                  Search\nFile tree. Use it to understand structure, not            Search across the repository. Essential for\nto create random folders.                                 tracing usage and avoiding duplicate\nabstractions.\n\nSource Control                                            Integrated Terminal\nConvenient view of Git changes. Still verify              Useful, but remember that each terminal\nwith git status and diffs.                                has its own process environment and\nworking directory.\n\nExtensions: deliberately small set\n\nDo not install dozens of extensions before the project needs them. Start with language/editor support\nthat provides clear value. JavaScript/TypeScript support is built in. Later phases can add ESLint,\nframework-specific helpers, database tooling, and formatting once the corresponding configuration\nexists.\n\nFormatting vs linting vs type checking\n\nConcern                  Main question\n\nFormatter                How should code be laid out?\n\nLinter                   Does the code violate style or correctness rules?\n\nType checker             Are values used consistently with their types?\n\nTests                    Does observable behavior meet expectations?\n\nThese are different quality gates. Later CI will run them separately so failures are diagnosable.\n\nWorkspace hygiene\n\nUse one project root. Avoid nesting accidental duplicate repositories such as taskflow/taskflow .\nAvoid placing projects inside folders aggressively synchronized by enterprise backup software if it\ncauses file-locking or node_modules issues. Prefer a simple development path such as:\n\nPhase 01 | Page 4 of 5\n\n$HOME\\Developer\\taskflow\n\nLine endings\n\nWindows commonly uses CRLF while many developer tools and servers use LF. Git can normalize line\nendings. We will add an explicit .gitattributes only when the repository exists in Phase 02 rather\nthan generating configuration before there is a project to own it.\n\nCheckpoint\n\n□ code . opens the current folder.\n□ You can distinguish editor conveniences from project configuration.\n□ You understand formatter, linter, type checker, and tests as separate checks.\n□ You have chosen a clean developer workspace path.\n\nPhase 01 · Book 5 · Editor & workspace\n\nPhase 01 | Page 5 of 5",
+      "wordCount": 526,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain VSCode and Developer Workspace in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "VSCode and Developer Workspace matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “VSCode and Developer Workspace” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Terminal still using an old executable after installation",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “VSCode and Developer Workspace” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does VSCode and Developer Workspace solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "path-permissions-and-troubleshooting",
+      "title": "PATH Permissions and Troubleshooting",
+      "summary": "",
+      "body": "Phase 01\n\nPATH, Permissions &\nEnvironment\nTroubleshooting\nDiagnose command lookup, EPERM, wrong versions,\nshell initialization, working-directory mistakes, and\nfilesystem interference with evidence.\n\nBook 6 · Troubleshooting\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Debugging ladder                                  7. Execution policy\n\n2. EPERM                                             8. Synced folders\n\n3. Command not recognized                            9. Evidence bundle\n\n4. Wrong versions                                  10. Troubleshooting matrix\n\n5. Terminal environment inheritance                11. Professional rule\n\n6. Wrong working directory\n\nPhase 01 | Page 2 of 6\n\nWhen tooling fails, diagnose the\noperating-system layer first\nEnvironment failures are frustrating because they happen before application code exists. They\nbecome manageable when you classify them: command lookup, working directory, permission,\nversion, shell initialization, or filesystem lock.\n\n1. Read exact error text\n\n2. Confirm current directory\n\n3. Resolve command with Get-Command\n\n4. Print tool version\n\n5. Inspect PATH / environment\n\n6. Inspect permissions and filesystem\n\n7. Change the smallest thing\n\nFigure 1 - Environment debugging ladder - Debug from evidence. Reinstalling everything is not a diagnosis.\n\nCase 1 - EPERM in Program Files\n\nEPERM: operation not permitted, ... C:\\Program Files\\nodejs\\...\n\nPhase 01 | Page 3 of 6\n\nLayer: filesystem permissions. Hypothesis: a standard user is trying to modify a protected\nmachine-wide directory. Smallest correction: install the user-owned tool under the user profile or\nuse an approved installation route. Do not make “run everything as Administrator” your default\nworkflow.\n\nCase 2 - command not recognized\n\npnpm : The term 'pnpm' is not recognized...\n\nLayer: executable lookup. Run:\n\nGet-Command pnpm -ErrorAction SilentlyContinue\n$env:Path -split ';'\nTest-Path \"$env:APPDATA\\npm\\pnpm.cmd\"\n\nIf the file exists but PATH does not include its directory, fix lookup rather than reinstalling the\npackage.\n\nCase 3 - wrong version\n\nnode -v\nGet-Command node -All\n\nMultiple executables may exist. Identify which path wins and why. Version managers solve selection\nonly if the shell loads their environment.\n\nCase 4 - command works only in one terminal\n\nEach terminal is a process with inherited environment state. A terminal opened before installation\nmay not know about new persistent PATH entries. Close and reopen the shell before assuming\ninstallation failed.\n\nCase 5 - wrong working directory\n\nSymptoms include missing scripts, package manifests not found, Prisma config missing, or Git\nreporting that the directory is not a repository.\n\nPhase 01 | Page 4 of 6\n\nGet-Location\nGet-ChildItem\nTest-Path package.json\nTest-Path .git\n\nCase 6 - execution policy confusion\n\nPowerShell execution policy can affect scripts. Do not globally weaken security as a reflex. First\ndetermine exactly which script is blocked and whether the tool offers a signed executable or .cmd\nshim. Follow organization policy on managed devices.\n\nCase 7 - synced/locked folders\n\nCloud sync, antivirus, or corporate endpoint software can temporarily lock large dependency trees. If\nrepeated filesystem errors occur under a synchronized Desktop/Documents directory, a dedicated\nuser development folder can reduce interference.\n\nThe evidence bundle\n\nBefore asking for help, capture:\n\nGet-Location\n$PSVersionTable.PSVersion\nnode -v\nnpm -v\npnpm -v\ngit --version\nGet-Command node\nGet-Command pnpm\nGet-Command git\n\nThis gives another engineer enough context to reason rather than guess.\n\nTroubleshooting matrix\n\nSymptom                            Likely layer                    First check\n\nTerm not recognized                PATH / install                  Get-Command\n\nWrong version                      PATH / version manager          Get-Command -All\n\nEPERM                              filesystem permissions          target path and ownership\n\nNo package.json                    working directory               Get-Location\n\nPhase 01 | Page 5 of 6\n\nWorks only in old/new shell          process environment            reopen and compare PATH\n\nIntermittent file locks              sync/AV/filesystem             workspace location\n\nProfessional rule\n\nChange one variable at a time. If you reinstall Node,\npnpm, Git, VS Code, and reset PATH simultaneously, you\nmay fix the symptom while learning nothing about the\ncause.\n\nPhase 01 · Book 6 · Troubleshooting\n\nPhase 01 | Page 6 of 6",
+      "wordCount": 590,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain PATH Permissions and Troubleshooting in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “PATH Permissions and Troubleshooting” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "EPERM caused by writing to protected locations",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “PATH Permissions and Troubleshooting” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does PATH Permissions and Troubleshooting solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "hands-on-lab-exercises-and-phase-exit",
+      "title": "Hands On Lab Exercises and Phase Exit",
+      "summary": "",
+      "body": "Phase 01\n\nHands-On Lab,\nExercises & Phase Exit\nProve the environment through observable\ncommands, Git history, a verification report, four\nexercise levels, and a Phase 01 assessment.\n\nBook 7 · Lab & assessment\nCourse baseline: September 17, 2026 · Windows-first · Project-driven · Production-oriented\n\nContents\n1. Lab A - workspace                           6. Exercise ladder\n\n2. Lab B - versions                            7. Knowledge assessment\n\n3. Lab C - command resolution                  8. Answer guide\n\n4. Lab D - Git history                         9. Exit checklist\n\n5. Lab E - environment report                10. Next phase\n\nPhase 01 | Page 2 of 6\n\nPhase 01 hands-on lab: prove the\nworkstation\nThis lab turns the phase from reading into observable skill. Complete it in an ordinary PowerShell\nsession. If your organization prevents an installation step, record the constraint and verify everything\nthat is permitted.\n\nLab A - Create a clean learning workspace\n\n$DevRoot = \"$HOME\\Developer\"\nNew-Item -ItemType Directory -Path $DevRoot -Force\nSet-Location $DevRoot\nNew-Item -ItemType Directory -Path \"full-stack-2026-lab\" -Force\nSet-Location \"full-stack-2026-lab\"\nGet-Location\n\nVerification\nThe current path ends with Developer\\full-stack-2026-lab .\n\nLab B - Verify runtime and tooling\n\nfnm use 24.21.0\nnode -v\nnpm -v\npnpm -v\ngit --version\ncode --version\n\nRecord the output in your notes. Do not continue until unexpected versions have an explanation.\n\nLab C - Verify command resolution\n\nGet-Command node\nGet-Command npm\nGet-Command pnpm\nGet-Command git\nGet-Command code\n\nFor every command, write one sentence explaining which directory owns the executable or shim.\n\nPhase 01 | Page 3 of 6\n\nLab D - Create the first Git history\n\ngit init\n\"# Full-Stack Developer 2026 - Environment Lab\" | Set-Content README.md\ngit add README.md\ngit diff --staged\ngit commit -m \"docs: initialize environment lab\"\ngit status\ngit log --oneline -3\n\nLab E - Build an environment report\n\nCreate environment-report.txt using PowerShell output redirection:\n\n\"Phase 01 Environment Report\" | Set-Content environment-report.txt\n\"Generated: $(Get-Date -Format o)\" | Add-Content environment-report.txt\n\"PowerShell: $($PSVersionTable.PSVersion)\" | Add-Content environment-report.txt\n\"Node: $(node -v)\" | Add-Content environment-report.txt\n\"npm: $(npm -v)\" | Add-Content environment-report.txt\n\"pnpm: $(pnpm -v)\" | Add-Content environment-report.txt\n\"Git: $(git --version)\" | Add-Content environment-report.txt\nGet-Content environment-report.txt\n\nThis is intentionally not an automated installer. It is evidence that the learner understands\nverification.\n\nExercise ladder\n\nLevel 1 - Follow\n1. Run every verification command and record expected outputs.\n2. Open the lab with code . .\n3. Create and commit one Markdown file.\n\nLevel 2 - Modify\n1. Create a second directory whose name contains spaces and navigate into it correctly.\n2. Temporarily append a fake directory to the current shell PATH, print PATH, then close the shell\nand explain why it disappeared.\n3. Use Get-Command -All node and explain the result.\n\nLevel 3 - Implement\n1. Write a PowerShell script named verify-environment.ps1 that checks the five tool versions and\nexits non-zero if the Node or pnpm version is not the locked baseline.\n2. Do not copy a complete solution from the book. Use if , command output, and exit .\n\nPhase 01 | Page 4 of 6\n\nLevel 4 - Engineer\nDesign a small onboarding procedure for a new developer on a restricted corporate laptop. Your plan\nmust avoid unnecessary administrator rights, preserve existing PowerShell configuration, verify PATH\nresolution, and produce an evidence report.\n\nKnowledge assessment\n\n1. Why is Node treated as a project/runtime dependency rather than a permanent global\nassumption?\n2. Why can corepack enable fail for a non-admin user even when Node itself works?\n3. What does pnpm exec protect us from?\n4. Why should Get-Location be one of the first commands when a project CLI cannot find its files?\n5. What is the difference between Git identity and GitHub authentication?\n6. Why is git diff --staged valuable before a commit?\n7. What does PATH determine?\n8. Why can a freshly installed command require a new terminal?\n\nAnswer guide\n\n1. Projects need reproducible runtime compatibility; version managers make selection explicit.\n2. It may attempt to write shims into a protected machine-wide Node directory.\n3. It resolves a tool from project dependencies, preserving the project's exact version.\n4. Relative configuration and manifest discovery depends on the working directory.\n5. Git identity is commit metadata; GitHub authentication authorizes access to a remote service.\n6. It shows exactly what the next snapshot will contain.\n7. Which executable directories the shell searches, in order.\n8. The old process inherited environment values before installation changed persistent settings.\n\nPhase exit checklist\n\n□ I can explain working directory, PATH, and environment variables.\n□ I can switch to Node 24.21.0 LTS with fnm.\n□ npm reports 11.19.0.\n□ pnpm reports 12.4.2 from an ordinary user shell.\n□ Git is installed, configured, and understood at working-tree/staging/commit level.\n□ VS Code opens the current workspace from PowerShell.\n□ I can diagnose “command not recognized,” EPERM, and wrong-version problems.\n□ I completed the environment report and committed the practice repository.\n\nPhase 01 | Page 5 of 6\n\nWhat comes next\n\nPhase 02 - Monorepo, pnpm Workspaces & Repository Foundation. We will finally create the\nreal TaskFlow repository. Phase 01 taught us to trust the workstation; Phase 02 will teach us how to\nstructure a repository that can contain a Next.js frontend and NestJS backend without premature\nabstraction.\n\nVerified workstation\n\nCreate TaskFlow repository\n\nDefine pnpm workspace\n\nCreate apps/ boundary\n\nEstablish repository quality gates\n\nFigure 2 - Phase 01 to Phase 02 - The environment becomes infrastructure beneath the real project rather than\nsomething we keep modifying every lesson.\n\nPhase 01 · Book 7 · Lab & assessment\n\nPhase 01 | Page 6 of 6",
+      "wordCount": 878,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Explain Hands On Lab Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this tooling concept.",
+          "Diagnose one representative tooling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab Exercises and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "source file",
+          "tool/runtime",
+          "process",
+          "OS environment",
+          "terminal evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source file → tool/runtime → process → OS environment → terminal evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Different shells resolving different PATH values",
+          "Change one assumption in the tooling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the tooling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild and verify a reproducible Windows development environment without relying on hidden machine state.",
+      "body": "Guided Build Lab — Phase 01: Windows Development Environment & Professional Tooling\n\nPurpose\nBuild and verify a reproducible Windows development environment without relying on hidden machine state.\n\nDeliverable\nA verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nWindows user environment -> PowerShell -> PATH resolution -> Node runtime -> Corepack/pnpm -> Git -> Editor/terminal -> Project process\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Open ordinary PowerShell and record pwd, whoami, and PATH-related observations.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Install or verify Git and VS Code with user-level installation where possible.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Install the course Node line with a version manager and prove which executable is active.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Enable Corepack and activate the repository package-manager version.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Verify git, node, npm/corepack, pnpm, and editor command availability from a fresh terminal.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Deliberately create a PATH or port conflict in a safe sandbox and diagnose it with Get-Command/Get-NetTCPConnection.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\nGet-Location\nGet-Command node\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 693,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Port already in use by a forgotten development process",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 01: Windows Development Environment & Professional Tooling\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nWindows user environment -> PowerShell -> PATH resolution -> Node runtime -> Corepack/pnpm -> Git -> Editor/terminal -> Project process\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Terminal still using an old executable after installation\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — EPERM caused by writing to protected locations\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Different shells resolving different PATH values\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Port already in use by a forgotten development process\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 455,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this tooling concept.",
+          "Diagnose one representative tooling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "source file",
+          "tool/runtime",
+          "process",
+          "OS environment",
+          "terminal evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source file → tool/runtime → process → OS environment → terminal evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Terminal still using an old executable after installation",
+          "Change one assumption in the tooling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the tooling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 01 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Windows Development Environment & Professional Tooling\n\nMission\nRebuild the capability of Phase 01 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild and verify a reproducible Windows development environment without relying on hidden machine state.\n\nRequired artifact\nA verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can prove which executable a command resolves to.\n• Can explain user PATH vs system PATH.\n• Can identify a process occupying a port.\n• Can recreate the toolchain on another machine from notes.\n\nIndependent build sequence\n1. Open ordinary PowerShell and record pwd, whoami, and PATH-related observations.\n2. Install or verify Git and VS Code with user-level installation where possible.\n3. Install the course Node line with a version manager and prove which executable is active.\n4. Enable Corepack and activate the repository package-manager version.\n5. Verify git, node, npm/corepack, pnpm, and editor command availability from a fresh terminal.\n6. Deliberately create a PATH or port conflict in a safe sandbox and diagnose it with Get-Command/Get-NetTCPConnection.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 381,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this tooling concept.",
+          "Diagnose one representative tooling failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "source file",
+          "tool/runtime",
+          "process",
+          "OS environment",
+          "terminal evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: source file → tool/runtime → process → OS environment → terminal evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "EPERM caused by writing to protected locations",
+          "Change one assumption in the tooling example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the tooling boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 01 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 01: Windows Development Environment & Professional Tooling. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 204,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "tooling",
+        "objectives": [
+          "Build and verify a reproducible Windows development environment without relying on hidden machine state.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Windows user environment",
+          "PowerShell",
+          "PATH resolution",
+          "Node runtime",
+          "Corepack/pnpm",
+          "Git",
+          "Editor/terminal",
+          "Project process"
+        ],
+        "steps": [
+          "Open ordinary PowerShell and record pwd, whoami, and PATH-related observations.",
+          "Install or verify Git and VS Code with user-level installation where possible.",
+          "Install the course Node line with a version manager and prove which executable is active.",
+          "Enable Corepack and activate the repository package-manager version.",
+          "Verify git, node, npm/corepack, pnpm, and editor command availability from a fresh terminal.",
+          "Deliberately create a PATH or port conflict in a safe sandbox and diagnose it with Get-Command/Get-NetTCPConnection.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can prove which executable a command resolves to",
+          "Can explain user PATH vs system PATH",
+          "Can identify a process occupying a port",
+          "Can recreate the toolchain on another machine from notes"
+        ],
+        "breakIt": [
+          "Terminal still using an old executable after installation",
+          "EPERM caused by writing to protected locations"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [],
+  "exercises": [
+    "Guided: Open ordinary PowerShell and record pwd, whoami, and PATH-related observations.",
+    "Practice: Install the course Node line with a version manager and prove which executable is active.",
+    "Debugging: reproduce and diagnose — Terminal still using an old executable after installation.",
+    "Independent: deliver A verified toolchain report showing shell, Git, Node, Corepack/pnpm, editor, PATH, ports, and diagnostic commands.",
+    "Explain-back: Can prove which executable a command resolves to and Can explain user PATH vs system PATH."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 01's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Verify tools from the terminal instead of assuming an installer succeeded."
+      ],
+      "answer": 3,
+      "explanation": "Verify tools from the terminal instead of assuming an installer succeeded."
+    },
+    {
+      "question": "Which practice best matches Phase 01's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Understand PATH, ports, processes, shells, and working directories because they explain many setup failures.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Understand PATH, ports, processes, shells, and working directories because they explain many setup failures."
+    },
+    {
+      "question": "Which practice best matches Phase 01's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Prefer user-level development tooling when administrator privileges are unnecessary.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Prefer user-level development tooling when administrator privileges are unnecessary."
+    },
+    {
+      "question": "Which practice best matches Phase 01's engineering goal?",
+      "options": [
+        "Record exact versions and verification commands so another developer can reproduce the environment.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Record exact versions and verification commands so another developer can reproduce the environment."
+    },
+    {
+      "question": "You are working through the Phase 01 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Terminal still using an old executable after installation.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Open ordinary PowerShell and record pwd, whoami, and PATH-related observations.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Open ordinary PowerShell and record pwd, whoami, and PATH-related observations."
+    },
+    {
+      "question": "You are working through the Phase 01 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Install or verify Git and VS Code with user-level installation where possible.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: EPERM caused by writing to protected locations."
+      ],
+      "answer": 1,
+      "explanation": "Install or verify Git and VS Code with user-level installation where possible."
+    },
+    {
+      "question": "You are working through the Phase 01 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Install the course Node line with a version manager and prove which executable is active.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Different shells resolving different PATH values.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Install the course Node line with a version manager and prove which executable is active."
+    },
+    {
+      "question": "You are working through the Phase 01 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Port already in use by a forgotten development process.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Enable Corepack and activate the repository package-manager version."
+      ],
+      "answer": 3,
+      "explanation": "Enable Corepack and activate the repository package-manager version."
+    }
+  ],
+  "lessonCount": 11,
+  "wordCount": 6280
+}

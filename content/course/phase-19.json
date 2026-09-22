@@ -1,0 +1,1224 @@
+{
+  "number": 19,
+  "slug": "phase-19",
+  "title": "Authorization, Ownership, RBAC & Permissions",
+  "volume": 5,
+  "readme": "FULL-STACK DEVELOPER 2026\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nThis phase completes the authentication/security volume by turning Phase 18 trusted identity into workspace-scoped authorization. Start with 00_Phase_19_Guide.pdf or 13_Phase_19_Complete_Book.pdf.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "authorization-mental-model-and-threats",
+      "title": "Authorization Mental Model and Threats",
+      "summary": "Authorization Mental Model & Threats Separate identity from access and understand broken-access-control failure modes Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Authenticated subject v Action v Resource v Context v Decision Phase 19 transforms verified identity…",
+      "body": "Authorization Mental Model & Threats\nSeparate identity from access and understand broken-access-control failure modes\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nAuthenticated subject\n\nv\n\nAction\n\nv\n\nResource\n\nv\n\nContext\n\nv\n\nDecision\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nAuthentication and authorization solve different problems\nA valid bearer token proves the caller identity. It does not grant access to every row. Authorization evaluates the\nsubject, action, resource, and context. OWASP recommends least privilege, deny-by-default, and validating access on\nevery request.\n\nQuestion                                         Layer\n\nWho is calling?                                  SupabaseAuthGuard\n\nWhich TaskFlow user is that subject linked to?   AuthorizationService\n\nWhich workspace membership exists?               Membership relation\n\nWhat may this role generally do?                 Role -> permission mapping\n\nMay this user act on this specific task?         Object-level policy / service logic\n\nBroken access control is usually contextual\n\nA user may be allowed to read Task objects in one workspace and forbidden from reading an identical Task object in another.\nType-level access alone is not enough.\n\nFour useful models\n• RBAC - role grants broad capabilities.\n\n• Permission/claims model - actions such as task.delete or member.manage.\n\n• ABAC - decisions include attributes such as project state or time.\n\n• ReBAC/ownership - decisions depend on relationships: member-of, assigned-to, manager-of.",
+      "wordCount": 200,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Authorization Mental Model and Threats in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Authorization Mental Model and Threats” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Authorization only in frontend",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Authorization Mental Model and Threats” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Authorization Mental Model and Threats solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "link-supabase-identity-to-taskflow-user",
+      "title": "Link Supabase Identity to TaskFlow User",
+      "summary": "Link Supabase Identity to TaskFlow User Create a safe bridge between external identity and application-domain authorization data Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone claims.sub v User.authSubject v User.id v Membership Phase 19 transforms verified identity…",
+      "body": "Link Supabase Identity to TaskFlow User\nCreate a safe bridge between external identity and application-domain authorization data\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nclaims.sub\n\nv\n\nUser.authSubject\n\nv\n\nUser.id\n\nv\n\nMembership\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nLink external identity to the application domain\nSupabase Auth owns authentication identity. TaskFlow owns User, Membership, Workspace, Project, and Task. We\ntherefore add an explicit authSubject link instead of trusting email or stuffing all domain authorization into JWT claims.\n\nmodel User {\nid          String @id @default(uuid())\nauthSubject String? @unique\nemail       String @unique\n// ...\n}\n\nFigure 1 - Identity mapping\n\nVerified Supabase claims.sub\n\nv\n\nUser.authSubject\n\nv\n\nTaskFlow User.id\n\nv\n\nMembership.userId\n\nv\n\nWorkspace role + relationships\n\nThe external subject remains identity; the domain user remains application data.\n\nWhy nullable first?\n\nExisting development rows already exist. Add the link as nullable, backfill trusted mappings, verify them, then consider making it\nrequired in a later migration.\n\nDo not link by ordinary request body\nA browser must not be allowed to submit authSubject=user-X to claim another account. Linking is an onboarding/admin\nconcern performed through a trusted path.",
+      "wordCount": 193,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Link Supabase Identity to TaskFlow User in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Link Supabase Identity to TaskFlow User matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Link Supabase Identity to TaskFlow User” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Role strings checked inconsistently in every route",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Link Supabase Identity to TaskFlow User” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Link Supabase Identity to TaskFlow User solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "rbac-roles-and-permission-matrix",
+      "title": "RBAC Roles and Permission Matrix",
+      "summary": "RBAC, Roles & Permission Matrix Map workspace roles to explicit operations without scattering role checks Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Membership role v Permission set v Coarse capability Phase 19 transforms verified identity into…",
+      "body": "RBAC, Roles & Permission Matrix\nMap workspace roles to explicit operations without scattering role checks\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nMembership role\n\nv\n\nPermission set\n\nv\n\nCoarse capability\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nRole is a compact label; permission is the operation\nTaskFlow already has workspace MembershipRole values OWNER, ADMIN, and MEMBER. Phase 19 maps those\nroles to explicit permission names so controllers and services reason about actions rather than scattered if(role===...).\n\nOperation                                                  OWNER                   ADMIN                   MEMBER\n\nRead workspace/projects/tasks                              Yes                     Yes                     Yes\n\nCreate task                                                Yes                     Yes                     Yes\n\nUpdate any task                                            Yes                     Yes                     No\n\nUpdate assigned task                                       Yes                     Yes                     Yes\n\nDelete task                                                Yes                     Yes                     No\n\nManage members                                             Yes                     Yes                     No\n\nManage workspace settings                                  Yes                     No                      No\n\nexport enum Permission {\nTASK_READ = 'task.read',\nTASK_CREATE = 'task.create',\nTASK_UPDATE_ANY = 'task.update.any',\nTASK_UPDATE_ASSIGNED = 'task.update.assigned',\nTASK_DELETE = 'task.delete',\n}\n\nDo not put every permission in the JWT\n\nWorkspace roles can differ per workspace and change while a token is still valid. TaskFlow loads current application\nauthorization data from PostgreSQL instead of treating stale token claims as the whole policy.",
+      "wordCount": 188,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain RBAC Roles and Permission Matrix in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “RBAC Roles and Permission Matrix” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Checking membership after performing the mutation",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “RBAC Roles and Permission Matrix” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does RBAC Roles and Permission Matrix solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "nestjs-permission-metadata-and-guards",
+      "title": "NestJS Permission Metadata and Guards",
+      "summary": "NestJS Permission Metadata & Guards Use Reflector metadata and guards for coarse workspace authorization Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Auth guard v Permission metadata v Workspace membership v Controller Phase 19 transforms verified identity…",
+      "body": "NestJS Permission Metadata & Guards\nUse Reflector metadata and guards for coarse workspace authorization\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nAuth guard\n\nv\n\nPermission metadata\n\nv\n\nWorkspace membership\n\nv\n\nController\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nNestJS metadata is useful for coarse route policy\nNestJS officially supports RBAC and claims-style authorization with custom decorators, Reflector metadata, and\nGuards. TaskFlow uses that pattern where a route has an explicit workspaceId and the required permission is known\nbefore business execution.\n\nexport const RequireWorkspacePermissions =\nReflector.createDecorator<Permission[]>()\n\n@Post()\n@RequireWorkspacePermissions([Permission.PROJECT_CREATE])\ncreateProject(...) { ... }\n\nDefault deny when the guard is applied\nOur WorkspacePermissionsGuard refuses to proceed if it was explicitly attached but no permission metadata exists.\nThat catches a missing policy instead of silently allowing the route.\n\nFigure 1 - Coarse permission guard\n\nSupabaseAuthGuard verifies caller\n\nv\n\nWorkspacePermissionsGuard reads route metadata\n\nv\n\nworkspaceId read from route params\n\nv\n\nMembership loaded from database\n\nv\n\nRole mapped to required permission\n\nv\n\nController runs\n\nThis works well when the authorization context is available before loading the resource.\n\nGuards are not the whole authorization system\n\nA task/:id route cannot safely authorize from a workspaceId supplied by the browser if the real Task belongs elsewhere.\nResource-level policy belongs after loading trusted resource context.",
+      "wordCount": 212,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain NestJS Permission Metadata and Guards in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS Permission Metadata and Guards” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "IDOR: trusting a resource ID without proving caller access",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS Permission Metadata and Guards” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS Permission Metadata and Guards solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "object-level-authorization-and-idor-defense",
+      "title": "Object Level Authorization and IDOR Defense",
+      "summary": "Object-Level Authorization & IDOR Defense Scope actual database lookups by authenticated relationships Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone User v Requested ID v Scoped Prisma query v Visible object only Phase 19 transforms verified identity…",
+      "body": "Object-Level Authorization & IDOR Defense\nScope actual database lookups by authenticated relationships\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nUser\n\nv\n\nRequested ID\n\nv\n\nScoped Prisma query\n\nv\n\nVisible object only\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nObject-level authorization prevents IDOR/BOLA\nChanging /tasks/A to /tasks/B must never grant access simply because B is a syntactically valid ID. The server must\nscope the actual database lookup by the authenticated user relationship.\n\nconst task = await prisma.task.findFirst({\nwhere: {\nid: taskId,\nproject: {\nworkspace: {\nmemberships: { some: { userId: user.id } },\n},\n},\n},\n})\n\nFigure 1 - Secure lookup\n\nAuthenticated subject\n\nv\n\nLinked TaskFlow user\n\nv\n\nRequested task ID\n\nv\n\nDatabase query includes membership relation\n\nv\n\nMatching task returned OR no visible task\n\nv\n\nAuthorization decision continues\n\nThe query itself helps enforce tenant/resource scope.\n\nWhy this is stronger than checking after findUnique\nA global findUnique first reveals that the object exists and creates more room for accidental authorization omissions.\nScoped lookup makes the accessible dataset smaller by construction.",
+      "wordCount": 171,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Object Level Authorization and IDOR Defense in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Object Level Authorization and IDOR Defense” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Authorization only in frontend",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Object Level Authorization and IDOR Defense” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Object Level Authorization and IDOR Defense solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "ownership-assignment-and-service-level-policies",
+      "title": "Ownership Assignment and Service Level Policies",
+      "summary": "Ownership, Assignment & Service-Level Policies Enforce relationship-aware policies where trusted resource context exists Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Resource context v Role permission v Assignment relationship v Allow/deny Phase 19 transforms verified identity into…",
+      "body": "Ownership, Assignment & Service-Level\nPolicies\nEnforce relationship-aware policies where trusted resource context exists\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nResource context\n\nv\n\nRole permission\n\nv\n\nAssignment relationship\n\nv\n\nAllow/deny\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nOwnership is a relationship, not a boolean\nTaskFlow does not currently have a Task.ownerId. It has workspace membership and task assignment. We therefore\nteach the real domain relationship instead of inventing an owner field just to demonstrate authorization.\n\nCaller                              Task relationship                                      Update?\n\nOWNER/ADMIN                         Workspace membership with update-any permission        Yes\n\nMEMBER                              Task.assigneeId == current TaskFlow user               Yes\n\nMEMBER                              Task assigned to another user or unassigned            No\n\nif (ROLE_PERMISSIONS[role].has(Permission.TASK_UPDATE_ANY)) {\nreturn true\n}\nreturn ROLE_PERMISSIONS[role].has(Permission.TASK_UPDATE_ASSIGNED)\n&& task.assigneeId === user.id\n\nAssignment is not authentication\n\nassigneeId comes from database state after access-scoped loading. The browser cannot make itself the assignee by sending a\nuserId field and thereby bypass authorization.\n\nAuthorization and business rules compose\nFirst decide whether the caller may attempt the operation. Then Phase 14 invariants still decide whether the operation\nitself is valid. Permission does not bypass business rules.",
+      "wordCount": 190,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Ownership Assignment and Service Level Policies in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Ownership Assignment and Service Level Policies” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Role strings checked inconsistently in every route",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Ownership Assignment and Service Level Policies” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Ownership Assignment and Service Level Policies solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "401-403-404-and-error-contract",
+      "title": "401 403 404 and Error Contract",
+      "summary": "401, 403, 404 & Error Contract Use status semantics without leaking inaccessible resource existence Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Authentication failure v Permission failure v Scoped not found Phase 19 transforms verified identity into…",
+      "body": "401, 403, 404 & Error Contract\nUse status semantics without leaking inaccessible resource existence\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nAuthentication failure\n\nv\n\nPermission failure\n\nv\n\nScoped not found\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\n401, 403, and 404 tell different security stories\nTaskFlow keeps authentication failures, permission failures, and existence-hiding behavior distinct.\n\nSituation                                                       Status           Reason\n\nNo/invalid access token                                         401              Identity not established\n\nAuthenticated workspace member lacks delete permission          403              Identity known; action forbidden\n\nTask not visible in caller workspace scope                      404              Do not reveal whether an inaccessible task exists\n\n404 is a policy choice, not a universal rule\n\nFor object lookups across tenant boundaries, hiding existence can reduce information disclosure. For an authenticated member\nwho can see the task but lacks a specific action, 403 is clearer.\n\nKeep the Phase 13 error envelope\n{\n\"statusCode\": 403,\n\"code\": \"TASK_UPDATE_FORBIDDEN\",\n\"message\": \"You may not update this task.\",\n\"requestId\": \"...\",\n\"path\": \"/tasks/...\"\n}",
+      "wordCount": 158,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain 401 403 404 and Error Contract in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "401 403 404 and Error Contract matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “401 403 404 and Error Contract” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Checking membership after performing the mutation",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “401 403 404 and Error Contract” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does 401 403 404 and Error Contract solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "multi-tenant-query-scoping-with-prisma",
+      "title": "Multi Tenant Query Scoping with Prisma",
+      "summary": "Multi-Tenant Query Scoping with Prisma Make every collection and item query operate inside the caller authorized dataset Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Identity v Membership scope v Prisma where v Filtered collection Phase 19…",
+      "body": "Multi-Tenant Query Scoping with Prisma\nMake every collection and item query operate inside the caller authorized dataset\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nIdentity\n\nv\n\nMembership scope\n\nv\n\nPrisma where\n\nv\n\nFiltered collection\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nMulti-tenant scoping must be automatic in every query\nA workspace SaaS app fails catastrophically if one collection endpoint forgets tenant filtering. TaskFlow therefore\nderives visible workspaces from current membership and scopes task queries accordingly.\n\nFigure 1 - Collection scoping\n\nrequest.user.id\n\nv\n\nTaskFlow user.id\n\nv\n\nMembership workspace IDs\n\nv\n\nTask -> Project -> Workspace relationship\n\nv\n\nOnly authorized rows returned\n\nPagination, filtering, search, and sorting from Phase 15 operate inside the authorized dataset, not before it.\n\nwhere: {\nproject: {\nworkspace: {\nmemberships: { some: { userId: currentUser.id } },\n},\n},\n// then Phase 15 filters: status, priority, search, etc.\n}\n\nOrder of reasoning\n• Establish identity.\n\n• Map to application user.\n\n• Constrain accessible resource set.\n\n• Apply client filters within that set.\n\n• Perform business operation.\n\nNever trust tenantId/workspaceId from a hidden input\n\nClient context can improve UX, but the server still verifies membership and actual resource relationships on every request.",
+      "wordCount": 188,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "prisma",
+        "objectives": [
+          "Explain Multi Tenant Query Scoping with Prisma in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this prisma concept.",
+          "Diagnose one representative prisma failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Prisma improves developer ergonomics, but migrations and generated queries still change a real relational database. You should be able to inspect both sides.",
+        "mentalModel": [
+          "domain intent",
+          "Prisma Client",
+          "generated SQL",
+          "PostgreSQL",
+          "mapped result"
+        ],
+        "steps": [
+          "Restate the goal of “Multi Tenant Query Scoping with Prisma” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: domain intent → Prisma Client → generated SQL → PostgreSQL → mapped result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Keep the generated client visible in the mental model",
+          "code": "const tasks = await prisma.task.findMany({\n  where: { workspaceId },\n  orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\n  take: 20,\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "IDOR: trusting a resource ID without proving caller access",
+          "Change one assumption in the prisma example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "P1001 / connection failure",
+            "investigation": "Verify connection string, host, port, SSL/pooler mode, network reachability, and which environment file the process loaded."
+          },
+          {
+            "symptom": "Migration surprises",
+            "investigation": "Read the generated SQL before applying it and compare the change against existing production-shaped data."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Multi Tenant Query Scoping with Prisma” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Multi Tenant Query Scoping with Prisma solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the prisma boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "membership-management-and-privilege-escalation",
+      "title": "Membership Management and Privilege Escalation",
+      "summary": "Membership Management & Privilege Escalation Protect the role and membership data that defines authorization itself Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Caller membership v Target membership v Role-change policy v Safe update Phase 19 transforms…",
+      "body": "Membership Management & Privilege\nEscalation\nProtect the role and membership data that defines authorization itself\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nCaller membership\n\nv\n\nTarget membership\n\nv\n\nRole-change policy\n\nv\n\nSafe update\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nMembership management is itself privileged\nIf an ADMIN can assign OWNER arbitrarily, or a MEMBER can change their own role, the authorization system can be\nbypassed through privilege escalation. Authorization rules must protect the policy data itself.\n\nAction                                           Suggested TaskFlow policy\n\nInvite/add MEMBER                                OWNER or ADMIN\n\nPromote MEMBER -> ADMIN                          OWNER only (course policy)\n\nTransfer OWNER                                   OWNER only with explicit workflow\n\nMember changes own role                          Never directly\n\nRemove OWNER while last owner                    Reject\n\nProtect invariants around role changes\n• Do not accept role from an untrusted ordinary update DTO without an authorization-specific endpoint.\n\n• Load the caller membership and target membership from the same workspace.\n\n• Prevent cross-workspace target IDs.\n\n• Protect against removing the last OWNER.\n\n• Audit high-impact role changes later in the production-hardening phases.\n\nLeast privilege applies to administration too\n\nAdmin is not automatically the same as owner. Separating sensitive workspace ownership actions reduces privilege escalation\nblast radius.",
+      "wordCount": 193,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Membership Management and Privilege Escalation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Membership Management and Privilege Escalation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "prisma",
+          "caption": "Model membership as a first-class relation",
+          "code": "model WorkspaceMember {\n  workspaceId String\n  userId      String\n  role        WorkspaceRole\n  workspace Workspace @relation(fields: [workspaceId], references: [id])\n  user      User      @relation(fields: [userId], references: [id])\n  @@id([workspaceId, userId])\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Authorization only in frontend",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Membership Management and Privilege Escalation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Membership Management and Privilege Escalation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "authorization-testing-and-security-verification",
+      "title": "Authorization Testing and Security Verification",
+      "summary": "Authorization Testing & Security Verification Test vertical and horizontal boundaries directly against the API Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Multiple users v Multiple workspaces v Tampered IDs v Expected 401/403/404 Phase 19 transforms verified…",
+      "body": "Authorization Testing & Security\nVerification\nTest vertical and horizontal boundaries directly against the API\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nMultiple users\n\nv\n\nMultiple workspaces\n\nv\n\nTampered IDs\n\nv\n\nExpected 401/403/404\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nAuthorization needs a test matrix, not a happy-path test\nOWASP recommends validating permissions on every request. That means tests should cover vertical and horizontal\nprivilege boundaries, not just whether OWNER succeeds.\n\nTest                                                                    Expected\n\nNo token                                                                401\n\nValid token, no app-user link                                           403 APPLICATION_USER_NOT_LINKED\n\nMember reads visible task                                               200\n\nMember reads task in another workspace                                  404\n\nMember updates assigned task                                            success\n\nMember updates other user task                                          403\n\nMember deletes task                                                     403\n\nAdmin deletes task                                                      success\n\nTamper task ID to other workspace                                       never succeeds\n\nTest policy data changes too\n• Change a Membership role and verify the next request reflects current DB state.\n\n• Remove membership and verify access disappears.\n\n• Reassign a Task and verify MEMBER update rights move with the relationship.\n\n• Attempt direct URL tampering and body-field tampering.\n\nClient UI tests are not enough\n\nA hidden button can still be invoked through HTTP. The decisive tests call the API directly with different identities and resources.",
+      "wordCount": 200,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Authorization Testing and Security Verification in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Authorization Testing and Security Verification” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Role strings checked inconsistently in every route",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Authorization Testing and Security Verification” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Authorization Testing and Security Verification solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "enterprise-authorization-patterns",
+      "title": "Enterprise Authorization Patterns",
+      "summary": "Enterprise Authorization Patterns Transfer RBAC, ownership, ABAC and relationship reasoning to real business systems Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Subject v Role/permissions v Relationship v Context v Business authorization Phase 19 transforms verified identity…",
+      "body": "Enterprise Authorization Patterns\nTransfer RBAC, ownership, ABAC and relationship reasoning to real business systems\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nSubject\n\nv\n\nRole/permissions\n\nv\n\nRelationship\n\nv\n\nContext\n\nv\n\nBusiness authorization\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nThe same authorization model transfers to enterprise systems\nRoles and resource relationships change by domain, but the reasoning pattern stays stable: subject + action +\nresource + context.\n\nDomain                     Authorization examples\n\nHRIS                       Employee sees own payslips; HR sees employees in authorized scope; manager approves direct reports\n\nPayroll                    Payroll Officer can calculate; approver finalizes; ordinary employee cannot read others pay\n\nProcurement                Requester edits own draft; approver acts within threshold; receiving role records delivery\n\nInventory                  Warehouse user adjusts assigned location; manager transfers across locations; audit role read-only\n\nAccounting                 Accountant posts permitted journals; approver closes periods; segregation of duties applies\n\nRBAC alone eventually becomes insufficient\nReal systems often combine role, ownership/relationships, attributes, monetary thresholds, workflow states,\ndepartment scope, and segregation-of-duties rules. Phase 19 teaches a simple architecture that can grow without\nimmediately adding a policy engine.\n\nFigure 1 - Enterprise policy inputs\n\nAuthenticated subject\n\nv\n\nRole/permissions\n\nv\n\nResource owner/relationship\n\nv\n\nTenant/department/workspace\n\nv\n\nResource/workflow state\n\nv\n\nContextual constraints\n\nv\n\nAuthorization decision\n\nThis is the path from simple RBAC toward richer ABAC/ReBAC policies when requirements justify it.",
+      "wordCount": 222,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Enterprise Authorization Patterns in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Enterprise Authorization Patterns” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Checking membership after performing the mutation",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Enterprise Authorization Patterns” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Enterprise Authorization Patterns solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Prove TaskFlow authorization using multiple users and workspaces Phase 19 - Authorization, Ownership, RBAC & Permissions Volume 05 - Authentication & Security Architecture milestone Link identities v Create policy data v Test boundaries v Explain model Phase 19 transforms verified…",
+      "body": "Hands-On Lab & Phase Exit\nProve TaskFlow authorization using multiple users and workspaces\n\nPhase 19 - Authorization, Ownership, RBAC & Permissions\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nLink identities\n\nv\n\nCreate policy data\n\nv\n\nTest boundaries\n\nv\n\nExplain model\n\nPhase 19 transforms verified identity into contextual, server-side authorization decisions.\n\nHands-on lab: prove authorization, not UI hiding\nComplete the lab with at least two Supabase users and at least two workspaces. Authorization is not proven until a\ncaller fails correctly across a resource boundary.\n\nLab A - Link identity to domain user\n• Add authSubject as nullable + unique.\n\n• Run migration and generate Prisma Client.\n\n• Sign in as each development user and obtain verified subject from /auth/me.\n\n• Link each subject to the intended TaskFlow User using a trusted development/admin path.\n\nLab B - Create policy data\n• Workspace A: User 1 OWNER, User 2 MEMBER.\n\n• Workspace B: User 2 OWNER, User 1 has no membership.\n\n• Assign one Workspace A task to User 2 and keep another task assigned to User 1.\n\nLab C - Verify matrix\nScenario                                                                Expected\n\nUser 2 reads Workspace A task                                           200\n\nUser 2 updates task assigned to User 2                                  success\n\nUser 2 updates task assigned to User 1                                  403\n\nUser 2 deletes Workspace A task as MEMBER                               403\n\nUser 1 reads Workspace B task with no membership                        404/scoped not found\n\nOWNER/ADMIN performs allowed management action                          success\n\nLevel 4 - Engineer\nDesign authorization for an HRIS leave request: employee can view own leave; supervisor can approve direct reports\nonly; HR can view department-wide; payroll can read approved leave dates but cannot approve; system must hide\nother employees private records. Identify which checks are RBAC, relationship-based, and business-state based.\n\nPhase exit checklist\n• You can distinguish 401, 403, and scoped 404.\n\n• You can map verified auth subject to a domain user safely.\n\n• You can explain role vs permission vs ownership/relationship.\n\n• You can enforce workspace membership on every request.\n\n• You can prevent ID tampering from crossing workspace boundaries.\n\n• You understand why coarse guards and service-level resource policy both exist.\n\n• You can explain deny-by-default and least privilege.\n\n• You can test vertical and horizontal privilege escalation.",
+      "wordCount": 348,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "IDOR: trusting a resource ID without proving caller access",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nEnforce resource ownership, workspace membership, roles, and permissions on the API with server-side policies.",
+      "body": "Guided Build Lab — Phase 19: Authorization, Ownership, RBAC & Permissions\n\nPurpose\nEnforce resource ownership, workspace membership, roles, and permissions on the API with server-side policies.\n\nDeliverable\nPermission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nverified identity -> resource lookup -> membership -> role/permission policy -> allowed/denied use case -> audit/error\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Map roles to capabilities without scattering role-name if statements across controllers.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Load membership for the relevant workspace and treat it as authorization evidence.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Enforce owner/member/role checks in server-side policy code.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Decide when 403 reveals too much and when a 404-style response better protects resource existence.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Write a matrix test covering at least owner, member, outsider, unauthenticated caller, and missing resource.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 639,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Authorization only in frontend",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 19: Authorization, Ownership, RBAC & Permissions\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nverified identity -> resource lookup -> membership -> role/permission policy -> allowed/denied use case -> audit/error\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Authorization only in frontend\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Role strings checked inconsistently in every route\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Checking membership after performing the mutation\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — IDOR: trusting a resource ID without proving caller access\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 449,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Role strings checked inconsistently in every route",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 19 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Authorization, Ownership, RBAC & Permissions\n\nMission\nRebuild the capability of Phase 19 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nEnforce resource ownership, workspace membership, roles, and permissions on the API with server-side policies.\n\nRequired artifact\nPermission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can model permission checks by action/resource.\n• Can test authorization matrixes.\n• Can prevent IDOR.\n• Can explain 401/403/404 choices.\n\nIndependent build sequence\n1. List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.\n2. Map roles to capabilities without scattering role-name if statements across controllers.\n3. Load membership for the relevant workspace and treat it as authorization evidence.\n4. Enforce owner/member/role checks in server-side policy code.\n5. Decide when 403 reveals too much and when a 404-style response better protects resource existence.\n6. Write a matrix test covering at least owner, member, outsider, unauthenticated caller, and missing resource.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 367,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Checking membership after performing the mutation",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 19 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 19: Authorization, Ownership, RBAC & Permissions. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nPermission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 202,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Enforce resource ownership, workspace membership, roles, and permissions on the API with server-side policies.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "verified identity",
+          "resource lookup",
+          "membership",
+          "role/permission policy",
+          "allowed/denied use case",
+          "audit/error"
+        ],
+        "steps": [
+          "List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.",
+          "Map roles to capabilities without scattering role-name if statements across controllers.",
+          "Load membership for the relevant workspace and treat it as authorization evidence.",
+          "Enforce owner/member/role checks in server-side policy code.",
+          "Decide when 403 reveals too much and when a 404-style response better protects resource existence.",
+          "Write a matrix test covering at least owner, member, outsider, unauthenticated caller, and missing resource.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can model permission checks by action/resource",
+          "Can test authorization matrixes",
+          "Can prevent IDOR",
+          "Can explain 401/403/404 choices"
+        ],
+        "breakIt": [
+          "Authorization only in frontend",
+          "Role strings checked inconsistently in every route"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/AUTHORIZATION_MATRIX.md",
+      "preview": "# TaskFlow Phase 19 Authorization Matrix\n\n| Operation | OWNER | ADMIN | MEMBER |\n|---|---:|---:|---:|\n| Read workspace/projects/tasks | yes | yes | yes |\n| Create task | yes | yes | yes |\n| Update any task | yes | yes | no |\n| Update assigned task | yes | yes | yes |\n| Delete task | yes | yes | no |\n| Create/update project | yes | yes | no |\n| Manage members | yes | yes | no |\n| Manage workspace settings | yes | no | no |\n\nNotes:\n- This is the course policy, not a universal RBAC model.\n- Object-level checks still apply after role-to-permission mapping.\n- A MEMBER being able to update assigned tasks is relationship-based, not just role-based.\n- The server rechecks authorization on every request."
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/SCHEMA_CHANGE_AND_LINKING.md",
+      "preview": "# Linking Supabase Auth identity to TaskFlow User\n\nPhase 18 gives NestJS a verified Supabase subject (`request.user.id`).\nPhase 19 must map that external identity to the domain `User` row used by Membership and Task relations.\n\nRecommended migration:\n1. Add `authSubject String? @unique` to `User`.\n2. Run a migration.\n3. Sign in with the development Supabase account and inspect `/auth/me` to obtain the verified `sub`.\n4. Link that `sub` to the intended TaskFlow User row using a trusted admin/dev path (Prisma Studio, SQL, or a one-time script).\n5. Do not accept `authSubject` from an ordinary browser request body.\n6. After all real users are linked, consider making the column required in a later migration."
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/SOURCE_NOTES.txt",
+      "preview": "Phase 19 source notes - verified September 18, 2026\n\nNestJS Authorization\nhttps://docs.nestjs.com/security/authorization\n\nNestJS Execution Context / Reflector metadata\nhttps://docs.nestjs.com/fundamentals/execution-context\n\nOWASP Authorization Cheat Sheet\nhttps://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html\n\nOWASP Business Logic Security Cheat Sheet\nhttps://cheatsheetseries.owasp.org/cheatsheets/Business_Logic_Security_Cheat_Sheet.html\n\nCore course locks remain unchanged:\n- NestJS 12.0.3\n- Prisma 7.9.1\n- Supabase Auth stack from Phase 17"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/prisma/schema.phase19.prisma.fragment",
+      "preview": "model User {\n  id            String       @id @default(uuid())\n  authSubject   String?      @unique\n  email         String       @unique\n  displayName   String?\n  createdAt     DateTime     @default(now())\n  updatedAt     DateTime     @updatedAt\n  memberships   Membership[]\n  assignedTasks Task[]       @relation(\"TaskAssignee\")\n}\n\n// Phase 19 migration strategy:\n// 1. Add authSubject as nullable + unique.\n// 2. Link the development Supabase auth subject to the existing TaskFlow User.\n// 3. Only make it required later if every application user is guaranteed to be linked."
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/authorization/authorization.module.ts",
+      "preview": "import { Module } from '@nestjs/common'\nimport { PrismaModule } from '../prisma/prisma.module'\nimport { AuthorizationService } from './authorization.service'\nimport { WorkspacePermissionsGuard } from './workspace-permissions.guard'\n\n@Module({\n  imports: [PrismaModule],\n  providers: [AuthorizationService, WorkspacePermissionsGuard],\n  exports: [AuthorizationService, WorkspacePermissionsGuard],\n})\nexport class AuthorizationModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/authorization/authorization.service.ts",
+      "preview": "import { Injectable } from '@nestjs/common'\nimport type { MembershipRole } from '../generated/prisma/client'\nimport { PrismaService } from '../prisma/prisma.service'\nimport type { AuthenticatedUser } from '../auth/authenticated-user'\nimport { Permission } from './permissions'\nimport { ROLE_PERMISSIONS } from './role-permissions'\nimport {\n  ApplicationUserNotLinkedException,\n  PermissionDeniedException,\n  WorkspaceAccessDeniedException,\n  AuthorizedTaskNotFoundException,\n} from '../common/errors/authorization.exceptions'\n\n@Injectable()\nexport class AuthorizationService {\n  constructor(private readonly prisma: PrismaService) {}\n\n  async requireApplicationUser(auth: AuthenticatedUser) {\n    const user = await this.prisma.user.findUnique({\n      where: { authSubject: auth.id },"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/authorization/permissions.ts",
+      "preview": "export enum Permission {\n  WORKSPACE_READ = 'workspace.read',\n  WORKSPACE_MANAGE = 'workspace.manage',\n  MEMBER_MANAGE = 'member.manage',\n  PROJECT_CREATE = 'project.create',\n  PROJECT_UPDATE = 'project.update',\n  TASK_READ = 'task.read',\n  TASK_CREATE = 'task.create',\n  TASK_UPDATE_ANY = 'task.update.any',\n  TASK_UPDATE_ASSIGNED = 'task.update.assigned',\n  TASK_DELETE = 'task.delete',\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/authorization/role-permissions.ts",
+      "preview": "import { MembershipRole } from '../generated/prisma/client'\nimport { Permission } from './permissions'\n\nexport const ROLE_PERMISSIONS: Record<MembershipRole, ReadonlySet<Permission>> = {\n  OWNER: new Set(Object.values(Permission)),\n  ADMIN: new Set([\n    Permission.WORKSPACE_READ,\n    Permission.MEMBER_MANAGE,\n    Permission.PROJECT_CREATE,\n    Permission.PROJECT_UPDATE,\n    Permission.TASK_READ,\n    Permission.TASK_CREATE,\n    Permission.TASK_UPDATE_ANY,\n    Permission.TASK_DELETE,\n  ]),\n  MEMBER: new Set([\n    Permission.WORKSPACE_READ,\n    Permission.TASK_READ,\n    Permission.TASK_CREATE,\n    Permission.TASK_UPDATE_ASSIGNED,"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/authorization/workspace-permissions.decorator.ts",
+      "preview": "import { Reflector } from '@nestjs/core'\nimport type { Permission } from './permissions'\n\nexport const RequireWorkspacePermissions = Reflector.createDecorator<Permission[]>()"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/authorization/workspace-permissions.guard.ts",
+      "preview": "import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'\nimport { Reflector } from '@nestjs/core'\nimport type { FastifyRequest } from 'fastify'\nimport type { AuthenticatedUser } from '../auth/authenticated-user'\nimport { AuthorizationService } from './authorization.service'\nimport { RequireWorkspacePermissions } from './workspace-permissions.decorator'\n\n@Injectable()\nexport class WorkspacePermissionsGuard implements CanActivate {\n  constructor(\n    private readonly reflector: Reflector,\n    private readonly authorization: AuthorizationService,\n  ) {}\n\n  async canActivate(context: ExecutionContext) {\n    const required = this.reflector.getAllAndOverride(RequireWorkspacePermissions, [\n      context.getHandler(),\n      context.getClass(),\n    ])\n    if (!required?.length) {"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/common/errors/authorization.exceptions.ts",
+      "preview": "import { ForbiddenException, NotFoundException } from '@nestjs/common'\n\nexport class ApplicationUserNotLinkedException extends ForbiddenException {\n  constructor() {\n    super({\n      code: 'APPLICATION_USER_NOT_LINKED',\n      message: 'The authenticated identity is not linked to a TaskFlow user.',\n    })\n  }\n}\n\nexport class WorkspaceAccessDeniedException extends ForbiddenException {\n  constructor() {\n    super({ code: 'WORKSPACE_ACCESS_DENIED', message: 'You do not have access to this workspace.' })\n  }\n}\n\nexport class PermissionDeniedException extends ForbiddenException {\n  constructor(permission: string) {\n    super({ code: 'PERMISSION_DENIED', message: `Permission ${permission} is required.` })"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/tasks/tasks.service.authorization-example.ts",
+      "preview": "import { ForbiddenException, Injectable } from '@nestjs/common'\nimport type { AuthenticatedUser } from '../auth/authenticated-user'\nimport { AuthorizationService } from '../authorization/authorization.service'\nimport { Permission } from '../authorization/permissions'\nimport { PrismaService } from '../prisma/prisma.service'\n\n@Injectable()\nexport class TasksService {\n  constructor(\n    private readonly prisma: PrismaService,\n    private readonly authorization: AuthorizationService,\n  ) {}\n\n  async findOneForUser(auth: AuthenticatedUser, taskId: string) {\n    const ctx = await this.authorization.requireTaskContext(auth, taskId)\n    this.authorization.assertPermission(ctx.membership.role, Permission.TASK_READ)\n    return this.prisma.task.findUniqueOrThrow({ where: { id: taskId } })\n  }\n\n  async updateForUser(auth: AuthenticatedUser, taskId: string, input: unknown) {"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/apps/api/src/workspaces/workspaces.controller.permissions-example.ts",
+      "preview": "import { Controller, Param, Post, UseGuards } from '@nestjs/common'\nimport { SupabaseAuthGuard } from '../auth/supabase-auth.guard'\nimport { WorkspacePermissionsGuard } from '../authorization/workspace-permissions.guard'\nimport { RequireWorkspacePermissions } from '../authorization/workspace-permissions.decorator'\nimport { Permission } from '../authorization/permissions'\n\n@Controller('workspaces/:workspaceId/projects')\n@UseGuards(SupabaseAuthGuard, WorkspacePermissionsGuard)\nexport class WorkspaceProjectsController {\n  @Post()\n  @RequireWorkspacePermissions([Permission.PROJECT_CREATE])\n  create(@Param('workspaceId') workspaceId: string) {\n    // Delegate to a Project service. The guard has already verified\n    // authenticated membership + coarse workspace permission.\n    return { workspaceId }\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Authorization_Snapshot/tests/authorization-smoke-tests.ps1",
+      "preview": "$api = 'http://127.0.0.1:4000'\n$token = Read-Host 'Paste a current DEVELOPMENT access token'\n$headers = @{ Authorization = \"Bearer $token\" }\n\nWrite-Host '1) No token -> 401'\ntry { Invoke-RestMethod \"$api/tasks\" } catch { $_.Exception.Response.StatusCode.value__ }\n\nWrite-Host '2) Authenticated but unrelated workspace -> 403 or scoped 404 depending endpoint policy'\n# Replace with a workspace/task outside the authenticated user's membership.\n\nWrite-Host '3) Member can read workspace-scoped task -> 200'\n# Invoke-RestMethod \"$api/tasks/<member-visible-task-id>\" -Headers $headers\n\nWrite-Host '4) Member updates assigned task -> success'\n# Invoke-RestMethod ... -Method Patch -Headers $headers -ContentType 'application/json'\n\nWrite-Host '5) Member updates another member task -> 403'\n\nWrite-Host '6) Member deletes task -> 403'\n"
+    }
+  ],
+  "exercises": [
+    "Guided: List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.",
+    "Practice: Load membership for the relevant workspace and treat it as authorization evidence.",
+    "Debugging: reproduce and diagnose — Authorization only in frontend.",
+    "Independent: deliver Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.",
+    "Explain-back: Can model permission checks by action/resource and Can test authorization matrixes."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Enforce ownership and role checks on the server even when the UI hides forbidden actions.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Enforce ownership and role checks on the server even when the UI hides forbidden actions."
+    },
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Model permissions around actions and resources instead of scattering role-name comparisons everywhere.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Model permissions around actions and resources instead of scattering role-name comparisons everywhere."
+    },
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Check workspace membership before allowing resource operations tied to that workspace."
+      ],
+      "answer": 3,
+      "explanation": "Check workspace membership before allowing resource operations tied to that workspace."
+    },
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Use least privilege: a role should receive only the capabilities its workflows require.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Use least privilege: a role should receive only the capabilities its workflows require."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Authorization only in frontend.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "List TaskFlow actions such as workspace.read, task.create, task.update, member.manage."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Role strings checked inconsistently in every route.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Map roles to capabilities without scattering role-name if statements across controllers."
+      ],
+      "answer": 3,
+      "explanation": "Map roles to capabilities without scattering role-name if statements across controllers."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Checking membership after performing the mutation.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Load membership for the relevant workspace and treat it as authorization evidence.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Load membership for the relevant workspace and treat it as authorization evidence."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Enforce owner/member/role checks in server-side policy code.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: IDOR: trusting a resource ID without proving caller access."
+      ],
+      "answer": 1,
+      "explanation": "Enforce owner/member/role checks in server-side policy code."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 4120
+}

@@ -1,0 +1,1139 @@
+{
+  "number": 15,
+  "slug": "phase-15",
+  "title": "Filtering, Search, Sorting & Pagination",
+  "volume": 4,
+  "readme": "FULL-STACK DEVELOPER 2026\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nThis phase completes the Professional Backend volume by turning GET /tasks into a bounded, validated collection API.\n\nImplemented topics:\n- query DTOs with Zod\n- filtering\n- case-insensitive substring search\n- safe sorting\n- deterministic tiebreakers\n- offset pagination\n- count metadata\n- cursor pagination decision-making\n- index-aware query design\n- Next.js URL query state\n\nCourse locks remain:\n- NestJS 12.0.3\n- Fastify 5.x course line\n- Prisma 7.9.1\n- Zod 4.6.5\n\nStart with 00_Phase_15_Guide.pdf or 12_Phase_15_Complete_Book.pdf.\nThe reference snapshot contains only Phase 15 changed/emphasized files and assumes Phase 14 is complete.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "collection-api-mental-model",
+      "title": "Collection API Mental Model",
+      "summary": "Collection API Mental Model Treat filters, search, sorting and pagination as one public query contract Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Collection resource v Query parameters v Normalized collection state v Result representation Phase 15 turns…",
+      "body": "Collection API Mental Model\nTreat filters, search, sorting and pagination as one public query contract\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nCollection resource\n\nv\n\nQuery parameters\n\nv\n\nNormalized collection state\n\nv\n\nResult representation\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nA collection endpoint is a query interface\nGET /tasks is not just an array-returning function. It is a public query interface between clients and a dataset. A\nprofessional contract needs explicit choices about scope, filters, search, order, pagination, defaults, limits, and\nresponse metadata.\n\nConcern                          Question\n\nScope                            Which Tasks may this endpoint expose?\n\nFilter                           Which exact attributes narrow the collection?\n\nSearch                           Which text fields participate and with what semantics?\n\nSort                             Which fields may control ordering?\n\nStability                        How are ties broken?\n\nPagination                       How many rows may one request return?\n\nMetadata                         How will a UI know whether more pages exist?\n\nQuery parameters express collection state\nCollection choices normally belong in the URL because they describe which representation of the collection the client\nwants. This makes URLs bookmarkable, shareable, inspectable in DevTools, and repeatable during debugging.\n\n/tasks?status=IN_PROGRESS&priority=HIGH&page=2&pageSize=20\n\nAvoid endpoint explosion\nDo not create one route for every filter combination such as /high-priority-tasks, /completed-tasks,\n/my-high-priority-tasks. Keep the resource stable and express queryable collection state with validated parameters.\n\nWeak design                                                   Stronger collection design\n\n/tasks/high-priority                                          /tasks?priority=HIGH\n\n/tasks/completed                                              /tasks?status=DONE\n\n/searchTasks?q=x                                              /tasks?search=x\n\n/tasks/page/2                                                 /tasks?page=2\n\nLater authorization will narrow scope further\n\nA query parameter can ask for projectId or assigneeId, but it must never be trusted as proof that the caller is allowed to see\nthat scope. Authorization arrives later and will intersect with these filters.",
+      "wordCount": 292,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Collection API Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Collection API Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Collection API Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Unbounded page size",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Collection API Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Collection API Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "query-dtos-and-zod-validation",
+      "title": "Query DTOs and Zod Validation",
+      "summary": "Query DTOs & Zod Validation Normalize strings, coerce numbers, apply defaults, cap page size, and reject unsupported parameters Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Raw query strings v Zod validation v TaskListQueryDto v TasksService Phase 15…",
+      "body": "Query DTOs & Zod Validation\nNormalize strings, coerce numbers, apply defaults, cap page size, and reject unsupported\nparameters\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nRaw query strings\n\nv\n\nZod validation\n\nv\n\nTaskListQueryDto\n\nv\n\nTasksService\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nValidate query strings at the HTTP boundary\nQuery strings arrive as strings. page=2 is initially the string \"2\", not the number 2. Phase 15 uses Zod coercion for\nnumeric pagination fields and strict allow-lists for enums and sort options.\n\nimport { z } from \"zod\";\nimport {\nTaskPriority,\nTaskStatus,\n} from \"../generated/prisma/client\";\n\nexport const taskSortFieldSchema = z.enum([\n\"createdAt\",\n\"updatedAt\",\n\"dueAt\",\n\"title\",\n]);\n\nexport const sortOrderSchema = z.enum([\"asc\", \"desc\"]);\n\nexport const taskListQuerySchema = z.strictObject({\nprojectId: z.uuid().optional(),\nassigneeId: z.uuid().optional(),\nstatus: z.enum(TaskStatus).optional(),\npriority: z.enum(TaskPriority).optional(),\nsearch: z.string().trim().min(1).max(100).optional(),\nsort: taskSortFieldSchema.default(\"createdAt\"),\norder: sortOrderSchema.default(\"desc\"),\npage: z.coerce.number().int().min(1).default(1),\npageSize: z.coerce.number().int().min(1).max(100).default(20),\n});\n\nexport type TaskListQueryDto = z.infer<typeof taskListQuerySchema>;\nexport type TaskSortField = z.infer<typeof taskSortFieldSchema>;\nexport type SortOrder = z.infer<typeof sortOrderSchema>;\n\nWhy defaults belong in the boundary schema\nDefaults such as page=1, pageSize=20, sort=createdAt, and order=desc are part of the API contract. Applying them\nonce at validation means TasksService receives a normalized query instead of repeatedly handling undefined values.\n\nRequest                                                   Validated meaning\n\n/tasks                                                    page=1, pageSize=20, createdAt desc\n\n?page=0                                                   400 - page must be >= 1\n\n?pageSize=1000                                            400 - server cap is 100\n\n?sort=dropTable                                           400 - field is not allow-listed\n\n?status=almost_done                                       400 - invalid enum value\n\n?search=                                                  400 after trim/min length\n\nIntegrate with NestJS 12\n@Get()\nfindAll(\n@Query(new StandardSchemaValidationPipe(taskListQuerySchema))\nquery: TaskListQueryDto,\n) {\nreturn this.tasksService.findAll(query);\n}\n\nBoundary rule\n\nDo not pass raw query strings into Prisma. Normalize and constrain them first. This is both safer and easier to reason about.\n\nWhy pageSize has a hard maximum\nWithout a server-controlled cap, a client can request pageSize=1000000 and effectively bypass pagination. The\nproduct may later choose 50 or 200, but the backend must own the upper bound.",
+      "wordCount": 364,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Query DTOs and Zod Validation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Query DTOs and Zod Validation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Query DTOs and Zod Validation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Nondeterministic order causing duplicates/missing rows",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Query DTOs and Zod Validation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Query DTOs and Zod Validation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "prisma-filtering-and-where-design",
+      "title": "Prisma Filtering and Where Design",
+      "summary": "Prisma Filtering & where Design Translate only approved public filters into Prisma query objects Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Validated filters v Prisma where v SQL predicates Phase 15 turns an unbounded collection endpoint into…",
+      "body": "Prisma Filtering & where Design\nTranslate only approved public filters into Prisma query objects\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nValidated filters\n\nv\n\nPrisma where\n\nv\n\nSQL predicates\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nBuild Prisma where from validated filters\nAfter validation, each optional filter can be translated into a Prisma TaskWhereInput. The service should build this\nintentionally instead of forwarding the entire query object to Prisma.\n\nprivate buildWhere(query: TaskListQueryDto): Prisma.TaskWhereInput {\nreturn {\n...(query.projectId ? { projectId: query.projectId } : {}),\n...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),\n...(query.status ? { status: query.status } : {}),\n...(query.priority ? { priority: query.priority } : {}),\n};\n}\n\nFigure 1 - Filter translation\n\nURL query string\n\nv\n\nZod normalizes values\n\nv\n\nTaskListQueryDto\n\nv\n\nbuildWhere()\n\nv\n\nPrisma TaskWhereInput\n\nv\n\nPostgreSQL WHERE predicates\n\nThe transport contract is translated into persistence-specific query input inside the service layer.\n\nAND is the natural default\nThe example means projectId + status + priority filters all apply together. That is usually what users expect when they\nadd several table filters: narrow the result set by all selected criteria.\n\nRelation filters remain possible\nPrisma supports relation filters, but do not expose every relational capability as a public query parameter. Add only\nfilters the product genuinely needs, document them, validate them, then index the resulting workload if measurements\njustify it.\n\nQuery DTO is not Prisma input\n\nTaskListQueryDto is our public HTTP contract. Prisma.TaskWhereInput is an internal persistence shape. Keeping the\ntranslation explicit prevents clients from gaining accidental access to arbitrary database query capability.",
+      "wordCount": 252,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Prisma Filtering and Where Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Prisma Filtering and Where Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Client sends database column names unchecked",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Prisma Filtering and Where Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Prisma Filtering and Where Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "search-semantics-and-case-insensitive-text",
+      "title": "Search Semantics and Case Insensitive Text",
+      "summary": "Search Semantics & Case-Insensitive Text Design simple search behavior while understanding its database trade-offs Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone search=payroll v OR title/description v PostgreSQL text matching Phase 15 turns an unbounded collection endpoint into…",
+      "body": "Search Semantics & Case-Insensitive\nText\nDesign simple search behavior while understanding its database trade-offs\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nsearch=payroll\n\nv\n\nOR title/description\n\nv\n\nPostgreSQL text matching\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nSearch is not the same as exact filtering\nFiltering asks for exact structured attributes such as status=IN_PROGRESS. Search usually asks whether text\nresembles a user-entered phrase. TaskFlow begins with a deliberately simple case-insensitive substring search\nacross title and description.\n\n...(query.search\n? {\nOR: [\n{ title: { contains: query.search, mode: \"insensitive\" } },\n{ description: { contains: query.search, mode: \"insensitive\" } },\n],\n}\n: {})\n\nRequest                                                 Meaning\n\n?status=DONE                                            Exact structured filter\n\n?priority=HIGH                                          Exact structured filter\n\n?search=payroll                                         Text contains search across chosen fields\n\n?status=DONE&search;=payroll                            DONE tasks AND text search\n\nSearch semantics must be documented\nDoes search mean starts-with, contains, token matching, fuzzy matching, or full-text relevance? A production API\nmust choose. Phase 15 chooses contains so behavior stays obvious while the architecture is learned.\n\nB-tree index warning\n\nPostgreSQL substring search such as ILIKE/contains is not automatically accelerated by an ordinary B-tree index. If TaskFlow\nsearch becomes large or latency-sensitive, measure it and consider a search-specific strategy such as trigram or full-text\nindexing. Do not pretend a normal title index solves arbitrary substring search.\n\nSearch is product behavior, not a database checkbox\nA payroll system might search employee code, legal name, and payroll batch number. Procurement might search PO\nnumber, supplier, and description. The fields and semantics should reflect user tasks, then database design follows.",
+      "wordCount": 260,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Search Semantics and Case Insensitive Text in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Search Semantics and Case Insensitive Text matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Search Semantics and Case Insensitive Text” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Counting/filtering with different predicates so metadata lies",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Search Semantics and Case Insensitive Text” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Search Semantics and Case Insensitive Text solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "safe-sorting-and-stable-order",
+      "title": "Safe Sorting and Stable Order",
+      "summary": "Safe Sorting & Stable Order Allow-list sort fields and add deterministic tie-breaking for pagination Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone sort + order v Allow-list mapping v Primary order v Unique tiebreaker Phase 15 turns an…",
+      "body": "Safe Sorting & Stable Order\nAllow-list sort fields and add deterministic tie-breaking for pagination\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nsort + order\n\nv\n\nAllow-list mapping\n\nv\n\nPrimary order\n\nv\n\nUnique tiebreaker\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nSorting must be allow-listed\nNever accept an arbitrary field name and inject it into dynamic ordering. Phase 15 validates sort against a small public\nset and maps each option to a known Prisma orderBy shape.\n\nprivate buildOrderBy(sort: TaskSortField, order: SortOrder) {\nswitch (sort) {\ncase \"updatedAt\":\nreturn [{ updatedAt: order }, { id: \"asc\" }];\ncase \"dueAt\":\nreturn [{ dueAt: order }, { id: \"asc\" }];\ncase \"title\":\nreturn [{ title: order }, { id: \"asc\" }];\ncase \"createdAt\":\ndefault:\nreturn [{ createdAt: order }, { id: \"asc\" }];\n}\n}\n\nWhy add id as a tiebreaker?\ncreatedAt, dueAt, updatedAt, and title are not guaranteed unique. Without a deterministic secondary key, rows tied on\nthe primary sort can move between requests, making paginated results appear unstable.\n\nFigure 1 - Stable ordering\n\nSort by createdAt desc\n\nv\n\nSeveral rows share timestamp\n\nv\n\nTie remains ambiguous\n\nv\n\nAdd id asc tiebreaker\n\nv\n\nOne deterministic total order\n\nStable pagination starts with stable ordering.\n\nNull sorting deserves a product decision\ndueAt is optional. Decide whether tasks without due dates should appear first or last when sorting by dueAt.\nPrisma/PostgreSQL support explicit null ordering in appropriate query shapes, but the course keeps the initial\nmapping simple and asks you to make the product decision before optimizing the query.\n\nSorting is part of the API contract\n\nChanging default sort later can visibly reorder every page. Treat it like behavior, not an implementation detail.",
+      "wordCount": 269,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Safe Sorting and Stable Order in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Safe Sorting and Stable Order matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Safe Sorting and Stable Order” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Unbounded page size",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Safe Sorting and Stable Order” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Safe Sorting and Stable Order solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "offset-pagination-and-count-metadata",
+      "title": "Offset Pagination and Count Metadata",
+      "summary": "Offset Pagination & Count Metadata Implement numbered pages with skip/take and truthful totals Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone page/pageSize v skip/take v findMany + count v data + meta Phase 15 turns an unbounded collection…",
+      "body": "Offset Pagination & Count Metadata\nImplement numbered pages with skip/take and truthful totals\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\npage/pageSize\n\nv\n\nskip/take\n\nv\n\nfindMany + count\n\nv\n\ndata + meta\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nOffset pagination is the first TaskFlow implementation\nOffset pagination maps naturally to numbered pages. Prisma expresses it with skip and take. The SQL concept is\nOFFSET/LIMIT. This is easy to understand and fits administrative tables where users expect page numbers and direct\npage navigation.\n\nconst skip = (query.page - 1) * query.pageSize;\n\nconst items = await prisma.task.findMany({\nwhere,\norderBy,\nskip,\ntake: query.pageSize,\n});\n\npage                   pageSize                  skip                       rows requested\n\n1                      20                        0                          1-20\n\n2                      20                        20                         21-40\n\n3                      50                        100                        101-150\n\nThe deep-page trade-off\nOffset pagination becomes more expensive as the offset grows because the database still has to advance past earlier\nrows. That does not make offset pagination wrong; it means you should use it where numbered navigation matters\nand dataset depth is reasonable, then measure real performance.\n\nCount the same filtered set\nFor numbered pages, the UI often wants totalItems and totalPages. The count query must use the same where filter\nas the page query. If the filters differ, the metadata lies.\n\nconst [items, totalItems] = await prisma.$transaction([\nprisma.task.findMany({ where, orderBy, skip, take: pageSize }),\nprisma.task.count({ where }),\n]);\n\nWhy group page + count?\n\nThis groups the two related reads into one database transaction call and keeps their query intent together. It does not mean\nevery read-only list endpoint always requires a transaction; it is one practical way to execute related operations together in this\ncourse.",
+      "wordCount": 279,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Offset Pagination and Count Metadata in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Offset Pagination and Count Metadata matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Offset Pagination and Count Metadata” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Nondeterministic order causing duplicates/missing rows",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Offset Pagination and Count Metadata” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Offset Pagination and Count Metadata solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "cursor-pagination-and-strategy-selection",
+      "title": "Cursor Pagination and Strategy Selection",
+      "summary": "Cursor Pagination & Strategy Selection Understand feed-style pagination and choose it for the right product interaction Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Product navigation need v Offset or cursor v Stable traversal Phase 15 turns an…",
+      "body": "Cursor Pagination & Strategy Selection\nUnderstand feed-style pagination and choose it for the right product interaction\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nProduct navigation need\n\nv\n\nOffset or cursor\n\nv\n\nStable traversal\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nCursor pagination solves a different product problem\nCursor pagination resumes after a known record instead of asking the database to skip N previous rows. It is often a\nbetter fit for feeds, infinite scroll, exports, and very deep traversal.\n\nRequirement                                        Offset                         Cursor\n\nJump directly to page 42                           Excellent                      Poor fit\n\nInfinite scroll                                    Works but can get expensive    Excellent\n\nHuman-readable page numbers                        Excellent                      Not natural\n\nVery deep traversal                                Can degrade                    Usually stronger\n\nStable under frequent inserts                      Can shift                      Often more stable with correct cursor/order\n\nSimple implementation                              Very simple                    Requires cursor strategy\n\n// Concept-only example: cursor pagination needs a deliberately stable cursor strategy.\n// TaskFlow implements offset pagination first because the current UI uses page numbers.\n\nconst page = await prisma.task.findMany({\ntake: 20,\ncursor: cursorId ? { id: cursorId } : undefined,\nskip: cursorId ? 1 : 0,\norderBy: { id: \"asc\" },\n});\n\n// Real production feeds often need a cursor aligned with the desired ordering.\n// With random UUID ids and createdAt ordering, design the cursor intentionally\n// instead of assuming offset and cursor pagination are interchangeable.\n\nA cursor must align with ordering\nDo not copy a cursor example mechanically. If the product sorts by createdAt but the cursor is unrelated to that order,\nboundary behavior can become surprising. A robust feed normally uses an order and cursor strategy that together\ndefine one stable traversal, often including a unique tiebreaker.\n\nFigure 1 - Pagination decision\n\nDoes UI need numbered pages / direct jumps?\n\nv\n\nYes -> offset is reasonable\n\nv\n\nNo -> is traversal/feed very deep?\n\nv\n\nYes -> design cursor pagination\n\nv\n\nMeasure real behavior and workload\n\nChoose from product interaction and dataset behavior, not from fashion.\n\nTaskFlow choice\n\nThe current TaskFlow Tasks screen is an administrative collection, so Phase 15 implements offset pagination. Cursor\npagination remains part of your engineering toolbox for later feeds and exports.",
+      "wordCount": 344,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Cursor Pagination and Strategy Selection in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Cursor Pagination and Strategy Selection matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Cursor Pagination and Strategy Selection” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Client sends database column names unchecked",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Cursor Pagination and Strategy Selection” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Cursor Pagination and Strategy Selection solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "paginated-response-contract",
+      "title": "Paginated Response Contract",
+      "summary": "Paginated Response Contract Return collection data with explicit navigation metadata instead of a bare array Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Filtered rows v Count v Pagination math v Response envelope Phase 15 turns an unbounded…",
+      "body": "Paginated Response Contract\nReturn collection data with explicit navigation metadata instead of a bare array\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nFiltered rows\n\nv\n\nCount\n\nv\n\nPagination math\n\nv\n\nResponse envelope\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nA paginated response needs a deliberate envelope\nReturning only Task[] forces the frontend to guess whether more data exists. TaskFlow adds metadata that directly\nsupports numbered navigation and summary text.\n\n{\n\"data\": [ ... ],\n\"meta\": {\n\"page\": 2,\n\"pageSize\": 20,\n\"totalItems\": 143,\n\"totalPages\": 8,\n\"hasPreviousPage\": true,\n\"hasNextPage\": true\n}\n}\n\nCalculate metadata centrally\nconst totalPages = Math.ceil(totalItems / query.pageSize);\n\nreturn {\ndata: items,\nmeta: {\npage: query.page,\npageSize: query.pageSize,\ntotalItems,\ntotalPages,\nhasPreviousPage: query.page > 1,\nhasNextPage: query.page < totalPages,\n},\n};\n\nWhat if page is beyond the last page?\nThere are several defensible contracts: return an empty data array with accurate metadata, clamp to the last page, or\nreject the page. TaskFlow uses the simplest explicit behavior: page remains what the client requested and data may\nbe empty. The metadata tells the truth. Do not silently move the client to another page unless the API documents that\npolicy.\n\nCounts are not free\n\nCOUNT(*) over a heavily filtered or joined dataset can become expensive. Numbered-page UX may justify it; infinite-scroll\nAPIs often avoid exact totals. Product requirements and measurement determine whether totalItems belongs in the contract.",
+      "wordCount": 230,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Paginated Response Contract in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Paginated Response Contract matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Paginated Response Contract” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Counting/filtering with different predicates so metadata lies",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Paginated Response Contract” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Paginated Response Contract solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "index-aware-query-design",
+      "title": "Index Aware Query Design",
+      "summary": "Index-Aware Query Design Connect real query shapes to PostgreSQL indexes without over-indexing Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Observe query v EXPLAIN / measure v Candidate index v Measure again Phase 15 turns an unbounded collection…",
+      "body": "Index-Aware Query Design\nConnect real query shapes to PostgreSQL indexes without over-indexing\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nObserve query\n\nv\n\nEXPLAIN / measure\n\nv\n\nCandidate index\n\nv\n\nMeasure again\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nIndexes should follow real collection queries\nPhase 10 already added indexes for project/status and assignee/status. Phase 15 teaches how to evaluate whether\nlisting and sorting patterns need additional support. Do not generate an index for every filter combination.\n\nCommon query shape                                             Index idea to evaluate\n\nprojectId + status                                             Existing [projectId,status]\n\nassigneeId + status                                            Existing [assigneeId,status]\n\nprojectId + createdAt ordering                                 Possible [projectId,createdAt]\n\nprojectId + status + createdAt                                 Possible [projectId,status,createdAt] if measured\n\nsubstring title/description search                             Different search-specific strategy may be needed\n\nMulticolumn index order matters\nFor PostgreSQL B-tree indexes, leading columns matter most. An index on (projectId,status,createdAt) is especially\nuseful for queries that constrain the leading projectId and then status before ordering/scanning createdAt. It is not a\nmagical index for every combination of those columns.\n\nFigure 1 - Index design loop\n\nObserve real endpoint query\n\nv\n\nInspect generated SQL / EXPLAIN\n\nv\n\nMeasure latency and rows scanned\n\nv\n\nIdentify repeated predicate/order pattern\n\nv\n\nAdd minimal useful index\n\nv\n\nMeasure again\n\nIndex design is empirical engineering, not schema decoration.\n\nSorting can sometimes use an index\nPostgreSQL B-tree indexes can provide ordered scans. A matching index may avoid a separate sort step, but planner\nchoices depend on selectivity, table size, and the full query. Keep using EXPLAIN instead of guessing.\n\nWrite cost remains real\n\nEvery extra index consumes storage and must be maintained on INSERT/UPDATE/DELETE. A read optimization is never\nfree.",
+      "wordCount": 284,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Index Aware Query Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Index Aware Query Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Unbounded page size",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Index Aware Query Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Index Aware Query Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "next-js-url-query-state",
+      "title": "Next.js URL Query State",
+      "summary": "Next.js URL Query State Represent filters, sorting and page state in shareable URL search parameters Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone User changes collection state v URL params v Server Component v Task API v Rendered…",
+      "body": "Next.js URL Query State\nRepresent filters, sorting and page state in shareable URL search parameters\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nUser changes collection state\n\nv\n\nURL params\n\nv\n\nServer Component\n\nv\n\nTask API\n\nv\n\nRendered page\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nCollection state belongs naturally in the URL\nA professional Tasks screen should survive refresh and be shareable. If the user filters to HIGH priority, searches\npayroll, and goes to page 3, the URL should be capable of representing that state.\n\n/tasks?priority=HIGH&search=payroll&sort=dueAt&order=asc&page=3\n\nFigure 1 - Frontend query-state flow\n\nUser changes filter\n\nv\n\nUpdate URL search params\n\nv\n\nNext.js receives searchParams\n\nv\n\nAPI client builds /tasks query\n\nv\n\nNestJS validates query\n\nv\n\nPrisma executes list query\n\nv\n\nPage renders data + meta\n\nThe URL becomes the durable representation of collection state.\n\nWhy this matters before TanStack Query\nTanStack Query will later manage server-state caching, refetching, and mutations. It should not replace the URL as\nthe authoritative representation of navigable filters and pagination when shareable URLs are useful.\n\nimport { fetchTasks } from \"@/lib/api/tasks\";\n\ntype SearchParams = Record<\nstring,\nstring | string[] | undefined\n>;\n\ntype TasksPageProps = {\nsearchParams: Promise<SearchParams>;\n};\n\nfunction first(value: string | string[] | undefined) {\nreturn Array.isArray(value) ? value[0] : value;\n}\n\nexport default async function TasksPage({ searchParams }: TasksPageProps) {\nconst params = await searchParams;\n\nconst result = await fetchTasks({\nstatus: first(params.status),\npriority: first(params.priority),\nsearch: first(params.search),\nsort: first(params.sort) as \"createdAt\" | \"updatedAt\" | \"dueAt\" | \"title\" | undefined,\norder: first(params.order) as \"asc\" | \"desc\" | undefined,\npage: Number(first(params.page) ?? \"1\"),\npageSize: Number(first(params.pageSize) ?? \"20\"),\n});\n\nreturn (\n<main>\n<h1>Tasks</h1>\n<p>\nPage {result.meta.page} of {Math.max(result.meta.totalPages, 1)}\n{\" · \"}{result.meta.totalItems} matching tasks\n</p>\n\n<ul>\n{result.data.map((task: any) => (\n<li key={task.id}>{task.title}</li>\n\n))}\n</ul>\n</main>\n);\n}\n\nReset page when the filter changes\nA common frontend bug: the user is on page 8, changes status to a filter with only one page, then sees an empty\nresult. When a filter/search/pageSize changes, the UI should normally reset page back to 1. Sorting may also reset\npage depending on product behavior.\n\nDifferent state has different owners\n\nURL state: filters/page/sort. Server state: Tasks data. Form state: filter form inputs before commit if needed. Local UI state:\nopen/closed panels. Later TanStack Query will not erase these distinctions.",
+      "wordCount": 410,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Next.js URL Query State in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js URL Query State matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Next.js URL Query State” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Nondeterministic order causing duplicates/missing rows",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Next.js URL Query State” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Next.js URL Query State solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Build, test, reason about, and transfer a production-style collection endpoint Phase 15 - Filtering, Search, Sorting & Pagination Volume 04 - Professional Backend Architecture milestone Implement v Smoke test v Explain trade-offs v Transfer skill Phase 15 turns an unbounded…",
+      "body": "Hands-On Lab & Phase Exit\nBuild, test, reason about, and transfer a production-style collection endpoint\n\nPhase 15 - Filtering, Search, Sorting & Pagination\nVolume 04 - Professional Backend\n\nArchitecture milestone\n\nImplement\n\nv\n\nSmoke test\n\nv\n\nExplain trade-offs\n\nv\n\nTransfer skill\n\nPhase 15 turns an unbounded collection endpoint into a validated, queryable, stable, paginated API contract.\n\nHands-on lab\nThe Phase 15 lab proves that your collection endpoint is bounded, validated, predictable, and useful to a real UI.\n\nLab A - Query contract\n• Create tasks-query.schemas.ts.\n\n• Add projectId, assigneeId, status, priority, search, sort, order, page, and pageSize.\n\n• Use coercion for numeric query strings.\n\n• Cap pageSize at 100.\n\n• Reject unknown query parameters with a strict object.\n\nLab B - Prisma translation\n• Build a Prisma.TaskWhereInput from only the validated public filters.\n\n• Add case-insensitive title/description search.\n\n• Map allow-listed sort fields explicitly.\n\n• Add id as a stable secondary order.\n\n• Implement skip/take offset pagination.\n\nLab C - Response contract\n• Return data + meta instead of a raw array.\n\n• Count using the same where filter.\n\n• Calculate totalPages and previous/next flags.\n\n• Verify an out-of-range page returns an empty data array with truthful metadata.\n\nLab D - PowerShell smoke matrix\nScenario                                                               Expected\n\nGET /tasks                                                             Defaults applied, <=20 rows\n\n?status=IN_PROGRESS&priority;=HIGH                                     Both filters applied\n\n?search=payroll                                                        Case-insensitive substring match\n\n?sort=title■=asc                                                       Deterministic sorted page\n\n?page=0                                                                400 validation error\n\n?pageSize=1000                                                         400 validation error\n\n?sort=dropTable                                                        400 validation error\n\n?page=999999                                                           200 with empty data + truthful meta\n\nExercise levels\nLevel                     Challenge\n\n1 - Follow                Implement the reference query contract and pass the smoke tests.\n\n2 - Modify                Add dueBefore and dueAfter ISO datetime filters with clear inclusive/exclusive semantics.\n\n3 - Implement             Add an unassigned=true filter without allowing contradictory assigneeId + unassigned=true combinations.\n\nLevel                     Challenge\n\n4 - Engineer              Design the list endpoint for a payroll employee table with department, employment status, search, sortable\ncolumns, and either offset or cursor pagination. Justify every query parameter and index candidate before coding.\n\nArchitecture oral exam\n• Why should arbitrary query parameters never be forwarded directly into Prisma?\n\n• Why does stable pagination require deterministic ordering?\n\n• Why is pageSize capped by the backend?\n\n• Why can offset pagination degrade on deep pages?\n\n• When is cursor pagination a better product fit?\n\n• Why can exact total counts be expensive?\n\n• Why is an ordinary B-tree index not enough for arbitrary substring search?\n\n• Why should filters and page often live in the URL?\n\n• What evidence should exist before adding a new database index?\n\nPhase exit checklist\n• GET /tasks no longer returns an unbounded collection.\n\n• query params are validated and normalized before TasksService.\n\n• public filters translate explicitly to Prisma where input.\n\n• search semantics are documented and intentionally simple.\n\n• sorting is allow-listed and deterministic.\n\n• offset pagination returns useful metadata.\n\n• you can explain when cursor pagination is preferable.\n\n• you understand the cost of count queries.\n\n• index design is tied to observed workload rather than guesswork.\n\n• Next.js can represent collection state with URL search parameters.\n\nFigure 1 - Phase 15 complete architecture\n\nURL collection state\n\nv\n\nNestJS query validation\n\nv\n\nTasksService query translation\n\nv\n\nPrisma where/orderBy/skip/take\n\nv\n\nPostgreSQL + measured indexes\n\nv\n\ndata + pagination metadata\n\nTaskFlow now has a bounded, queryable collection API suitable for real application screens.\n\nNext volume\n\nPhase 16 begins Volume 05 - Authentication & Security. The next problem is identity: TaskFlow can query data professionally,\nbut it still cannot prove who the caller is. We will first learn authentication concepts before integrating Supabase Auth.",
+      "wordCount": 558,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Client sends database column names unchecked",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nImplement scalable list endpoints with validated filtering/search/sorting/pagination and deterministic database queries.",
+      "body": "Guided Build Lab — Phase 15: Filtering, Search, Sorting & Pagination\n\nPurpose\nImplement scalable list endpoints with validated filtering/search/sorting/pagination and deterministic database queries.\n\nDeliverable\nTask list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nURL query state -> validated query object -> Prisma where/order/cursor -> PostgreSQL plan -> page response -> frontend navigation\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Write the query contract including defaults and maximum page size.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Whitelist sortable fields and directions instead of interpolating arbitrary user input.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Implement filters and text search with clearly defined case/field semantics.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Start with offset pagination, then explain where cursor pagination changes consistency/performance.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Guarantee deterministic ordering with a unique tie-breaker.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Inspect representative query plans/index needs rather than indexing every field.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 631,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Counting/filtering with different predicates so metadata lies",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 15: Filtering, Search, Sorting & Pagination\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nURL query state -> validated query object -> Prisma where/order/cursor -> PostgreSQL plan -> page response -> frontend navigation\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Unbounded page size\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Nondeterministic order causing duplicates/missing rows\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Client sends database column names unchecked\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Counting/filtering with different predicates so metadata lies\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 448,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Unbounded page size",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 15 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Filtering, Search, Sorting & Pagination\n\nMission\nRebuild the capability of Phase 15 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nImplement scalable list endpoints with validated filtering/search/sorting/pagination and deterministic database queries.\n\nRequired artifact\nTask list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can design a stable list contract.\n• Can validate sort/filter input.\n• Can explain offset vs cursor tradeoffs.\n• Can connect indexes to actual query patterns.\n\nIndependent build sequence\n1. Write the query contract including defaults and maximum page size.\n2. Whitelist sortable fields and directions instead of interpolating arbitrary user input.\n3. Implement filters and text search with clearly defined case/field semantics.\n4. Start with offset pagination, then explain where cursor pagination changes consistency/performance.\n5. Guarantee deterministic ordering with a unique tie-breaker.\n6. Inspect representative query plans/index needs rather than indexing every field.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 361,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this pagination concept.",
+          "Diagnose one representative pagination failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "query parameters",
+          "validated filter/sort",
+          "stable query",
+          "page/cursor",
+          "response metadata"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: query parameters → validated filter/sort → stable query → page/cursor → response metadata. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "A stable cursor needs a stable ordering",
+          "code": "orderBy: [{ createdAt: \"desc\" }, { id: \"desc\" }],\ntake: limit + 1,\nwhere: cursor ? {\n  OR: [\n    { createdAt: { lt: cursor.createdAt } },\n    { createdAt: cursor.createdAt, id: { lt: cursor.id } },\n  ],\n} : undefined"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Nondeterministic order causing duplicates/missing rows",
+          "Change one assumption in the pagination example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the pagination boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 15 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 15: Filtering, Search, Sorting & Pagination. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nTask list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 205,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "pagination",
+        "objectives": [
+          "Implement scalable list endpoints with validated filtering/search/sorting/pagination and deterministic database queries.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "URL query state",
+          "validated query object",
+          "Prisma where/order/cursor",
+          "PostgreSQL plan",
+          "page response",
+          "frontend navigation"
+        ],
+        "steps": [
+          "Write the query contract including defaults and maximum page size.",
+          "Whitelist sortable fields and directions instead of interpolating arbitrary user input.",
+          "Implement filters and text search with clearly defined case/field semantics.",
+          "Start with offset pagination, then explain where cursor pagination changes consistency/performance.",
+          "Guarantee deterministic ordering with a unique tie-breaker.",
+          "Inspect representative query plans/index needs rather than indexing every field.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can design a stable list contract",
+          "Can validate sort/filter input",
+          "Can explain offset vs cursor tradeoffs",
+          "Can connect indexes to actual query patterns"
+        ],
+        "breakIt": [
+          "Unbounded page size",
+          "Nondeterministic order causing duplicates/missing rows"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/README.txt",
+      "preview": "TaskFlow Phase 15 reference snapshot\n\nThis snapshot contains only the files changed or emphasized by Phase 15 and assumes Phase 14 is complete.\n\nImplemented collection behavior:\n- validated query parameters\n- project/status/priority/assignee filters\n- case-insensitive title/description substring search\n- allow-listed sorting\n- stable id tiebreaker\n- offset pagination with metadata\n- total-count query grouped with the page query\n- Next.js server-side query-state example\n\nCursor pagination is taught conceptually but not used as the primary API contract because the current TaskFlow UI is page-number oriented."
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/apps/api/src/tasks/tasks-query.schemas.ts",
+      "preview": "import { z } from \"zod\";\nimport {\n  TaskPriority,\n  TaskStatus,\n} from \"../generated/prisma/client\";\n\nexport const taskSortFieldSchema = z.enum([\n  \"createdAt\",\n  \"updatedAt\",\n  \"dueAt\",\n  \"title\",\n]);\n\nexport const sortOrderSchema = z.enum([\"asc\", \"desc\"]);\n\nexport const taskListQuerySchema = z.strictObject({\n  projectId: z.uuid().optional(),\n  assigneeId: z.uuid().optional(),\n  status: z.enum(TaskStatus).optional(),\n  priority: z.enum(TaskPriority).optional(),"
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/apps/api/src/tasks/tasks.controller.ts",
+      "preview": "import {\n  Controller,\n  Get,\n  Param,\n  Query,\n} from \"@nestjs/common\";\nimport { StandardSchemaValidationPipe } from \"@nestjs/common\";\nimport { TasksService } from \"./tasks.service\";\nimport {\n  taskIdSchema,\n} from \"./tasks.schemas\";\nimport {\n  taskListQuerySchema,\n  TaskListQueryDto,\n} from \"./tasks-query.schemas\";\n\n@Controller(\"tasks\")\nexport class TasksController {\n  constructor(private readonly tasksService: TasksService) {}\n"
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/apps/api/src/tasks/tasks.service.ts",
+      "preview": "import { Injectable } from \"@nestjs/common\";\nimport {\n  Prisma,\n  TaskStatus,\n} from \"../generated/prisma/client\";\nimport { PrismaService } from \"../prisma/prisma.service\";\nimport {\n  TaskNotFoundException,\n} from \"../common/errors/application.exceptions\";\nimport {\n  TaskListQueryDto,\n  TaskSortField,\n  SortOrder,\n} from \"./tasks-query.schemas\";\n\n@Injectable()\nexport class TasksService {\n  constructor(private readonly prisma: PrismaService) {}\n\n  async findAll(query: TaskListQueryDto) {"
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/apps/web/src/app/tasks/page.tsx",
+      "preview": "import { fetchTasks } from \"@/lib/api/tasks\";\n\ntype SearchParams = Record<\n  string,\n  string | string[] | undefined\n>;\n\ntype TasksPageProps = {\n  searchParams: Promise<SearchParams>;\n};\n\nfunction first(value: string | string[] | undefined) {\n  return Array.isArray(value) ? value[0] : value;\n}\n\nexport default async function TasksPage({ searchParams }: TasksPageProps) {\n  const params = await searchParams;\n\n  const result = await fetchTasks({\n    status: first(params.status),"
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/apps/web/src/lib/api/tasks.ts",
+      "preview": "export type TaskListMeta = {\n  page: number;\n  pageSize: number;\n  totalItems: number;\n  totalPages: number;\n  hasPreviousPage: boolean;\n  hasNextPage: boolean;\n};\n\nexport type TaskListResponse<TTask> = {\n  data: TTask[];\n  meta: TaskListMeta;\n};\n\nexport type TaskListParams = {\n  projectId?: string;\n  assigneeId?: string;\n  status?: string;\n  priority?: string;\n  search?: string;"
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/database/index-notes.md",
+      "preview": "# Phase 15 index notes\n\nDo not add every conceivable index.\n\nStart from actual queries and EXPLAIN output.\n\nThe existing TaskFlow model already has:\n\n```prisma\n@@index([projectId, status])\n@@index([assigneeId, status])\n```\n\nA frequently measured project listing such as:\n\n- WHERE projectId = ?\n- ORDER BY createdAt DESC\n\nmay justify an additional index such as:\n"
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/examples/cursor-pagination.example.ts",
+      "preview": "// Concept-only example: cursor pagination needs a deliberately stable cursor strategy.\n// TaskFlow implements offset pagination first because the current UI uses page numbers.\n\nconst page = await prisma.task.findMany({\n  take: 20,\n  cursor: cursorId ? { id: cursorId } : undefined,\n  skip: cursorId ? 1 : 0,\n  orderBy: { id: \"asc\" },\n});\n\n// Real production feeds often need a cursor aligned with the desired ordering.\n// With random UUID ids and createdAt ordering, design the cursor intentionally\n// instead of assuming offset and cursor pagination are interchangeable."
+    },
+    {
+      "path": "reference/TaskFlow_Collection_API_Snapshot/tests/task-listing-smoke-tests.ps1",
+      "preview": "# Phase 15 collection API smoke checks.\n$api = \"http://127.0.0.1:4000\"\n\n# Defaults: page=1, pageSize=20, sort=createdAt, order=desc\nInvoke-RestMethod -Uri \"$api/tasks\"\n\n# Filter by status and priority.\nInvoke-RestMethod -Uri \"$api/tasks?status=IN_PROGRESS&priority=HIGH\"\n\n# Case-insensitive substring search.\nInvoke-RestMethod -Uri \"$api/tasks?search=payroll\"\n\n# Stable sorting with page metadata.\nInvoke-RestMethod -Uri \"$api/tasks?sort=title&order=asc&page=1&pageSize=10\"\n\n# Invalid page should fail validation.\ntry {\n  Invoke-RestMethod -Uri \"$api/tasks?page=0\"\n} catch {\n  $_.ErrorDetails.Message"
+    }
+  ],
+  "exercises": [
+    "Guided: Write the query contract including defaults and maximum page size.",
+    "Practice: Implement filters and text search with clearly defined case/field semantics.",
+    "Debugging: reproduce and diagnose — Unbounded page size.",
+    "Independent: deliver Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.",
+    "Explain-back: Can design a stable list contract and Can validate sort/filter input."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Filtering, sorting, and pagination must use deterministic query rules so results remain stable.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Filtering, sorting, and pagination must use deterministic query rules so results remain stable."
+    },
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Validate user-supplied sort fields instead of injecting arbitrary column names into queries.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Validate user-supplied sort fields instead of injecting arbitrary column names into queries."
+    },
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Pagination metadata should match the strategy used by the API so clients can navigate correctly."
+      ],
+      "answer": 3,
+      "explanation": "Pagination metadata should match the strategy used by the API so clients can navigate correctly."
+    },
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Indexes should follow real filter and sort patterns when performance data shows they are needed.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Indexes should follow real filter and sort patterns when performance data shows they are needed."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Write the query contract including defaults and maximum page size.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Unbounded page size.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Write the query contract including defaults and maximum page size."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Nondeterministic order causing duplicates/missing rows.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Whitelist sortable fields and directions instead of interpolating arbitrary user input."
+      ],
+      "answer": 3,
+      "explanation": "Whitelist sortable fields and directions instead of interpolating arbitrary user input."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Client sends database column names unchecked.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement filters and text search with clearly defined case/field semantics.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Implement filters and text search with clearly defined case/field semantics."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Start with offset pagination, then explain where cursor pagination changes consistency/performance.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Counting/filtering with different predicates so metadata lies."
+      ],
+      "answer": 1,
+      "explanation": "Start with offset pagination, then explain where cursor pagination changes consistency/performance."
+    }
+  ],
+  "lessonCount": 15,
+  "wordCount": 5187
+}

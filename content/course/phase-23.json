@@ -1,0 +1,1204 @@
+{
+  "number": 23,
+  "slug": "phase-23",
+  "title": "Professional Frontend State Architecture",
+  "volume": 6,
+  "readme": "FULL STACK DEVELOPER 2026\nVolume 06 - Professional Frontend\nPhase 23 - Professional Frontend State Architecture\n\nPurpose:\nAssign one authoritative owner to each kind of frontend state. This phase adds no new global state library.\n\nKey owners:\n- TanStack Query: server state\n- Next.js URL: navigation/filter/pagination state\n- React Hook Form: unsaved form state\n- Supabase Auth: session identity\n- useState/useReducer: local interaction state\n- focused Context: justified cross-tree distribution\n- derived values: compute, do not duplicate",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "state-taxonomy-and-ownership-decision-framework",
+      "title": "State Taxonomy and Ownership Decision Framework",
+      "summary": "State Taxonomy and Ownership Decision Framework Volume 06 - Professional Frontend | Phase 23 The first question is ownership, not API choice When developers ask \"Should this use Context or Zustand?\", they often skip the more important question: what kind of information is this, and…",
+      "body": "State Taxonomy and Ownership\nDecision Framework\nVolume 06 - Professional Frontend | Phase 23\n\nThe first question is ownership, not API choice\nWhen developers ask \"Should this use Context or Zustand?\", they often skip the more important\nquestion: what kind of information is this, and which subsystem is already responsible for it?\n\nReact documentation emphasizes a single source of truth for each unique piece of state. That does not\nmean all application state belongs in one global location; it means each piece has one authoritative\nowner.\n\nTaskFlow decision tree\n\nDoes it come from the server?\n\nYES                                      NO                                    YES\nTanStack Query                    Should the URL preserve it?                     URL state\n\nIs it unsaved form input?               Does only nearby UI need it?\n\nYES                                    YES                                     NO\nReact Hook Form                      useState/useReducer                  Context only if truly shared\n\nFigure 23.1 - TaskFlow decision tree\n\nPractical matrix\nTask rows                   Server state -> TanStack Query. Do not copy them into useState just to render them.\n\nSearch + page               URL state -> searchParams/router because navigation, refresh, history, and sharing\nshould preserve them.\n\nUnsaved title               Form state -> React Hook Form because it owns dirty/touched/errors/submission\nsemantics.\n\nMobile menu                 Local UI state -> useState because it is ephemeral and belongs to one interaction\nopen                        boundary.\n\nAuthenticated               Supabase Auth. Other layers consume verified identity; they do not invent a second\nsession                     session store.\n\nCompleted Task             Derived state -> compute from authoritative data instead of storing a second count.\ncount\n\nDecision rule\nChoose the narrowest owner that can correctly preserve the state for the lifetime and scope\nit actually needs.",
+      "wordCount": 252,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain State Taxonomy and Ownership Decision Framework in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “State Taxonomy and Ownership Decision Framework” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "useEffect syncing query data into local state",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “State Taxonomy and Ownership Decision Framework” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does State Taxonomy and Ownership Decision Framework solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "avoid-redundant-duplicate-and-synchronized-state",
+      "title": "Avoid Redundant Duplicate and Synchronized State",
+      "summary": "Avoid Redundant, Duplicate and Synchronized State Volume 06 - Professional Frontend | Phase 23 The most expensive state is copied state Every duplicate introduces a synchronization problem. If a value can be derived from props, query data, URL state, or another state variable during render,…",
+      "body": "Avoid Redundant, Duplicate and\nSynchronized State\nVolume 06 - Professional Frontend | Phase 23\n\nThe most expensive state is copied state\nEvery duplicate introduces a synchronization problem. If a value can be derived from props, query data,\nURL state, or another state variable during render, storing another copy usually increases bug surface\nwithout adding capability.\n\nClassic TaskFlow anti-pattern\nconst tasksQuery = useQuery(taskListOptions(query))\n\nconst [tasks, setTasks] = useState<Task[]>([])\n\nuseEffect(() => {\nif (tasksQuery.data) {\nsetTasks(tasksQuery.data.data)\n}\n}, [tasksQuery.data])\n\nDuplication creates synchronization work\n\nQuery cache              useEffect          Local state                                Rendered UI\ntasks[]                                  tasks[] copy                                 table rows\n\nBetter: render directly from the query result unless the user is intentionally editing a draft.\n\nFigure 23.1 - Classic TaskFlow anti-pattern\n\nBetter\nconst tasksQuery = useQuery(taskListOptions(query))\n\nconst tasks = tasksQuery.data?.data ?? []\n\nWhen a copy is legitimate\n• The user is editing a draft that must diverge from server data.\n\n• You are taking a deliberate snapshot for undo/history.\n\n• An animation/intermediate interaction needs its own transient representation.\n\n• You have explicitly named the synchronization boundary and its conflict policy.\n\nEffect warning\n\nDo not use an effect merely to keep one state variable equal to another value you already have. Effects\nare for synchronizing React with external systems; they are not a general-purpose data copier.",
+      "wordCount": 205,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Avoid Redundant Duplicate and Synchronized State in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Avoid Redundant Duplicate and Synchronized State matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Avoid Redundant Duplicate and Synchronized State” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global store used for all state categories",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Avoid Redundant Duplicate and Synchronized State” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Avoid Redundant Duplicate and Synchronized State solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "local-ui-state-usestate-and-component-ownership",
+      "title": "Local UI State useState and Component Ownership",
+      "summary": "Local UI State, useState and Component Ownership Volume 06 - Professional Frontend | Phase 23 Keep ephemeral interaction state local Mobile navigation visibility, a disclosure panel, a temporary hover preview, and a non-shareable dialog tab usually belong to the smallest client component that needs them.…",
+      "body": "Local UI State, useState and\nComponent Ownership\nVolume 06 - Professional Frontend | Phase 23\n\nKeep ephemeral interaction state local\nMobile navigation visibility, a disclosure panel, a temporary hover preview, and a non-shareable dialog\ntab usually belong to the smallest client component that needs them. Moving them to a global store\nmakes them harder to reason about and couples unrelated parts of the tree.\n\nExample\n\"use client\"\n\nexport function MobileNavigation() {\nconst [open, setOpen] = useState(false)\n\nreturn (\n<>\n<button onClick={() => setOpen(true)}>Menu</button>\n{open && <MobileMenu onClose={() => setOpen(false)} />}\n</>\n)\n}\n\nWhen to lift state\nIf two sibling components must coordinate the same value, move that value to their closest common\nowner and pass data/actions downward. Do not immediately jump to Context.\n\nTaskFlow examples\n• Table row hover -> row/table component.\n\n• Selected rows for a bulk action -> Task table boundary.\n\n• Shell mobile navigation -> shell client boundary.\n\n• Global toast queue may justify a shared provider because many distant features publish messages.",
+      "wordCount": 154,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Local UI State useState and Component Ownership in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Local UI State useState and Component Ownership” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "URL and React state disagreeing about filters",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Local UI State useState and Component Ownership” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Local UI State useState and Component Ownership solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "url-state-filters-pagination-and-deep-linkability",
+      "title": "URL State Filters Pagination and Deep Linkability",
+      "summary": "URL State: Filters, Pagination and Deep Linkability Volume 06 - Professional Frontend | Phase 23 The URL is a state container Phase 15 already made Task filters, sorting, and pagination part of the HTTP collection contract. Phase 22 made those values part of query keys.…",
+      "body": "URL State: Filters, Pagination and\nDeep Linkability\nVolume 06 - Professional Frontend | Phase 23\n\nThe URL is a state container\nPhase 15 already made Task filters, sorting, and pagination part of the HTTP collection contract. Phase\n22 made those values part of query keys. Phase 23 completes the model: the browser URL is their\ncanonical frontend owner.\n\nWhy URL ownership matters\n• Refresh preserves the view.\n\n• Back/forward navigation behaves naturally.\n\n• A teammate can share the exact filtered screen.\n\n• Server Components can read the same navigation state.\n\n• TanStack Query keys can be built from normalized URL state instead of an unrelated local copy.\n\nFlow\n/tasks?status=IN_PROGRESS&page=2&search=payroll\n|\nv\nsearchParams -> normalize -> TaskListQuery\n|\nv\ntaskKeys.list(query) -> TanStack Query -> NestJS\n\nClient reading\nIn the current Next.js App Router, useSearchParams() is a Client Component hook that returns a\nread-only URLSearchParams view. Pages and Server Components can also receive route search\nparameters through the route API. Use the URL as the source, not a second filter object that must be\nsynchronized.\n\nReset page intentionally\nWhen search, status, priority, or page size changes, TaskFlow normally resets page=1. This\nis a navigation rule, not a query-cache concern.",
+      "wordCount": 195,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain URL State Filters Pagination and Deep Linkability in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "URL State Filters Pagination and Deep Linkability matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “URL State Filters Pagination and Deep Linkability” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing derived values that can be computed",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “URL State Filters Pagination and Deep Linkability” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does URL State Filters Pagination and Deep Linkability solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "form-state-vs-server-state",
+      "title": "Form State vs Server State",
+      "summary": "Form State vs Server State Volume 06 - Professional Frontend | Phase 23 A form is an intentional divergence from the server This is one of the few places where a local copy is not accidental. Once the user begins editing, the draft is allowed…",
+      "body": "Form State vs Server State\nVolume 06 - Professional Frontend | Phase 23\n\nA form is an intentional divergence from the server\nThis is one of the few places where a local copy is not accidental. Once the user begins editing, the draft\nis allowed to differ from the last server response. React Hook Form owns that draft until\nsubmission/reset/cancel resolves the divergence.\n\nDo not bind the editor directly to the cache\nServer Task (TanStack Query)\n|\nv\ndefaultValues / reset()\n|\nv\nReact Hook Form draft\n| user edits\nv\nmutateAsync(payload)\n|\nv\nNestJS -> database\n|\nv\ninvalidate / update relevant query cache\n\nConflict awareness\n• If the server changes while a dirty form is open, do not silently overwrite the user draft.\n\n• A simple CRUD screen may refresh after successful save.\n\n• Collaborative editing needs a much more explicit conflict/version strategy and belongs to a later\narchitecture discussion.\n\nOwnership rule\nQuery data initializes the form. It does not continuously control the form while the user is\nediting.",
+      "wordCount": 162,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Form State vs Server State in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Form State vs Server State matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Form State vs Server State” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "useEffect syncing query data into local state",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Form State vs Server State” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Form State vs Server State solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "auth-session-workspace-and-cross-tree-context",
+      "title": "Auth Session Workspace and Cross Tree Context",
+      "summary": "Auth, Workspace and Cross-Tree Context Volume 06 - Professional Frontend | Phase 23 Context is a delivery mechanism, not automatically the owner Context is useful when many descendants need the same stable value and prop drilling would obscure the component API. But the value inside…",
+      "body": "Auth, Workspace and Cross-Tree\nContext\nVolume 06 - Professional Frontend | Phase 23\n\nContext is a delivery mechanism, not automatically the\nowner\nContext is useful when many descendants need the same stable value and prop drilling would obscure\nthe component API. But the value inside Context should still have a clear authoritative source.\n\nAuthentication\n• Supabase Auth owns the authenticated session.\n\n• NestJS independently verifies access tokens.\n\n• A React Context may expose convenience data to descendants, but it must not create a second\nauthentication truth.\n\nWorkspace scope\nBusiness scope should remain reconstructable\n\nURL                           Server                         Context                         UI\n/w/acme/tasks                 resolve workspace              read resolved info              header/menu\n\nAvoid making a transient Context value the only record of which workspace the user is viewing.\n\nFigure 23.1 - Workspace scope\n\nFor a multi-workspace business system, a deep-linkable route such as\n/w/[workspaceSlug]/tasks is often a stronger canonical owner than a transient Context-only\nselection. Context can then distribute the already-resolved workspace to deep UI children.\n\nDo not put everything in one AppContext\n// Avoid a kitchen-sink context\n{\nuser, tasks, filters, page, modalOpen,\nformDraft, selectedWorkspace, notifications,\nisLoading, error, ...\n}\n\nPrefer focused boundaries\n\n• WorkspaceContext -> resolved current workspace metadata.\n\n• Toast/notification provider -> transient cross-tree notifications.\n\n• Theme provider -> presentation preference if the app supports it.\n\n• Do not move query cache, RHF form state, or URL filters into those contexts.",
+      "wordCount": 216,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Auth Session Workspace and Cross Tree Context in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Auth Session Workspace and Cross Tree Context” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global store used for all state categories",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Auth Session Workspace and Cross Tree Context” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Auth Session Workspace and Cross Tree Context solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "usereducer-for-complex-local-transitions",
+      "title": "useReducer for Complex Local Transitions",
+      "summary": "useReducer for Complex Local Transitions Volume 06 - Professional Frontend | Phase 23 Reducer is not a global store useReducer is valuable when one local feature has several related transitions and scattered setters make the rules difficult to audit. It centralizes transition logic without changing…",
+      "body": "useReducer for Complex Local\nTransitions\nVolume 06 - Professional Frontend | Phase 23\n\nReducer is not a global store\nuseReducer is valuable when one local feature has several related transitions and scattered setters make\nthe rules difficult to audit. It centralizes transition logic without changing state ownership.\n\nBulk selection example\ntype SelectionState = { ids: Set<string> }\n\ntype Action =\n| { type: \"toggle\"; id: string }\n| { type: \"replace\"; ids: string[] }\n| { type: \"clear\" }\n\nfunction selectionReducer(\nstate: SelectionState,\naction: Action,\n): SelectionState {\n// explicit transitions live here\n}\n\nUse reducer when\n• Several events modify the same local state model.\n\n• Transitions have invariants worth naming.\n\n• You want pure transition tests.\n\n• The state still belongs to one feature/component boundary.\n\nDo not use reducer merely because\n• The component has more than one useState call.\n\n• The data came from the server.\n\n• You want to avoid learning the actual owner of the state.",
+      "wordCount": 137,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain useReducer for Complex Local Transitions in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "useReducer for Complex Local Transitions matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “useReducer for Complex Local Transitions” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "URL and React state disagreeing about filters",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “useReducer for Complex Local Transitions” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does useReducer for Complex Local Transitions solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "derived-state-selectors-and-computation",
+      "title": "Derived State Selectors and Computation",
+      "summary": "Derived State, Selectors and Computation Volume 06 - Professional Frontend | Phase 23 If it can be computed, prefer computing it Derived state is information that can be calculated from authoritative state during render or through a memoized selector when the computation is actually expensive.…",
+      "body": "Derived State, Selectors and\nComputation\nVolume 06 - Professional Frontend | Phase 23\n\nIf it can be computed, prefer computing it\nDerived state is information that can be calculated from authoritative state during render or through a\nmemoized selector when the computation is actually expensive.\n\nExamples\nconst tasks = tasksQuery.data?.data ?? []\n\nconst completedCount = tasks.filter(\ntask => task.status === \"DONE\",\n).length\n\nconst hasSelection = selectedIds.size > 0\n\nconst canGoNext = Boolean(tasksQuery.data?.meta.hasNextPage)\n\nAvoid synchronized counters\n// Avoid\nconst [completedCount, setCompletedCount] = useState(0)\n\nuseEffect(() => {\nsetCompletedCount(\ntasks.filter(task => task.status === \"DONE\").length\n)\n}, [tasks])\n\nMemoization rule\nUse useMemo for measured or structurally useful expensive computation, not as a ritual\naround every derived value. Correct ownership matters more than premature memoization.",
+      "wordCount": 115,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Derived State Selectors and Computation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Derived State Selectors and Computation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Derived State Selectors and Computation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing derived values that can be computed",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Derived State Selectors and Computation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Derived State Selectors and Computation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "server-client-boundaries-and-state-placement",
+      "title": "Server Client Boundaries and State Placement",
+      "summary": "Server/Client Boundaries and State Placement Volume 06 - Professional Frontend | Phase 23 Client state creates a client boundary In the App Router, Server Components are still the default architecture. Introducing useState, useReducer, browser hooks, or interactive event handlers requires a Client Component boundary. The…",
+      "body": "Server/Client Boundaries and State\nPlacement\nVolume 06 - Professional Frontend | Phase 23\n\nClient state creates a client boundary\nIn the App Router, Server Components are still the default architecture. Introducing useState,\nuseReducer, browser hooks, or interactive event handlers requires a Client Component boundary. The\ngoal is not to avoid clients; it is to keep interaction boundaries narrow.\n\nExample split\n// Server Component\nexport default async function TasksPage({ searchParams }) {\nconst query = normalize(await searchParams)\nreturn <TasksClientRegion query={query} />\n}\n\n// Client Component\n\"use client\"\nfunction TasksClientRegion({ query }) {\nconst tasks = useQuery(taskListOptions(query))\nconst [selectedIds, dispatch] = useReducer(...)\n// interaction only here\n}\n\nPlacement checklist\n• Can the value be resolved on the server? Keep it server-side if no browser interaction needs\nownership.\n\n• Does the browser need to remember it between renders? Then place a client boundary around the\nsmallest useful region.\n\n• Does it need to survive refresh/navigation? Consider URL/server persistence rather than larger client\nstate.\n\n• Does it contain protected business truth? The backend remains authoritative regardless of frontend\nconvenience state.",
+      "wordCount": 164,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Server Client Boundaries and State Placement in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Server Client Boundaries and State Placement matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Server Client Boundaries and State Placement” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "useEffect syncing query data into local state",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server Client Boundaries and State Placement” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server Client Boundaries and State Placement solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "when-context-or-global-state-is-actually-justified",
+      "title": "When Context or Global State is Actually Justified",
+      "summary": "When Context or Global State Is Actually Justified Volume 06 - Professional Frontend | Phase 23 Do not ban global state; earn it After moving server state to TanStack Query, forms to React Hook Form, filters to the URL, auth to Supabase, and ephemeral interactions…",
+      "body": "When Context or Global State Is\nActually Justified\nVolume 06 - Professional Frontend | Phase 23\n\nDo not ban global state; earn it\nAfter moving server state to TanStack Query, forms to React Hook Form, filters to the URL, auth to\nSupabase, and ephemeral interactions to local React state, many business applications have surprisingly\nlittle synchronous global client state left.\n\nGood Context candidates\n• Resolved workspace metadata consumed across the app shell.\n\n• Theme/preferences that are genuinely cross-tree.\n\n• Toast/notification dispatcher.\n\n• Feature-level state shared by a deep subtree whose owner is still obvious.\n\nWhen an external client store may become justified\n• Large synchronous client-only models shared across distant trees.\n\n• High-frequency cross-feature updates where Context composition becomes unwieldy.\n\n• Offline-first editing queues or complex visual editors.\n\n• State machines with broad client ownership independent of server cache.\n\nTaskFlow decision\nPhase 23 adds no Zustand, Redux, MobX, or other global store. There is not yet a problem in\nTaskFlow that requires one. Adding one now would teach tool accumulation instead of\narchitecture.",
+      "wordCount": 165,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain When Context or Global State is Actually Justified in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "When Context or Global State is Actually Justified matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “When Context or Global State is Actually Justified” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global store used for all state categories",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “When Context or Global State is Actually Justified” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does When Context or Global State is Actually Justified solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "state-testing-debugging-and-common-failures",
+      "title": "State Testing Debugging and Common Failures",
+      "summary": "State Testing, Debugging and Common Failures Volume 06 - Professional Frontend | Phase 23 Debug ownership before debugging values When a screen shows stale or contradictory information, ask which subsystem owns each value and whether a second copy exists. Many \"React bugs\" are synchronization bugs…",
+      "body": "State Testing, Debugging and Common\nFailures\nVolume 06 - Professional Frontend | Phase 23\n\nDebug ownership before debugging values\nWhen a screen shows stale or contradictory information, ask which subsystem owns each value and\nwhether a second copy exists. Many \"React bugs\" are synchronization bugs created by unclear\nownership.\n\nFailure patterns\nFilter changes             You likely made local filter state canonical. Move navigation state back to the URL.\nbut URL does not\n\nQuery refetches            Look for a copied local tasks array that no longer follows the Query cache.\nbut table stays\nold\n\nEdit form resets           The form is being continuously controlled by query data. Initialize/reset only at\nwhile typing               intentional boundaries.\n\nLogout shows               Verify Phase 22 cache clearing and that no second client store holds protected server\nprevious user              data.\n\ndata briefly\n\nWorkspace                  The canonical workspace may live only in Context. Prefer reconstructable route scope for\nchanges but                business navigation.\n\nroute still points\nelsewhere\n\nTest layers\n• Pure reducer tests for local transition logic.\n\n• Component tests for local interaction state.\n\n• Navigation tests for URL-owned filters.\n\n• Form tests for draft/reset/dirty behavior.\n\n• TanStack Query integration tests for server-cache behavior.\n\n• End-to-end tests for cross-boundary flows such as workspace -> filters -> edit -> logout.",
+      "wordCount": 197,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain State Testing Debugging and Common Failures in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “State Testing Debugging and Common Failures” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "URL and React state disagreeing about filters",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “State Testing Debugging and Common Failures” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does State Testing Debugging and Common Failures solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Volume 06 - Professional Frontend | Phase 23 Lab 1 - State inventory Create an inventory of every stateful value on the Tasks screen. For each value, record category, authoritative owner, lifetime, reset event, and whether it must survive refresh/navigation.…",
+      "body": "Hands-On Lab and Phase Exit\nVolume 06 - Professional Frontend | Phase 23\n\nLab 1 - State inventory\nCreate an inventory of every stateful value on the Tasks screen. For each value, record category,\nauthoritative owner, lifetime, reset event, and whether it must survive refresh/navigation.\n\nLab 2 - Remove one duplicated state path\nFind code shaped like:\nquery data -> useEffect -> useState -> render\n\nReplace it with:\nquery data -> render\n\nThen verify:\n- background refetch updates the table\n- pagination still works\n- no stale copy remains\n\nLab 3 - URL-owned filters\n• Change status/search/page through navigation.\n\n• Refresh the browser and confirm the same view returns.\n\n• Use browser Back/Forward and confirm the query follows the URL.\n\n• Copy the URL into a new tab and confirm the same collection state is reconstructed.\n\nLab 4 - Workspace architecture\nDesign the next routing shape for multi-workspace TaskFlow. Compare a Context-only active workspace\nwith a route-scoped workspace such as /w/[workspaceSlug]/tasks. Document which state remains\ncanonical and what Context merely distributes.\n\nPhase exit checklist\n• I can classify state before choosing a hook/library.\n\n• I can explain why query data should not normally be copied into local state.\n\n• I can distinguish form draft state from server state.\n\n• I use URL state for shareable navigation state.\n\n• I keep local UI state close to its interaction owner.\n\n• I know when Context is useful and when it is hiding unclear ownership.\n\n• I derive values instead of synchronizing duplicates.\n\n• I can justify adding a new global state library only with a concrete unsolved problem.\n\nSources used in this phase\n\nSource                                     Why it matters\n\nReact - Sharing State Between Components   Single source of truth; lift shared state to the closest common\nowner.\n\nReact - Managing State                     Avoid redundant/duplicate state; structure state intentionally.\n\nNext.js - useSearchParams                  URL query state in the App Router.\n\nTanStack Query - Query State / Cache       Server-state cache is separate from local UI state.\n\nTanStack Query - SSR/Hydration             Request-scoped QueryClient and cache isolation.",
+      "wordCount": 316,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing derived values that can be computed",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nChoose the correct owner for URL state, server state, local UI state, forms, and global client state instead of duplicating everything.",
+      "body": "Guided Build Lab — Phase 23: Professional Frontend State Architecture\n\nPurpose\nChoose the correct owner for URL state, server state, local UI state, forms, and global client state instead of duplicating everything.\n\nDeliverable\nA state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nclassify state -> choose authoritative owner -> derive values -> share only when necessary -> avoid synchronization loops\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Move filter/search/page state that should survive/share navigation into URL search params.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Remove local copies of TanStack Query data and derive filtered/presentational values during render.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Keep ephemeral dialog/menu state at the smallest component that owns it.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Evaluate whether any global store is actually needed; write the requirement before adding one.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Create a diagram showing source of truth and allowed data flow for the screen.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 656,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "useEffect syncing query data into local state",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 23: Professional Frontend State Architecture\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nclassify state -> choose authoritative owner -> derive values -> share only when necessary -> avoid synchronization loops\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — useEffect syncing query data into local state\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Global store used for all state categories\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — URL and React state disagreeing about filters\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Storing derived values that can be computed\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 451,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Global store used for all state categories",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 23 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Professional Frontend State Architecture\n\nMission\nRebuild the capability of Phase 23 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nChoose the correct owner for URL state, server state, local UI state, forms, and global client state instead of duplicating everything.\n\nRequired artifact\nA state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can classify state before choosing library.\n• Can remove duplicate state.\n• Can use URL for shareable navigation state.\n• Can justify any global client store.\n\nIndependent build sequence\n1. Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.\n2. Move filter/search/page state that should survive/share navigation into URL search params.\n3. Remove local copies of TanStack Query data and derive filtered/presentational values during render.\n4. Keep ephemeral dialog/menu state at the smallest component that owns it.\n5. Evaluate whether any global store is actually needed; write the requirement before adding one.\n6. Create a diagram showing source of truth and allowed data flow for the screen.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 387,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "URL and React state disagreeing about filters",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 23 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 23: Professional Frontend State Architecture. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 200,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Choose the correct owner for URL state, server state, local UI state, forms, and global client state instead of duplicating everything.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "classify state",
+          "choose authoritative owner",
+          "derive values",
+          "share only when necessary",
+          "avoid synchronization loops"
+        ],
+        "steps": [
+          "Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.",
+          "Move filter/search/page state that should survive/share navigation into URL search params.",
+          "Remove local copies of TanStack Query data and derive filtered/presentational values during render.",
+          "Keep ephemeral dialog/menu state at the smallest component that owns it.",
+          "Evaluate whether any global store is actually needed; write the requirement before adding one.",
+          "Create a diagram showing source of truth and allowed data flow for the screen.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can classify state before choosing library",
+          "Can remove duplicate state",
+          "Can use URL for shareable navigation state",
+          "Can justify any global client store"
+        ],
+        "breakIt": [
+          "useEffect syncing query data into local state",
+          "Global store used for all state categories"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 23 Reference Snapshot\n\nThis snapshot demonstrates state ownership decisions. It is intentionally small and does not add a global state library.\n\nOwners:\n- TanStack Query: server state\n- Next.js URL: filters/pagination/shareable navigation\n- React Hook Form: unsaved form drafts\n- Supabase Auth: authentication session\n- React local state/reducer: ephemeral UI interaction\n- Focused Context: only stable cross-tree convenience values"
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/SOURCES.md",
+      "preview": "# Sources\n\n- React - Sharing State Between Components: https://react.dev/learn/sharing-state-between-components - Single source of truth; lift shared state to the closest common owner.\n- React - Managing State: https://react.dev/learn/managing-state - Avoid redundant/duplicate state; structure state intentionally.\n- Next.js - useSearchParams: https://nextjs.org/docs/app/api-reference/functions/use-search-params - URL query state in the App Router.\n- TanStack Query - Query State / Cache: https://tanstack.com/query/latest/docs/framework/react/reference/interfaces/QueryState - Server-state cache is separate from local UI state.\n- TanStack Query - SSR/Hydration: https://tanstack.com/query/latest/docs/framework/react/guides/ssr - Request-scoped QueryClient and cache isolation."
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/STATE_OWNERSHIP_MATRIX.md",
+      "preview": "# TaskFlow State Ownership Matrix\n\n| Value | Owner | Why | Reset / lifetime |\n|---|---|---|---|\n| Task collection | TanStack Query | Remote server state | Cache freshness/auth lifecycle |\n| status/search/page | URL | Shareable navigation | Route change |\n| Task edit draft | React Hook Form | Intentional unsaved divergence | reset/cancel/success |\n| Supabase session | Supabase Auth | Identity provider owns session | logout/expiry |\n| mobile menu open | local useState | Ephemeral shell interaction | close/unmount |\n| selected Task rows | local reducer | Feature interaction state | clear/filter/page change |\n| current workspace slug | URL route scope | Reconstructable tenant scope | navigation |\n| resolved workspace metadata | focused Context | convenient deep distribution | route/workspace change |\n| completed count | derived | Calculated from authoritative result | render |"
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/apps/web/src/components/tasks/anti-pattern-copy-query-data.tsx",
+      "preview": "// Anti-pattern kept only as documentation. Do not use in TaskFlow.\n\nconst tasksQuery = useQuery(taskListOptions(query))\nconst [tasks, setTasks] = useState<Task[]>([])\n\nuseEffect(() => {\n  if (tasksQuery.data) setTasks(tasksQuery.data.data)\n}, [tasksQuery.data])\n\n// Prefer:\nconst tasks = tasksQuery.data?.data ?? []"
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/apps/web/src/components/tasks/task-selection.reducer.ts",
+      "preview": "export type SelectionState = {\n  ids: Set<string>\n}\n\nexport type SelectionAction =\n  | { type: \"toggle\"; id: string }\n  | { type: \"replace\"; ids: string[] }\n  | { type: \"clear\" }\n\nexport function selectionReducer(\n  state: SelectionState,\n  action: SelectionAction,\n): SelectionState {\n  switch (action.type) {\n    case \"toggle\": {\n      const ids = new Set(state.ids)\n      ids.has(action.id) ? ids.delete(action.id) : ids.add(action.id)\n      return { ids }\n    }\n    case \"replace\":"
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/apps/web/src/components/tasks/tasks-client-region.tsx",
+      "preview": "\"use client\"\n\nimport { useReducer } from \"react\"\nimport { useQuery } from \"@tanstack/react-query\"\n\nexport function TasksClientRegion({ query }: { query: TaskListQuery }) {\n  const tasksQuery = useQuery(taskListOptions(query))\n  const [selection, dispatch] = useReducer(selectionReducer, { ids: new Set<string>() })\n\n  // Server rows are rendered directly from the query cache.\n  const tasks = tasksQuery.data?.data ?? []\n\n  const completedCount = tasks.filter(task => task.status === \"DONE\").length\n\n  return (\n    <TasksView\n      tasks={tasks}\n      completedCount={completedCount}\n      selectedIds={selection.ids}\n      onToggle={(id) => dispatch({ type: \"toggle\", id })}"
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/apps/web/src/components/workspace/workspace-context.tsx",
+      "preview": "\"use client\"\n\nimport { createContext, useContext } from \"react\"\n\nexport type WorkspaceSummary = {\n  id: string\n  slug: string\n  name: string\n}\n\nconst WorkspaceContext = createContext<WorkspaceSummary | null>(null)\n\nexport function WorkspaceProvider({\n  workspace,\n  children,\n}: {\n  workspace: WorkspaceSummary\n  children: React.ReactNode\n}) {\n  return ("
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/apps/web/src/lib/state/task-list-query.ts",
+      "preview": "export type TaskListQuery = {\n  page: number\n  pageSize: number\n  search?: string\n  status?: string\n  priority?: string\n}\n\nexport function normalizeTaskListQuery(\n  searchParams: URLSearchParams,\n): TaskListQuery {\n  return {\n    page: Math.max(1, Number(searchParams.get(\"page\") ?? 1)),\n    pageSize: Math.min(100, Math.max(1, Number(searchParams.get(\"pageSize\") ?? 20))),\n    search: searchParams.get(\"search\")?.trim() || undefined,\n    status: searchParams.get(\"status\") || undefined,\n    priority: searchParams.get(\"priority\") || undefined,\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_State_Architecture_Snapshot/tests/state-architecture-test-matrix.md",
+      "preview": "# Phase 23 State Architecture Test Matrix\n\n1. Change status filter -> URL changes, page resets to 1.\n2. Refresh -> same filter/page reconstructs.\n3. Back/Forward -> collection follows browser history.\n4. Background query refetch -> Task table updates without a copied local array.\n5. Dirty edit form -> query refetch does not overwrite unsaved draft.\n6. Successful save -> form reset + relevant query cache updated/invalidated.\n7. Mobile menu -> local interaction only; no global store.\n8. Logout -> Query cache cleared; previous user server data not shown.\n9. Workspace route change -> resolved workspace Context updates from route/server owner.\n10. Derived completed count -> changes automatically with task data, no effect synchronization."
+    }
+  ],
+  "exercises": [
+    "Guided: Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.",
+    "Practice: Remove local copies of TanStack Query data and derive filtered/presentational values during render.",
+    "Debugging: reproduce and diagnose — useEffect syncing query data into local state.",
+    "Independent: deliver A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.",
+    "Explain-back: Can classify state before choosing library and Can remove duplicate state."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Put shareable navigation state in the URL, server state in TanStack Query, and local interaction state near the component that owns it.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Put shareable navigation state in the URL, server state in TanStack Query, and local interaction state near the component that owns it."
+    },
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Avoid duplicating the same piece of state across URL, React state, and query cache.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Avoid duplicating the same piece of state across URL, React state, and query cache."
+    },
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Derive values when possible instead of synchronizing multiple mutable copies."
+      ],
+      "answer": 3,
+      "explanation": "Derive values when possible instead of synchronizing multiple mutable copies."
+    },
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Choose state ownership by lifecycle and source of truth, not by whichever library is fashionable.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Choose state ownership by lifecycle and source of truth, not by whichever library is fashionable."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: useEffect syncing query data into local state.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Global store used for all state categories.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Move filter/search/page state that should survive/share navigation into URL search params."
+      ],
+      "answer": 3,
+      "explanation": "Move filter/search/page state that should survive/share navigation into URL search params."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: URL and React state disagreeing about filters.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Remove local copies of TanStack Query data and derive filtered/presentational values during render.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Remove local copies of TanStack Query data and derive filtered/presentational values during render."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Keep ephemeral dialog/menu state at the smallest component that owns it.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Storing derived values that can be computed."
+      ],
+      "answer": 1,
+      "explanation": "Keep ephemeral dialog/menu state at the smallest component that owns it."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3972
+}

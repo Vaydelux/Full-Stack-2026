@@ -1,0 +1,38 @@
+{
+  "number": 8,
+  "track": "p02-http",
+  "slug": "p02-http",
+  "title": "Ship the First Frontend-to-API Vertical Slice",
+  "goal": "Connect the web app to the API and use browser/network evidence to understand the complete HTTP exchange.",
+  "deliverables": [
+    "GET task list from API",
+    "Create task request",
+    "Intentional 4xx",
+    "Intentional 5xx",
+    "CORS configuration",
+    "DevTools evidence"
+  ],
+  "steps": [
+    "Write the request and response contract before writing fetch code.",
+    "Call `GET /tasks` from the web application and inspect URL, method, headers, status, timing, and JSON.",
+    "Add `POST /tasks` and return 201 with the created resource.",
+    "Send malformed input and verify the chosen 4xx response.",
+    "Force a server failure and distinguish 5xx behavior from client errors.",
+    "Run frontend/API on different origins and configure the narrow CORS policy needed for development.",
+    "Compare cookie and bearer-token request shapes without treating either as authorization by itself.",
+    "Document the final API contract with examples."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

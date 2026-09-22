@@ -1,0 +1,1214 @@
+{
+  "number": 29,
+  "slug": "phase-29",
+  "title": "Security Hardening",
+  "volume": 8,
+  "readme": "Phase 29 - Security Hardening\n\n13 focused PDFs + one combined book + TaskFlow security hardening reference snapshot.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "threat-model-and-security-baseline",
+      "title": "Threat Model and Security Baseline",
+      "summary": "Threat Model and Security Baseline TaskFlow - Full Stack Developer 2026 Start from assets and abuse cases TaskFlow threat-model loop Asset Entry point Abuse case Control what matters? where input enters how it can fail prevent / detect Then test the control and log enough…",
+      "body": "Threat Model and Security Baseline\nTaskFlow - Full Stack Developer 2026\n\nStart from assets and abuse cases\nTaskFlow threat-model loop\n\nAsset                     Entry point              Abuse case                    Control\nwhat matters?               where input enters        how it can fail           prevent / detect\n\nThen test the control and log enough to investigate failures.\n\nTaskFlow protects authentication sessions, tenant-scoped business data, attachments, authorization\ndecisions, secrets, audit evidence and service availability. Threat modeling asks how each can be read,\nchanged, destroyed or abused.\n\nRepresentative abuse cases\n• Attacker reuses a stolen access token.\n\n• MEMBER changes an ID and attempts to read another Workspace.\n\n• Bot brute-forces auth endpoints or floods expensive list/search routes.\n\n• Malicious description tries to become executable HTML.\n\n• Uploaded PDF is disguised executable/active content.\n\n• Service-role key leaks into browser bundle or logs.\n\n• Proxy misconfiguration makes all clients appear to have the same IP.\n\n• Dependency vulnerability remains unpatched despite a released security fix.\n\nBaseline\nUse OWASP ASVS 5.0.0 as a verification catalog, not as a checkbox trophy. TaskFlow selects requirements\nrelevant to its architecture and records evidence in tests/configuration.",
+      "wordCount": 174,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Threat Model and Security Baseline in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Threat Model and Security Baseline” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Security checklist with no threat model",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Threat Model and Security Baseline” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Threat Model and Security Baseline solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "http-security-headers-and-csp",
+      "title": "HTTP Security Headers and CSP",
+      "summary": "HTTP Security Headers and CSP TaskFlow - Full Stack Developer 2026 Fastify security headers pnpm --filter api add @fastify/helmet@13.1.1 // main.ts - register before routes are exposed const fastify = app.getHttpAdapter().getInstance() await fastify.register(helmet, { global: true, contentSecurityPolicy: false, // API returns JSON; web CSP belongs…",
+      "body": "HTTP Security Headers and CSP\nTaskFlow - Full Stack Developer 2026\n\nFastify security headers\npnpm --filter api add @fastify/helmet@13.1.1\n\n// main.ts - register before routes are exposed\nconst fastify = app.getHttpAdapter().getInstance()\nawait fastify.register(helmet, {\nglobal: true,\ncontentSecurityPolicy: false, // API returns JSON; web CSP belongs to Next.js edge\n})\n\nFor the JSON API, headers such as nosniff and transport-related protections are still useful, while a page-level\nCSP is primarily a concern of the Next.js document responses.\n\nWeb header baseline\n// next.config.ts - illustrative baseline\nasync headers() {\nreturn [{\nsource: \"/(.*)\",\nheaders: [\n{ key: \"X-Content-Type-Options\", value: \"nosniff\" },\n{ key: \"Referrer-Policy\", value: \"strict-origin-when-cross-origin\" },\n{ key: \"Permissions-Policy\", value: \"camera=(), microphone=(), geolocation=()\" },\n{ key: \"X-Frame-Options\", value: \"DENY\" },\n],\n}]\n}\n\nCSP rule\nDo not paste an over-broad CSP containing unsafe-inline/unsafe-eval just to make warnings disappear. Build\nand test the policy against actual Next.js scripts, Supabase endpoints and assets; prefer nonce/hash-based\npolicies when the deployment requires inline bootstrap code.",
+      "wordCount": 152,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain HTTP Security Headers and CSP in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “HTTP Security Headers and CSP” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting hidden buttons as protection",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “HTTP Security Headers and CSP” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does HTTP Security Headers and CSP solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "rate-limiting-and-abuse-controls",
+      "title": "Rate Limiting and Abuse Controls",
+      "summary": "Rate Limiting and Abuse Controls TaskFlow - Full Stack Developer 2026 Use rate limits as one control ThrottlerModule.forRoot([ { name: \"short\", ttl: 1_000, limit: 10 }, { name: \"minute\", ttl: 60_000, limit: 120 }, ]) // bind ThrottlerGuard globally; override tighter on expensive/auth routes Choose…",
+      "body": "Rate Limiting and Abuse Controls\nTaskFlow - Full Stack Developer 2026\n\nUse rate limits as one control\nThrottlerModule.forRoot([\n{ name: \"short\", ttl: 1_000, limit: 10 },\n{ name: \"minute\", ttl: 60_000, limit: 120 },\n])\n\n// bind ThrottlerGuard globally; override tighter on expensive/auth routes\n\nChoose a tracker intentionally\n• Behind a trusted proxy/load balancer, configure trust proxy correctly before trusting forwarded IP\ninformation.\n\n• For authenticated endpoints, user ID can be part of abuse policy in addition to IP.\n\n• One in-memory limiter is only instance-local; multi-replica deployments require a shared store or\nupstream gateway limiter.\n\n• 429 is a capacity/abuse response, not authentication.\n\nDo not over-limit normal work\nRate limits need measurement. A payroll export, bulk upload, or autosaving UI can have\nlegitimate burst patterns; hardening must not silently become a reliability incident.",
+      "wordCount": 127,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Rate Limiting and Abuse Controls in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Rate Limiting and Abuse Controls” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets printed to logs/build output",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Rate Limiting and Abuse Controls” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Rate Limiting and Abuse Controls solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "input-validation-request-limits-and-injection",
+      "title": "Input Validation Request Limits and Injection",
+      "summary": "Input Validation, Request Limits and Injection Prevention TaskFlow - Full Stack Developer 2026 Phase 12 remains the boundary Zod server validation is now hardened with explicit maximum lengths, numeric ranges, enum allowlists and strict object policies. Client validation is still UX only. Allowlist reasoning •…",
+      "body": "Input Validation, Request Limits and\nInjection Prevention\nTaskFlow - Full Stack Developer 2026\n\nPhase 12 remains the boundary\nZod server validation is now hardened with explicit maximum lengths, numeric ranges, enum allowlists and\nstrict object policies. Client validation is still UX only.\n\nAllowlist reasoning\n• Status/priority/sort are exact allowed values.\n\n• Search/title/description have explicit maximum lengths.\n\n• UUID/date fields use structured parsers rather than “dangerous character” blacklists.\n\n• Request bodies and uploads have size limits before expensive processing.\n\n• Unknown write fields remain rejected.\n\nInjection prevention\nPrisma parameterizes normal database values; do not bypass it with string-concatenated raw SQL. If raw\nSQL is truly required, parameterize values and keep identifiers/operations on an allowlist.\n\nReject malformed content types\nJSON endpoints should expect the intended media type and return 415/400 where appropriate rather than\ntrying to reinterpret arbitrary payload formats.",
+      "wordCount": 139,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Input Validation Request Limits and Injection in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Input Validation Request Limits and Injection matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Input Validation Request Limits and Injection” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rate limiter treated as authentication or authorization",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Input Validation Request Limits and Injection” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Input Validation Request Limits and Injection solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "xss-output-handling-and-content-security",
+      "title": "XSS Output Handling and Content Security",
+      "summary": "XSS, Output Handling and Content Security TaskFlow - Full Stack Developer 2026 React helps, but escape hatches matter • Render user text as text; React escapes ordinary string interpolation. • Treat dangerouslySetInnerHTML as a security-sensitive escape hatch. • If rich HTML becomes a product requirement,…",
+      "body": "XSS, Output Handling and Content\nSecurity\nTaskFlow - Full Stack Developer 2026\n\nReact helps, but escape hatches matter\n• Render user text as text; React escapes ordinary string interpolation.\n\n• Treat dangerouslySetInnerHTML as a security-sensitive escape hatch.\n\n• If rich HTML becomes a product requirement, sanitize with a maintained HTML sanitizer before rendering.\n\n• Validate untrusted href/src protocols; do not assume a string URL is safe.\n\n• Avoid eval/new Function and dynamic script construction.\n\nExample\n// Safe default: rendered as text\n<p>{task.description}</p>\n\n// Security-sensitive: only after deliberate sanitization policy\n// <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />\n\nCSP is defense in depth\nCSP can reduce XSS impact, but it does not replace safe rendering. The primary defense\nremains framework escaping, safe sinks and sanitization for intentionally rich HTML.",
+      "wordCount": 121,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain XSS Output Handling and Content Security in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “XSS Output Handling and Content Security” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Security checklist with no threat model",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “XSS Output Handling and Content Security” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does XSS Output Handling and Content Security solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "cors-csrf-and-browser-trust-boundaries",
+      "title": "CORS CSRF and Browser Trust Boundaries",
+      "summary": "CORS, CSRF and Browser Trust Boundaries TaskFlow - Full Stack Developer 2026 Match controls to credential transport Browser security boundaries Browser Next.js NestJS Postgres untrusted client SSR / cookies Bearer API authoritative data XSS threatens browser-held capabilities; CSRF threatens ambient credentials. The Nest API uses…",
+      "body": "CORS, CSRF and Browser Trust\nBoundaries\nTaskFlow - Full Stack Developer 2026\n\nMatch controls to credential transport\nBrowser security boundaries\n\nBrowser                              Next.js                               NestJS                              Postgres\nuntrusted client                     SSR / cookies                          Bearer API                        authoritative data\n\nXSS threatens browser-held capabilities; CSRF threatens ambient credentials.\n\nThe Nest API uses explicit Bearer tokens, so CORS is not authentication and cookies require separate CSRF reasoning.\n\nTaskFlow decisions\n• NestJS business API: explicit Authorization: Bearer token. A malicious site cannot make the victim browser\nmagically know that token; CSRF risk is lower than with ambient cookies, but XSS/token theft remains\nserious.\n\n• Next.js SSR/Supabase session: cookies are ambient browser credentials. Use Secure/HttpOnly/SameSite\npolicy as supported by the auth integration and apply CSRF reasoning to state-changing\ncookie-authenticated endpoints.\n\n• CORS only controls which browser origins may read/send cross-origin requests under browser rules. It\ndoes not authenticate the caller.\n\n• Never use GET for state-changing operations.\n\nFetch Metadata\nFor cookie-authenticated state-changing routes, Sec-Fetch-* checks can be an additional layer after\ncompatibility testing. They supplement, not replace, proper CSRF defenses.",
+      "wordCount": 171,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "cors",
+        "objectives": [
+          "Explain CORS CSRF and Browser Trust Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this cors concept.",
+          "Diagnose one representative cors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CORS CSRF and Browser Trust Boundaries matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “CORS CSRF and Browser Trust Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Inspect the browser preflight contract",
+          "code": "OPTIONS /tasks HTTP/1.1\nOrigin: http://localhost:3000\nAccess-Control-Request-Method: POST\nAccess-Control-Request-Headers: authorization,content-type\n\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:3000"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting hidden buttons as protection",
+          "Change one assumption in the cors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “CORS CSRF and Browser Trust Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does CORS CSRF and Browser Trust Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the cors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "authentication-session-and-authorization-abuse",
+      "title": "Authentication Session and Authorization Abuse",
+      "summary": "Authentication, Session and Authorization Abuse TaskFlow - Full Stack Developer 2026 Hardening the existing chain Supabase JWT -> verify signature -> verify expected issuer -> verify audience / expiry -> map claims.sub -> User.authSubject -> load Workspace Membership -> permission + resource scope -> business…",
+      "body": "Authentication, Session and\nAuthorization Abuse\nTaskFlow - Full Stack Developer 2026\n\nHardening the existing chain\nSupabase JWT\n-> verify signature\n-> verify expected issuer\n-> verify audience / expiry\n-> map claims.sub -> User.authSubject\n-> load Workspace Membership\n-> permission + resource scope\n-> business rule\n\nControls\n• Short-lived access tokens and proper refresh/session behavior.\n\n• No access/refresh tokens in logs, URLs or query keys.\n\n• Cache clearing on logout from Phase 22.\n\n• 404 scoping when revealing resource existence would leak tenant data.\n\n• Every resource lookup remains authorization-scoped; frontend-hidden buttons are not controls.\n\n• Sensitive role/membership changes require stronger permission checks and audit evidence.\n\nTesting\nReuse Phase 28 to test missing/expired/wrong-project tokens, cross-workspace ID tampering, role escalation\nattempts and stale-session edge cases.",
+      "wordCount": 114,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Authentication Session and Authorization Abuse in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Authentication Session and Authorization Abuse” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets printed to logs/build output",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Authentication Session and Authorization Abuse” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Authentication Session and Authorization Abuse solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "secrets-configuration-and-environment-separation",
+      "title": "Secrets Configuration and Environment Separation",
+      "summary": "Secrets, Configuration and Environment Separation TaskFlow - Full Stack Developer 2026 Classify configuration • Public: Supabase project URL / publishable browser key where intended. • Secret: service-role key, database URLs, deployment credentials, signing/admin tokens. • Environment-specific: production, staging and development must not silently share powerful…",
+      "body": "Secrets, Configuration and\nEnvironment Separation\nTaskFlow - Full Stack Developer 2026\n\nClassify configuration\n• Public: Supabase project URL / publishable browser key where intended.\n\n• Secret: service-role key, database URLs, deployment credentials, signing/admin tokens.\n\n• Environment-specific: production, staging and development must not silently share powerful credentials.\n\nRules\n# Never commit real values\nSUPABASE_SERVICE_ROLE_KEY=\nDATABASE_URL=\n\n# Browser-exposed prefix is NEVER for server secrets\n# NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY= <-- prohibited\n\nOperational lifecycle\n• Provision through deployment secret stores rather than source control.\n\n• Rotate/revoke after suspected exposure.\n\n• Prefer short-lived/dynamic credentials where the platform supports them.\n\n• Do not print process.env or ConfigService values during debugging.\n\n• Maintain a secret inventory: owner, purpose, environments, rotation/revocation path.",
+      "wordCount": 103,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Secrets Configuration and Environment Separation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Secrets Configuration and Environment Separation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rate limiter treated as authentication or authorization",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Secrets Configuration and Environment Separation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Secrets Configuration and Environment Separation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "file-upload-and-storage-hardening",
+      "title": "File Upload and Storage Hardening",
+      "summary": "File Upload and Storage Hardening TaskFlow - Full Stack Developer 2026 Phase 27 gets an adversarial review • Keep private bucket default. • Authorize before issuing an upload intent or signed download. • Server generates object paths; original filename is display metadata only. • Allowlist…",
+      "body": "File Upload and Storage Hardening\nTaskFlow - Full Stack Developer 2026\n\nPhase 27 gets an adversarial review\n• Keep private bucket default.\n\n• Authorize before issuing an upload intent or signed download.\n\n• Server generates object paths; original filename is display metadata only.\n\n• Allowlist business-required MIME/extensions; enforce maximum size at multiple layers.\n\n• Do not trust browser Content-Type alone; add content/signature scanning when business risk requires it.\n\n• Use PENDING/READY/DELETING states to recover cross-system failures.\n\n• Consider antivirus/CDR for documents in higher-risk deployments.\n\nThreat examples\n• Huge files / decompression bombs consume capacity.\n\n• Active HTML/SVG/script payload is served inline and executes.\n\n• Attacker guesses another tenant path.\n\n• Service-role key turns a private bucket into a global bypass.\n\nServing rule\nPrivate files are downloaded only after application authorization and through short-lived signed access. Do\nnot expose raw predictable object URLs as authorization.",
+      "wordCount": 138,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "storage",
+        "objectives": [
+          "Explain File Upload and Storage Hardening in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this storage concept.",
+          "Diagnose one representative storage failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "File Upload and Storage Hardening matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "selected file",
+          "validation",
+          "upload intent",
+          "object storage",
+          "metadata/finalize"
+        ],
+        "steps": [
+          "Restate the goal of “File Upload and Storage Hardening” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: selected file → validation → upload intent → object storage → metadata/finalize. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Separate authorization intent from byte transfer",
+          "code": "const intent = await api.createUploadIntent({\n  fileName: file.name,\n  contentType: file.type,\n  size: file.size,\n});\nawait storage.uploadToSignedUrl(intent.path, intent.token, file);\nawait api.finalizeUpload(intent.id);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Security checklist with no threat model",
+          "Change one assumption in the storage example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “File Upload and Storage Hardening” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does File Upload and Storage Hardening solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the storage boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "database-tenant-and-data-protection",
+      "title": "Database Tenant and Data Protection",
+      "summary": "Database, Tenant and Data Protection TaskFlow - Full Stack Developer 2026 Preserve the authoritative boundary • Prisma migrations only; no manual production schema drift. • Foreign keys/unique constraints enforce integrity beneath application checks. • Workspace scope is part of repository queries, not a UI filter.…",
+      "body": "Database, Tenant and Data Protection\nTaskFlow - Full Stack Developer 2026\n\nPreserve the authoritative boundary\n• Prisma migrations only; no manual production schema drift.\n\n• Foreign keys/unique constraints enforce integrity beneath application checks.\n\n• Workspace scope is part of repository queries, not a UI filter.\n\n• Least-privilege database/service credentials per environment.\n\n• Backups and restore procedures are part of security because availability and recoverability are security\nproperties.\n\n• Sensitive fields should be minimized; do not collect data you do not need.\n\nRLS position\nTaskFlow still does not rely on Supabase Postgres RLS as the primary business authorization\nlayer. NestJS owns business authorization. Realtime/Storage RLS may protect those\nplatform-specific channels, and database constraints remain defense in depth.",
+      "wordCount": 112,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Database Tenant and Data Protection in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Database Tenant and Data Protection” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting hidden buttons as protection",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Database Tenant and Data Protection” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Database Tenant and Data Protection solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "dependency-supply-chain-logging-and-error-hardening",
+      "title": "Dependency Supply Chain Logging and Error Hardening",
+      "summary": "Dependency, Supply Chain, Logging and Error Hardening TaskFlow - Full Stack Developer 2026 Dependency hygiene • Keep lockfiles committed and reproducible. • Run pnpm audit/advisory review, but triage exploitability rather than blindly upgrading everything. • Track supported framework branches and security releases. Next.js 16 is…",
+      "body": "Dependency, Supply Chain, Logging\nand Error Hardening\nTaskFlow - Full Stack Developer 2026\n\nDependency hygiene\n• Keep lockfiles committed and reproducible.\n\n• Run pnpm audit/advisory review, but triage exploitability rather than blindly upgrading everything.\n\n• Track supported framework branches and security releases. Next.js 16 is Active LTS in this course\nbaseline.\n\n• Use automated dependency alerts and review transitive-risk changes before production deployment.\n\nLog safely\n• Keep requestId, user/domain ID where policy allows, route, status and failure category.\n\n• Never log passwords, access/refresh tokens, session cookies, service-role keys, database connection\nstrings or encryption keys.\n\n• Sanitize user-controlled values before structured logs to prevent log-forging/format injection.\n\nErrors\nPublic errors remain stable and minimally informative; internal logs contain diagnostic context. Do not return\nstack traces, Prisma internals, SQL, filesystem paths, environment variables or secret material.",
+      "wordCount": 130,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "observability",
+        "objectives": [
+          "Explain Dependency Supply Chain Logging and Error Hardening in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this observability concept.",
+          "Diagnose one representative observability failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Dependency Supply Chain Logging and Error Hardening matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "request",
+          "correlation id",
+          "structured event",
+          "metric/trace",
+          "diagnosis"
+        ],
+        "steps": [
+          "Restate the goal of “Dependency Supply Chain Logging and Error Hardening” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: request → correlation id → structured event → metric/trace → diagnosis. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Log structured context, not prose-only strings",
+          "code": "logger.error({\n  requestId, route: request.url, userId: user?.id,\n  errorCode: error.code, durationMs,\n}, \"request failed\");"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets printed to logs/build output",
+          "Change one assumption in the observability example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Dependency Supply Chain Logging and Error Hardening” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Dependency Supply Chain Logging and Error Hardening solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the observability boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Security Hardening Lab and Phase Exit TaskFlow - Full Stack Developer 2026 Lab 1 - Headers • Install @fastify/helmet 13.1.1 and inspect API response headers. • Add a conservative Next.js header baseline and verify using browser DevTools/curl. • Document a CSP plan instead of…",
+      "body": "Hands-On Security Hardening Lab and\nPhase Exit\nTaskFlow - Full Stack Developer 2026\n\nLab 1 - Headers\n• Install @fastify/helmet 13.1.1 and inspect API response headers.\n\n• Add a conservative Next.js header baseline and verify using browser DevTools/curl.\n\n• Document a CSP plan instead of enabling an untested permissive policy.\n\nLab 2 - Abuse controls\n• Install/configure @nestjs/throttler 6.5.0.\n\n• Create a tighter policy for an expensive endpoint.\n\n• Test 429 behavior and confirm proxy IP handling in the deployment topology.\n\nLab 3 - Attack-oriented tests\n• Cross-workspace Task ID -> never returns foreign data.\n\n• Unknown write fields / oversized strings -> rejected.\n\n• Forbidden role escalation -> denied.\n\n• Unsafe upload type/oversize -> rejected before READY.\n\n• Public 500 response -> no stack/secret leakage.\n\n• Logout -> QueryClient private data cleared.\n\nPhase exit checklist\n• I can explain the difference between XSS, CSRF and CORS in TaskFlow.\n\n• I know where security headers apply and why CSP needs deployment-specific testing.\n\n• I can distinguish rate limiting from authorization.\n\n• I know which secrets must never reach the browser or logs.\n\n• I can threat-model an attachment upload.\n\n• I can point to tests/evidence for tenant isolation and authorization.\n\n• I can use ASVS as a verification baseline rather than a checkbox score.\n\nSources\nSource                                                             Purpose\n\nOWASP ASVS 5.0.0                                                   Security verification baseline; use explicit version references.\nhttps://owasp.org/projects/asvs\n\nOWASP Input Validation                                             Allowlist-oriented server validation, length/range checks and\nhttps://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_   structured formats.\nCheat_Sheet.html\n\nOWASP XSS Prevention                                               Framework escaping, dangerous sinks, output encoding and\nhttps://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Script   HTML sanitization.\ning_Prevention_Cheat_Sheet.html\n\nOWASP CSRF Prevention                                              SameSite, Fetch Metadata, safe methods and CSRF controls for\nhttps://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Reque    ambient credentials.\nst_Forgery_Prevention_Cheat_Sheet.html\n\nSource                                                           Purpose\n\nOWASP HTTP Headers                                               CSP, frame protection, nosniff and related browser security\nhttps://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_C    headers.\nheat_Sheet.html\n\nOWASP REST Security                                              HTTPS, endpoint access control, JWT claims, 429, safe error\nhttps://cheatsheetseries.owasp.org/cheatsheets/REST_Security_C   handling.\nheat_Sheet.html\n\nOWASP File Upload                                                Allowlisted types, generated filenames, size limits, authorization\nhttps://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Che   and scanning.\nat_Sheet.html\n\nOWASP Logging                                                    Do not log access tokens, passwords, DB connection strings or\nhttps://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_S   encryption keys.\nheet.html\n\nOWASP Secrets Management                                         Rotation, revocation, expiration and avoiding hardcoded secrets.\nhttps://cheatsheetseries.owasp.org/cheatsheets/Secrets_Manage\nment_Cheat_Sheet.html\n\nNestJS Rate Limiting                                             @nestjs/throttler setup, proxy handling and trackers.\nhttps://docs.nestjs.com/security/rate-limiting\n\n@fastify/helmet                                                  Fastify 5 compatible security-header plugin; current stable\nhttps://www.npmjs.com/package/@fastify/helmet                    13.1.1.\n\n@nestjs/throttler                                                Current stable 6.5.0; default in-memory tracker with alternate\nhttps://www.npmjs.com/package/@nestjs/throttler                  storage support.\n\nNext.js Support Policy                                           Next.js 16 is Active LTS; supported releases receive security\nhttps://nextjs.org/support-policy                                updates.",
+      "wordCount": 456,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Rate limiter treated as authentication or authorization",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nThreat-model TaskFlow and apply layered controls for access control, input/output safety, headers, abuse, secrets, uploads, dependencies, and configuration.",
+      "body": "Guided Build Lab — Phase 29: Security Hardening\n\nPurpose\nThreat-model TaskFlow and apply layered controls for access control, input/output safety, headers, abuse, secrets, uploads, dependencies, and configuration.\n\nDeliverable\nSecurity baseline checklist plus concrete tests for the most important abuse cases.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nasset/trust boundary -> abuse case -> preventive control -> detection/logging -> test -> residual risk\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — List sensitive assets and trust boundaries before selecting mitigations.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Run an IDOR/broken-access-control test by changing resource IDs as another user.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Review rendering/output paths for XSS assumptions and add sensible content/security headers.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Check secret locations, source control, logs, client bundles, CI, and deployment settings.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Add abuse controls where justified and write security regression tests for discovered cases.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 633,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Security checklist with no threat model",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 29: Security Hardening\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nasset/trust boundary -> abuse case -> preventive control -> detection/logging -> test -> residual risk\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Security checklist with no threat model\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Trusting hidden buttons as protection\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Secrets printed to logs/build output\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Rate limiter treated as authentication or authorization\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 443,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Trusting hidden buttons as protection",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 29 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Security Hardening\n\nMission\nRebuild the capability of Phase 29 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nThreat-model TaskFlow and apply layered controls for access control, input/output safety, headers, abuse, secrets, uploads, dependencies, and configuration.\n\nRequired artifact\nSecurity baseline checklist plus concrete tests for the most important abuse cases.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can describe assets and attackers.\n• Can test broken access control.\n• Can audit secret exposure.\n• Can explain defense in depth and residual risk.\n\nIndependent build sequence\n1. List sensitive assets and trust boundaries before selecting mitigations.\n2. Run an IDOR/broken-access-control test by changing resource IDs as another user.\n3. Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.\n4. Review rendering/output paths for XSS assumptions and add sensible content/security headers.\n5. Check secret locations, source control, logs, client bundles, CI, and deployment settings.\n6. Add abuse controls where justified and write security regression tests for discovered cases.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 365,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Security baseline checklist plus concrete tests for the most important abuse cases.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Secrets printed to logs/build output",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 29 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 29: Security Hardening. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nSecurity baseline checklist plus concrete tests for the most important abuse cases.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 197,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Threat-model TaskFlow and apply layered controls for access control, input/output safety, headers, abuse, secrets, uploads, dependencies, and configuration.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "asset/trust boundary",
+          "abuse case",
+          "preventive control",
+          "detection/logging",
+          "test",
+          "residual risk"
+        ],
+        "steps": [
+          "List sensitive assets and trust boundaries before selecting mitigations.",
+          "Run an IDOR/broken-access-control test by changing resource IDs as another user.",
+          "Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.",
+          "Review rendering/output paths for XSS assumptions and add sensible content/security headers.",
+          "Check secret locations, source control, logs, client bundles, CI, and deployment settings.",
+          "Add abuse controls where justified and write security regression tests for discovered cases.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can describe assets and attackers",
+          "Can test broken access control",
+          "Can audit secret exposure",
+          "Can explain defense in depth and residual risk"
+        ],
+        "breakIt": [
+          "Security checklist with no threat model",
+          "Trusting hidden buttons as protection"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 29 Security Hardening Snapshot\n\nReference artifacts for the production hardening pass. Keep these controls aligned with the real deployment topology and verify them with tests."
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/SECURITY_CHECKLIST.md",
+      "preview": "# TaskFlow security hardening checklist\n\n## HTTP / browser\n- HTTPS only in production\n- security headers verified\n- CORS exact origins, methods and headers\n- CSP designed/tested for deployed Next.js app\n- no state-changing GET endpoints\n\n## Identity / authorization\n- JWT signature + issuer/audience/expiry verified\n- authSubject mapping unique\n- resource queries tenant-scoped\n- 401/403/404 behavior tested\n- role escalation denied\n\n## Input / output\n- server Zod validation on every untrusted body/query/path\n- lengths/ranges/enums bounded\n- React text rendering by default"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/SOURCES.md",
+      "preview": "- OWASP ASVS 5.0.0: https://owasp.org/projects/asvs\n- OWASP Input Validation: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html\n- OWASP XSS Prevention: https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html\n- OWASP CSRF Prevention: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html\n- OWASP HTTP Headers: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html\n- OWASP REST Security: https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html\n- OWASP File Upload: https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html\n- OWASP Logging: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html\n- OWASP Secrets Management: https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html\n- NestJS Rate Limiting: https://docs.nestjs.com/security/rate-limiting\n- @fastify/helmet: https://www.npmjs.com/package/@fastify/helmet\n- @nestjs/throttler: https://www.npmjs.com/package/@nestjs/throttler\n- Next.js Support Policy: https://nextjs.org/support-policy"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/THREAT_MODEL.md",
+      "preview": "# TaskFlow threat model\n\nAssets: authentication sessions, tenant business data, attachments, secrets, authorization decisions, audit/log evidence, service availability.\n\nEntry points: Next.js pages/actions, NestJS HTTP API, Supabase Auth, Realtime, Storage signed uploads/downloads, PostgreSQL, deployment configuration.\n\nRepresentative abuse cases:\n- stolen/replayed access token\n- cross-workspace object ID tampering\n- brute-force / request flooding\n- XSS through user content\n- CSRF against cookie-authenticated flows\n- malicious/oversized upload\n- service-role key leaked to browser/logs\n- dependency vulnerability left unpatched"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/VERSION_LOCK.md",
+      "preview": "- @fastify/helmet: 13.1.1\n- @nestjs/throttler: 6.5.0\n- OWASP ASVS: 5.0.0\n- Next.js: 16.x Active LTS\n- NestJS: 12.x\n- Fastify: 5.x"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/apps/api/.env.security.example",
+      "preview": "WEB_ORIGIN=http://localhost:3000\nDATABASE_URL=\nSUPABASE_URL=\nSUPABASE_SERVICE_ROLE_KEY=\n\n# Never prefix server secrets with NEXT_PUBLIC_."
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/apps/api/install-security.ps1",
+      "preview": "pnpm --filter api add @fastify/helmet@13.1.1 @nestjs/throttler@6.5.0"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/apps/api/src/main.security-example.ts",
+      "preview": "import helmet from \"@fastify/helmet\";\n\n// After NestFactory.create<NestFastifyApplication>(...)\nconst fastify = app.getHttpAdapter().getInstance();\nawait fastify.register(helmet, {\n  global: true,\n  // The API returns JSON. Define the web-page CSP at the Next.js layer.\n  contentSecurityPolicy: false,\n});\n\napp.enableCors({\n  origin: [process.env.WEB_ORIGIN!],\n  methods: [\"GET\", \"POST\", \"PATCH\", \"DELETE\", \"OPTIONS\"],\n  allowedHeaders: [\"Content-Type\", \"Authorization\"],\n});"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/apps/api/src/security/security.module.ts",
+      "preview": "import { Module } from \"@nestjs/common\";\nimport { APP_GUARD } from \"@nestjs/core\";\nimport { ThrottlerGuard, ThrottlerModule } from \"@nestjs/throttler\";\n\n@Module({\n  imports: [\n    ThrottlerModule.forRoot([\n      { name: \"short\", ttl: 1_000, limit: 10 },\n      { name: \"minute\", ttl: 60_000, limit: 120 },\n    ]),\n  ],\n  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],\n  exports: [ThrottlerModule],\n})\nexport class SecurityModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/apps/web/next.config.security-example.ts",
+      "preview": "import type { NextConfig } from \"next\";\n\nconst nextConfig: NextConfig = {\n  async headers() {\n    return [{\n      source: \"/(.*)\",\n      headers: [\n        { key: \"X-Content-Type-Options\", value: \"nosniff\" },\n        { key: \"Referrer-Policy\", value: \"strict-origin-when-cross-origin\" },\n        { key: \"Permissions-Policy\", value: \"camera=(), microphone=(), geolocation=()\" },\n        { key: \"X-Frame-Options\", value: \"DENY\" },\n      ],\n    }];\n  },\n};\n\nexport default nextConfig;\n\n// CSP intentionally omitted from this generic snapshot.\n// Build/test a deployment-specific nonce/hash policy instead of shipping"
+    },
+    {
+      "path": "reference/TaskFlow_Security_Hardening_Snapshot/tests/security-hardening-test-matrix.md",
+      "preview": "# Phase 29 security test matrix\n\n## Headers\n- API emits expected security headers\n- Next.js emits nosniff/referrer/frame policy\n\n## Rate limiting\n- burst beyond route policy -> 429\n- trusted proxy configuration preserves intended client tracker\n\n## Input / errors\n- oversized title/search/body rejected\n- unknown fields rejected\n- public 500 contains no stack/SQL/secret\n\n## Authentication / authorization\n- missing/expired/wrong-project token -> 401\n- cross-workspace ID -> scoped 404/deny\n- MEMBER role escalation -> forbidden\n"
+    }
+  ],
+  "exercises": [
+    "Guided: List sensitive assets and trust boundaries before selecting mitigations.",
+    "Practice: Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.",
+    "Debugging: reproduce and diagnose — Security checklist with no threat model.",
+    "Independent: deliver Security baseline checklist plus concrete tests for the most important abuse cases.",
+    "Explain-back: Can describe assets and attackers and Can test broken access control."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Threat-model trust boundaries before applying random security checklists."
+      ],
+      "answer": 3,
+      "explanation": "Threat-model trust boundaries before applying random security checklists."
+    },
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Validate and authorize every sensitive server operation even if the frontend already restricts the UI.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Validate and authorize every sensitive server operation even if the frontend already restricts the UI."
+    },
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Keep secrets out of source control, client bundles, logs, and error responses.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Keep secrets out of source control, client bundles, logs, and error responses."
+    },
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Use layered defenses for common web risks such as injection, broken access control, unsafe uploads, and misconfiguration.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Use layered defenses for common web risks such as injection, broken access control, unsafe uploads, and misconfiguration."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Security checklist with no threat model.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List sensitive assets and trust boundaries before selecting mitigations.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "List sensitive assets and trust boundaries before selecting mitigations."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Run an IDOR/broken-access-control test by changing resource IDs as another user.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Trusting hidden buttons as protection."
+      ],
+      "answer": 1,
+      "explanation": "Run an IDOR/broken-access-control test by changing resource IDs as another user."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Secrets printed to logs/build output.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Rate limiter treated as authentication or authorization.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Review rendering/output paths for XSS assumptions and add sensible content/security headers."
+      ],
+      "answer": 3,
+      "explanation": "Review rendering/output paths for XSS assumptions and add sensible content/security headers."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 3575
+}

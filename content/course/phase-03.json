@@ -1,0 +1,932 @@
+{
+  "number": 3,
+  "slug": "phase-03",
+  "title": "Next.js Fundamentals",
+  "volume": 2,
+  "readme": "FULL-STACK DEVELOPER 2026 - PHASE 03\nNext.js Fundamentals\n\nCourse lock used in this phase:\n- Node.js 24.21.0 LTS\n- pnpm 12.4.2\n- Next.js 16.3.3 (locked from Phase 00)\n- App Router\n- TypeScript\n- CSS Modules / global CSS\n\nImportant: Next.js 16.3.5 is a newer patch as of 2026-09-17, but this course remains on the established Phase 00 lock for reproducibility.\n\nOfficial references consulted:\n- https://nextjs.org/docs/app\n- https://nextjs.org/docs/app/getting-started/installation\n- https://nextjs.org/docs/app/api-reference/config/typescript\n- https://nextjs.org/learn/react-foundations/server-and-client-components\n- https://www.npmjs.com/package/next\n- https://github.com/vercel/next.js/releases\n\nThis phase intentionally does NOT add NestJS, Prisma, Supabase, authentication, or TanStack Query.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "create-the-taskflow-next-js-app",
+      "title": "Create the TaskFlow Next.js App",
+      "summary": "",
+      "body": "Phase 03\n\nCreate the TaskFlow Next.js\nApp\nScaffold apps/web into the existing pnpm monorepo with deliberate\nsettings, then verify the first browser-rendered application.\n\nBook 1 - Hands-on scaffold\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nCreate the TaskFlow Next.js Application\nWe now create apps/web inside the repository from Phase 02. This is our first framework installation, so we move\ncarefully and verify where every generated file belongs.\n\nBefore the command\nFrom the TaskFlow repository root, verify all three things before scaffolding:\n\nGet-Location\nnode --version\npnpm --version\n\nExpected course baseline: repository path ends in taskflow, Node is 24.21.0, and pnpm is 12.4.2.\n\nWhy we do not run create-next-app from a random folder\nThe pnpm workspace root already declares apps/* as workspace packages. Creating apps/web from the repository\nroot lets the generated package naturally join the same lockfile and workspace graph. Creating it elsewhere and\ncopying it later can leave extra lockfiles or Git metadata behind.\n\nScaffold with explicit choices\nFrom taskflow\\, run the create-next-app command using the locked Next.js patch rather than @latest:\n\npnpm create next-app@16.3.3 apps/web\n\nChoose the course settings when prompted:\n\nPrompt                     Course choice           Reason\n\nTypeScript?                Yes                     Primary language\n\nLinter?                    ESLint                  Conventional, explicit linting\n\nReact Compiler?            No initially            Avoid adding a new optimization concept before core rendering is\nclear\n\nTailwind CSS?              No                      CSS Modules first so styling mechanics remain visible\n\nUse src/ directory?        Yes                     Separates source code from configuration files\n\nApp Router?                Yes                     Modern Next.js routing model\n\nCustomize import alias?    No                      Keep @/* default\n\nWhy not --yes?             The current default generator enables Tailwind and other recommended\ndefaults. For this course we intentionally customize the scaffold so the first\nfrontend phase teaches CSS Modules and App Router explicitly.\n\nNested Git check\ncreate-next-app may initialize Git depending on context. Because TaskFlow already has one root repository, verify\nthere is no second .git directory under apps/web.\n\nGet-ChildItem .■pps\\web -Force\nGet-ChildItem .■pps\\web\\.git -Force -ErrorAction SilentlyContinue\n\nIf a nested .git folder exists, remove only that nested metadata after verifying you are inside taskflow/apps/web. The\nroot taskflow/.git must remain untouched.\n\nInspect the generated package\n\nGet-Content .■pps\\web\\package.json\nGet-Content .■pps\\web■sconfig.json\nGet-ChildItem .■pps\\web\\src■pp\n\nNotice that apps/web has its own package.json. That is the package boundary Phase 02 prepared us to understand.\n\nExpected scripts\n\"scripts\": {\n\"dev\": \"next dev\",\n\"build\": \"next build\",\n\"start\": \"next start\",\n\"lint\": \"eslint\"\n}\n\nCurrent Next.js uses Turbopack by default for next dev. The script does not need to mention Turbopack for the\ndefault behavior.\n\nRun only the web package\nFrom the repository root:\n\npnpm --filter web dev\n\nIf the generated package name is not web, inspect apps/web/package.json and filter by the actual package name.\nYou can also run the script from inside apps/web with pnpm dev.\n\nVerify in the browser\nOpen http://localhost:3000. Keep the terminal visible. Change src/app/page.tsx, save, and observe Fast Refresh\nupdate the browser. The point is not the starter design; the checkpoint is that repository -> workspace -> package ->\ndev server -> browser is now a working chain.\n\nWhat the first dev command actually connects\n\ntaskflow root           workspace       apps/web package            script             next dev\n\nHTTP\n\nlocalhost:3000\n\nFigure 1 - The browser is the last step in a chain rooted in the monorepo workspace\n\nClean the starter intentionally\nDo not delete everything blindly. Read the generated page, layout, global stylesheet and metadata first. Then\nreplace starter content with a minimal TaskFlow title and description while preserving a valid root layout.\n\nCheckpoint\n•\napps/web exists and is tracked by the root Git repository.\n•\nNo second lockfile exists inside apps/web.\n\nVolume 02 - Frontend + Backend Foundations\n\n•\nNo nested .git directory remains.\n•\npnpm --filter web dev starts the frontend.\n•\nlocalhost:3000 renders and refreshes after a source edit.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 645,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Create the TaskFlow Next.js App in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Create the TaskFlow Next.js App” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding 'use client' too high in the tree",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Create the TaskFlow Next.js App” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Create the TaskFlow Next.js App solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "app-router-mental-model",
+      "title": "App Router Mental Model",
+      "summary": "",
+      "body": "Phase 03\n\nThe App Router Mental Model\nUnderstand route segments, pages, layouts, special files, and the\nrendered route tree before building more UI.\n\nBook 2 - Routing concepts\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nThe App Router Mental Model\nThe App Router is not a list of magic filenames. It is a file-system model that turns directories into route segments\nand special files into pieces of the rendered route tree.\n\nRoutes come from folders\nsrc/app/\n|-- layout.tsx              -> shared root layout\n|-- page.tsx                -> /\n|-- projects/\n|   `-- page.tsx            -> /projects\n`-- settings/\n`-- page.tsx            -> /settings\n\nA folder becomes a URL segment when a page exists beneath it. The route is not created by the folder name alone;\npage.tsx provides the route UI.\n\nFolders shape the route tree\n\napp root\n\nwraps            route             segment\n\nlayout.tsx                       page.tsx -> /                          projects/\n\nroute\n\npage.tsx -> /projects\n\nFigure 1 - The filesystem describes both URL segments and layout composition\n\npage.tsx\nA page is the UI exposed at a route. In this course, pages should usually compose feature components rather than\ncontain every visual element and behavior inline.\n\nlayout.tsx\nA layout wraps child route content and persists across navigation within its segment. The root layout is required and\nowns the html/body shell. Nested layouts let areas share navigation or framing without duplicating markup.\n\nWhy layouts matter beyond convenience\n•\nThey encode shared UI structure into the route hierarchy.\n•\nThey reduce duplicated navigation and shell markup.\n•\nThey create stable boundaries where state can be preserved across navigation.\n•\nThey make route ownership visible from the filesystem.\n\nSpecial files we will meet\n\nFile                       Purpose in the mental model\n\npage.tsx                   Route UI\n\nlayout.tsx                 Persistent shared UI around descendants\n\nloading.tsx                Route-segment pending UI\n\nerror.tsx                  Error boundary UI for a segment; requires client behavior\n\nnot-found.tsx              Not-found UI\n\ntemplate.tsx               Layout-like wrapper that remounts on navigation; use only when needed\n\nroute.ts                   HTTP route handler; not our primary business API in this course\n\nImportant boundary           Next.js route handlers exist, but TaskFlow will use NestJS for the authoritative\napplication API. We will not create duplicate business logic in route.ts just\nbecause the framework can host server code.\n\nRoute groups and private folders\nLater, parentheses can group routes without adding URL segments, and underscore-prefixed private folders can\norganize implementation details without becoming routes. Do not introduce these until the file tree needs them.\n\nDynamic routes - concept preview\nsrc/app/projects/[projectId]/page.tsx\n\nURL: /projects/42\nprojectId: \"42\"\n\nThe brackets represent a dynamic segment. We will use them later when projects and tasks come from the API.\nPhase 03 only needs the mental model.\n\nRendering tree versus URL\nThe URL tells you which route segments are active. The rendered tree combines each active layout with the leaf\npage. This is why layout placement is an architectural choice, not only a styling decision.\n\nA route renders through nested layout layers\n\nRootLayout\n\nchildren\n\nDashboard layout\n\nchildren\n\nProjects page\n\nFigure 2 - Each active layout contributes persistent structure around the leaf page\n\nCheckpoint questions\n•\nWhat makes /projects exist?\n\nVolume 02 - Frontend + Backend Foundations\n\n•\nWhy is layout.tsx different from a shared Header component?\n•\nWhy might a nested layout be preferable to copying a sidebar into three pages?\n•\nWhy are route handlers intentionally not our main backend in this architecture?\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 550,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain App Router Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “App Router Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Accessing browser APIs from Server Components",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “App Router Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does App Router Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "server-and-client-components",
+      "title": "Server and Client Components",
+      "summary": "",
+      "body": "Phase 03\n\nServer and Client Components\nLearn the server/browser network boundary, choose Client Components\nfor the right reasons, and avoid turning the entire frontend into a client\nisland.\n\nBook 3 - Rendering boundary\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nServer Components and Client Components\nThe most important Next.js concept in Phase 03 is not routing. It is understanding that your component tree can\ncross a network boundary. Next.js uses Server Components by default in the App Router; Client Components are\nopt-in islands for browser capabilities and interaction.\n\nThe network boundary inside a React component tree\n\nSERVER Server Components           RSC payload network   compose      BROWSER Client Components\n\nrender                                                             hydrate/interact\n\nrendered output                                                              interactive JS\n\nFigure 1 - Server and browser environments have different capabilities; use client marks where browser-side JavaScript is needed\n\nServer Component by default\nA component file under the App Router is a Server Component unless a Client Component boundary applies. This\nlets static and server-rendered UI avoid sending unnecessary component JavaScript to the browser.\n\nGood Server Component jobs\n•\nCompose mostly non-interactive UI.\n•\nRead server-side data later without exposing secrets to the browser.\n•\nPerform server-only work when appropriate.\n•\nKeep large dependencies or logic off the client bundle when no browser interaction is required.\n\nWhat makes a Client Component necessary?\nUse a Client Component when the component needs browser-only capabilities or interactive React state/effects.\n\nNeed                                     Client?            Reason\n\nStatic heading                           No                 No browser state or event needed\n\nButton with onClick                      Yes                Event handler executes in browser\n\nuseState/useEffect                       Yes                Client hooks require browser-side React\n\nwindow/localStorage                      Yes                Browser APIs do not exist on the server\n\nPure presentational card                 Usually no         Can remain server-rendered\n\nLater API server-state with TanStack     Yes at             Query client lives in browser context\nQuery                                    provider/query\nboundary\n\nThe use client directive\n\n\"use client\";\n\nimport { useState } from \"react\";\n\nexport function DemoCounter() {\nconst [count, setCount] = useState(0);\n\nreturn (\n<button onClick={() => setCount((value) => value + 1)}>\nCount: {count}\n</button>\n);\n}\n\nThe directive marks a client module boundary. It does not mean every component in the entire application must\nbecome client-rendered.\n\nKeep the boundary small\nA common beginner response to a hook error is to put \"use client\" at the top of the root layout. That makes the error\ndisappear by widening the client boundary, but it throws away a core architectural advantage. Move only the\ninteractive portion behind a client boundary.\n\nPrefer a small client island over a client application shell\n\nDashboardLayout Server         compose        Nav Server         interactive island   ThemeToggle Client\n\nchildren\n\nProjectsPage Server\n\nFigure 2 - Only the component that needs browser interaction crosses the client boundary\n\nSerialization boundary\nData passed from a Server Component into a Client Component must be serializable across the server/client\nboundary. This is another clue that the boundary is architectural, not just a syntax marker.\n\nDo not confuse rendering location with API architecture\nServer Components can fetch directly from a data source in some applications. TaskFlow deliberately routes\nauthoritative business data through NestJS later so business rules live in one backend. The fact that Next.js can\naccess server resources does not require us to put domain logic there.\n\nMini exercise\nCreate an interactive small button or disclosure control as a Client Component and import it into a Server\nComponent page. Then explain why the page itself did not need use client.\n\nCheckpoint\n•\nServer Component is the default in the App Router.\n•\nClient Components are for interaction/browser APIs/client hooks.\n\nVolume 02 - Frontend + Backend Foundations\n\n•\nuse client creates a boundary; it is not a quality badge.\n•\nThe smallest useful client boundary usually gives the clearest architecture.\n•\nTaskFlow keeps authoritative business rules in NestJS even though Next.js has server capabilities.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 611,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Server and Client Components in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Server and Client Components matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Server and Client Components” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Leaking secrets through NEXT_PUBLIC variables",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server and Client Components” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server and Client Components solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "routing-loading-and-errors",
+      "title": "Routing Loading and Errors",
+      "summary": "",
+      "body": "Phase 03\n\nRouting, Loading and Error\nStates\nBuild navigation that accounts for shared layout, pending UI, failures, and\nnot-found states instead of only the happy path.\n\nBook 4 - Navigation states\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nRouting, Navigation, Loading, Errors and 404s\nA production frontend is not only successful page rendering. Users navigate, wait, hit missing resources, and\nencounter failures. The App Router gives these states explicit places in the route tree.\n\nNavigation with Link\nimport Link from \"next/link\";\n\n<Link href=\"/projects\">Projects</Link>\n\nUse Next.js Link for internal application navigation. It integrates with client-side navigation and prefetching behavior\ninstead of forcing a full browser document request for every route transition.\n\nA simple TaskFlow route map\n/\n/projects\n/settings\n\nsrc/app/\n|-- page.tsx\n|-- projects/page.tsx\n`-- settings/page.tsx\n\nShared navigation belongs in layout structure\nIf Home, Projects, and Settings share the same top navigation, render that navigation from a layout rather than copy\nit into every page. A component handles reusable markup; a layout controls where that reusable markup participates\nin routing.\n\nloading.tsx - pending UI\nA loading file provides route-segment fallback UI while content below the segment is waiting. It works with streaming\nand Suspense semantics. Use it to communicate progress, not to hide slow architecture indefinitely.\n\nexport default function Loading() {\nreturn <p aria-live=\"polite\">Loading projects...</p>;\n}\n\nerror.tsx - recoverable route UI\nAn error boundary lets a route segment show fallback UI when a descendant throws during rendering. Error\ncomponents need client-side behavior because reset/retry interaction happens in the browser.\n\n\"use client\";\n\nexport default function ErrorView({ reset }: { reset: () => void }) {\nreturn (\n<section>\n<h2>Something went wrong</h2>\n<button onClick={() => reset()}>Try again</button>\n</section>\n);\n}\n\nDo not swallow errors      An error boundary is presentation for failure, not permission to ignore the root\ncause. Production logging/observability enters later, but even now the developer\nshould inspect the terminal and browser console.\n\nnot-found.tsx\n\nUse a not-found UI for missing route resources. Later, a project detail page can call notFound() when the API says\nthe project does not exist. This is different from a server crash or validation error.\n\nStatus thinking\nSituation                           Frontend concept                        Later backend meaning\n\nNavigation is waiting               loading UI                              Request/data still pending\n\nUnexpected render failure           error boundary                          Potential 5xx or application error\n\nRequested resource does not         not-found UI                            Often 404\nexist\n\nUser lacks permission               Protected/forbidden UI later            403 after auth\n\nUser is not authenticated           Login/session flow later                401 after auth\n\nDynamic route preview\nsrc/app/projects/[projectId]/page.tsx\n\nThis will eventually display one project based on route params. We postpone the full implementation until Phase 06+\nwhen a backend exists. The course avoids fake architecture solely to demonstrate syntax.\n\nNavigation has explicit success, pending and failure states\n\nUser clicks Link        navigate                  App Router             while waiting       loading UI\n\nsuccess                failure\n\nnext page                                         error / 404\n\nFigure 1 - Professional UX models non-happy paths instead of adding them after launch\n\nCheckpoint\n•\nInternal navigation uses Link rather than raw full-page navigation by default.\n•\nLayouts own shared route shell.\n•\nloading.tsx models pending UI, error.tsx models rendering failure, and not-found.tsx models missing resources.\n•\nYou can explain why missing data and unexpected failure are not the same state.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 538,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "errors",
+        "objectives": [
+          "Explain Routing Loading and Errors in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this errors concept.",
+          "Diagnose one representative errors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Routing Loading and Errors matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "failure",
+          "typed/domain error",
+          "exception mapping",
+          "HTTP envelope",
+          "client handling"
+        ],
+        "steps": [
+          "Restate the goal of “Routing Loading and Errors” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: failure → typed/domain error → exception mapping → HTTP envelope → client handling. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "json",
+          "caption": "Stable client-facing error envelope",
+          "code": "{\n  \"error\": {\n    \"code\": \"TASK_NOT_FOUND\",\n    \"message\": \"Task was not found\",\n    \"requestId\": \"req_...\"\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using effects for work that belongs in server rendering or a data layer",
+          "Change one assumption in the errors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Routing Loading and Errors” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Routing Loading and Errors solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the errors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "styling-assets-and-accessibility",
+      "title": "Styling Assets and Accessibility",
+      "summary": "",
+      "body": "Phase 03\n\nStyling, Assets and\nAccessibility\nUse CSS Modules and global CSS with clear ownership, then build an\naccessible application shell with semantic HTML and useful metadata.\n\nBook 5 - UI foundations\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nStyling, Assets, Metadata and Accessibility\nTaskFlow needs enough design to feel like an application, but Phase 03 avoids turning into a CSS framework\ncourse. We use global CSS for global rules and CSS Modules for component-scoped styles.\n\nGlobal CSS has a global responsibility\nUse src/app/globals.css for document-wide rules such as box sizing, base body typography, background, and CSS\nvariables. Avoid placing page-specific selectors there merely because it is convenient.\n\nCSS Modules for local ownership\n/* project-card.module.css */\n.card {\nborder: 1px solid var(--border);\nborder-radius: 12px;\npadding: 1rem;\n}\n\n/* project-card.tsx */\nimport styles from \"./project-card.module.css\";\n\nexport function ProjectCard() {\nreturn <article className={styles.card}>...</article>;\n}\n\nThe filename communicates that the CSS is scoped to the component/module rather than intended as a site-wide\nAPI.\n\nA styling ownership rule\nQuestion                                      Preferred home\n\nDoes every page need it?                      globals.css or shared design token\n\nDoes one component own it?                    Component CSS Module\n\nIs it an inline state-dependent value?        Occasional style prop, used deliberately\n\nIs it a future design-system primitive?       Earn a shared component/package when repeated patterns justify it\n\nPublic assets\nFiles in public/ are served from the site root. public/logo.svg is addressed as /logo.svg. Keep public for static assets,\nnot application source code.\n\nImages\nNext.js provides Image for image optimization and layout behavior. In this early shell, learn the API but do not add\nimages unless they communicate product context. Decorative images are not a requirement for good UI.\n\nMetadata\nexport const metadata = {\ntitle: \"TaskFlow\",\ndescription: \"Project and task management for focused teams\",\n};\n\nMetadata belongs with the route/layout structure because it describes the document the framework is producing.\nLater phases can refine per-route metadata.\n\nSemantic HTML first\n\nUI intent                                  Prefer\n\nPrimary site navigation                    nav\n\nPage content                               main\n\nIndependent card/content item              article when semantically appropriate\n\nAction                                     button\n\nNavigation                                 a / Link\n\nSection heading                            Correct heading level rather than styled div\n\nAccessibility is architecture, not polish\n•\nUse real buttons for actions so keyboard behavior exists automatically.\n•\nUse visible focus states rather than removing outlines.\n•\nProvide labels for controls and meaningful alt text for informative images.\n•\nKeep heading hierarchy meaningful.\n•\nUse aria-live sparingly for important asynchronous status updates.\n•\nTest keyboard navigation while the interface is still small.\n\nResponsive shell without a CSS framework\nUse modern CSS layout primitives directly. The goal is to understand the browser before adding another vocabulary.\nThe TaskFlow shell can use a responsive grid or flex layout, sensible max width, and media queries where\nnecessary.\n\nDesign target\nTaskFlow\n--------------------------------------------------\nHome       Projects       Settings\n\nYour work\nOrganize projects and keep tasks moving.\n\n[ Active Projects ]         [ Tasks Due ]     [ Completed ]\n\nRecent projects\n[ Website refresh ]\n[ Inventory rollout ]\n\nThe interface should feel intentional but remain small enough that routing and rendering concepts are visible.\n\nCheckpoint\n•\nGlobal styles stay global.\n•\nComponent styles are locally owned through CSS Modules.\n•\nPublic assets are addressed from /.\n•\nSemantic elements are chosen by meaning rather than appearance.\n•\nKeyboard and focus behavior are checked before the phase is complete.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 535,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Styling Assets and Accessibility in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Styling Assets and Accessibility matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Styling Assets and Accessibility” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding 'use client' too high in the tree",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Styling Assets and Accessibility” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Styling Assets and Accessibility solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "environment-devtools-and-debugging",
+      "title": "Environment DevTools and Debugging",
+      "summary": "",
+      "body": "Phase 03\n\nEnvironment, DevTools and\nDebugging\nLearn frontend environment-variable boundaries, browser/terminal\nevidence, and a systematic Next.js debugging loop.\n\nBook 6 - Diagnostics\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nEnvironment Variables, DevTools and Next.js\nDebugging\nFrontend bugs often sit at a boundary: server versus browser, build time versus runtime, route versus component, or\nworkspace root versus package directory. Phase 03 teaches how to locate the failing layer before editing code.\n\nEnvironment variable boundary\nBy default, environment variables are server-only. A variable exposed to browser JavaScript requires the\nNEXT_PUBLIC_ prefix. That prefix is a publication decision, not a naming style.\n\nExample                                   Browser-visible?             Use\n\nAPI_INTERNAL_SECRET                       No                           Never place secrets in frontend browser code\n\nDATABASE_URL                              No                           Later belongs to API/backend environment, not\napps/web\n\nNEXT_PUBLIC_API_URL                       Yes                          Later tells browser where public API is\n\nNEXT_PUBLIC_APP_NAME                      Yes                          Harmless public configuration if needed\n\nSecurity rule                  If a value must remain secret, it must never depend on NEXT_PUBLIC_\nprotection. Anything delivered to browser JavaScript is inspectable by the user.\n\nWhere errors appear\nSymptom                                          First place to look\n\nBuild/type error                                 Terminal running next dev/build\n\nClient runtime error                             Browser console and Next error overlay\n\nFailed network request later                     Browser Network tab\n\nServer Component exception                       Terminal plus rendered error boundary\n\nWrong route/404                                  Route tree and browser URL\n\nCSS not applied                                  DOM class name, imported module, browser styles panel\n\nA layered debugging loop\n1. Reproduce the failure.\n2. Identify the environment: terminal/server or browser/client.\n3. Read the first useful error, not only the last stack frame.\n4. Confirm the current route and file path.\n5. Reduce the failing component or change.\n6. Make the smallest correction.\n7. Re-run the same verification.\n8. Run lint/type/build before declaring victory.\n\nCommon error: hook in Server Component\nSymptom: useState/useEffect or event-handler related error in a Server Component. Diagnosis: the component\nneeds browser interactivity. Correction: move only the interactive portion into a Client Component; do not\nautomatically convert the root layout.\n\nCommon error: module not found\nCheck the import alias, file casing, relative path, and whether the dependency belongs to apps/web. On Windows,\ncase mistakes may remain hidden locally and fail on a case-sensitive production filesystem.\n\nCommon error: command ran in wrong place\nGet-Location\nGet-Content .\\package.json\npnpm --filter web dev\n\nIf you are inside apps/web, pnpm dev is fine. If you are at taskflow root, filter to the package. Make the location\nexplicit rather than guessing.\n\nCommon error: port 3000 already used\nDo not kill random processes. Identify which process owns the port, determine whether another dev server is already\nrunning, and either reuse/stop it intentionally or choose a different port.\n\nProduction build is a different verification\nFast Refresh success does not prove the application is production-buildable. At the phase exit, run the web package\nbuild from the workspace and fix type/lint/build failures before continuing.\n\nBrowser DevTools habits\n•\nElements: inspect actual DOM and computed styles.\n•\nConsole: client errors and logs.\n•\nNetwork: later inspect API requests, status codes and timing.\n•\nApplication/Storage: later inspect browser-managed storage only when the feature actually uses it.\n•\nAccessibility tree where available: verify semantic output instead of visual appearance alone.\nDebug by locating the failing boundary first\n\nSymptom            locate   Which environment?      inspect    Collect evidence       hypothesis     Small fix\n\ntest\n\nRepeat verification\n\nFigure 1 - A disciplined loop is faster than rewriting code until the error disappears\n\nCheckpoint\n•\nYou can explain why NEXT_PUBLIC_ means browser-visible.\n•\nYou know whether to inspect terminal or browser first for a given symptom.\n•\nYou can diagnose Server/Client boundary errors without widening use client unnecessarily.\n•\nYou use the production build as a phase gate.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 607,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Environment DevTools and Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Environment DevTools and Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Accessing browser APIs from Server Components",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Environment DevTools and Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Environment DevTools and Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "build-the-taskflow-frontend-shell",
+      "title": "Build the TaskFlow Frontend Shell",
+      "summary": "",
+      "body": "Phase 03\n\nBuild the TaskFlow Frontend\nShell\nApply routing, layouts, server/client composition, accessible navigation,\nand scoped styling to the first real TaskFlow interface.\n\nBook 7 - Project build\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nBuild the First TaskFlow Frontend Shell\nThis book turns the concepts into one coherent mini-application. It remains intentionally frontend-only. We use static\nsample content because Phase 04-06 will introduce the backend and HTTP boundary.\n\nTarget experience\n•\nA root layout with TaskFlow branding and primary navigation.\n•\nHome dashboard route with a welcome section and summary cards.\n•\nProjects route with static project previews.\n•\nSettings route with a small interactive preference control isolated as a Client Component.\n•\nResponsive CSS Modules/global styles.\n•\nMetadata and basic accessible structure.\n\nStep 1 - Root layout\n// src/app/layout.tsx\nimport type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport \"./globals.css\";\n\nexport const metadata: Metadata = {\ntitle: \"TaskFlow\",\ndescription: \"Project and task management for focused teams\",\n};\n\nexport default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {\nreturn (\n<html lang=\"en\">\n<body>\n<header>\n<Link href=\"/\">TaskFlow</Link>\n<nav aria-label=\"Primary navigation\">\n<Link href=\"/projects\">Projects</Link>\n<Link href=\"/settings\">Settings</Link>\n</nav>\n</header>\n<main>{children}</main>\n</body>\n</html>\n);\n}\n\nThe layout defines document shell and shared navigation. It does not contain application state or business rules.\n\nStep 2 - Home page\n// src/app/page.tsx\nexport default function HomePage() {\nreturn (\n<section>\n<p>TaskFlow</p>\n<h1>Keep work visible and moving.</h1>\n<p>Projects, tasks, ownership, and progress will grow here throughout the course.</p>\n</section>\n);\n}\n\nStep 3 - Projects route\n\n// src/app/projects/page.tsx\nconst projects = [\n{ id: 1, name: \"Website refresh\", status: \"Active\" },\n{ id: 2, name: \"Inventory rollout\", status: \"Planning\" },\n];\n\nexport default function ProjectsPage() {\nreturn (\n<section>\n<h1>Projects</h1>\n<div>\n{projects.map((project) => (\n<article key={project.id}>\n<h2>{project.name}</h2>\n<p>{project.status}</p>\n</article>\n))}\n</div>\n</section>\n);\n}\n\nThe array is intentionally local sample data. We are practicing rendering and component composition, not pretending\nwe already have persistence.\n\nStep 4 - Isolate one interactive control\n// src/app/settings/density-toggle.tsx\n\"use client\";\n\nimport { useState } from \"react\";\n\nexport function DensityToggle() {\nconst [compact, setCompact] = useState(false);\n\nreturn (\n<button onClick={() => setCompact((value) => !value)}>\nDensity: {compact ? \"Compact\" : \"Comfortable\"}\n</button>\n);\n}\n\nThen import DensityToggle into settings/page.tsx. The page remains a Server Component; only the interactive\ncontrol becomes client-side.\n\nStep 5 - Styling\nCreate globals.css for base document variables and layout. Use CSS Modules for cards/navigation-specific styles as\nthe UI grows. Do not turn globals.css into a giant unscoped component stylesheet.\n\nStep 6 - Verify all routes\nhttp://localhost:3000/\nhttp://localhost:3000/projects\nhttp://localhost:3000/settings\n\nNavigate using the UI links, refresh each route directly, and verify there are no console errors.\n\nStep 7 - Lint and build\nFrom taskflow root, use package filtering so the command demonstrates the monorepo model:\n\npnpm --filter web lint\npnpm --filter web build\n\nIf the package name differs, use the actual name from apps/web/package.json.\n\nVolume 02 - Frontend + Backend Foundations\n\nPhase 03 TaskFlow application architecture\n\nBrowser           URL/navigation   Next.js App Router        render tree         Root layout\n\n/                /projects           /settings\n\nSettings + client\nHome page                             Projects page\nisland\n\nFigure 1 - One Next.js application now owns routing and presentation while the API boundary remains intentionally empty\n\nDo not add these yet\n•\nNo Supabase client.\n•\nNo Prisma.\n•\nNo NestJS calls.\n•\nNo TanStack Query.\n•\nNo authentication provider.\n•\nNo global store.\n•\nNo fake repository abstraction.\n\nEach of those technologies enters later because a specific architectural problem appears.\n\nDefinition of done\n•\nThree routes render through the shared layout.\n•\nAt least one small Client Component demonstrates browser interaction.\n•\nNo unnecessary use client appears on pages/layouts.\n•\nStyling is readable and scoped.\n•\nKeyboard navigation reaches links/buttons visibly.\n•\nLint and production build pass.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 618,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Build the TaskFlow Frontend Shell in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Build the TaskFlow Frontend Shell matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Build the TaskFlow Frontend Shell” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Leaking secrets through NEXT_PUBLIC variables",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Build the TaskFlow Frontend Shell” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Build the TaskFlow Frontend Shell solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "exercises-and-phase-exit",
+      "title": "Exercises and Phase Exit",
+      "summary": "",
+      "body": "Phase 03\n\nExercises and Phase Exit\nPractice Next.js independently, debug realistic failures, pass the\narchitecture oral exam, and verify readiness for NestJS.\n\nBook 8 - Exercises\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nExercises, Architecture Checks and Phase Exit\nThe phase is complete only when you can reproduce the ideas without following every line. These exercises move\nfrom guided repetition toward independent engineering decisions.\n\nLevel 1 - Follow\n•\nCreate the /projects and /settings routes from memory.\n•\nAdd primary navigation in the root layout using Link.\n•\nCreate one CSS Module and apply it to a project card.\n•\nRun dev, lint and build from the workspace root using a filter.\n\nLevel 2 - Modify\n•\nAdd an /about route without changing the root layout API.\n•\nAdd a descriptive empty state to /projects when the sample array is empty.\n•\nImprove visible keyboard focus for navigation links.\n•\nAdd metadata appropriate for the application.\n\nLevel 3 - Implement\nCreate a small ProjectStatusFilter Client Component that switches between All, Active and Planning for static\nsample projects. Keep the page as a Server Component if possible. Explain what data had to move into the client\nisland and why.\n\nLevel 4 - Engineer\nDesign a route structure for the future TaskFlow product without implementing backend data. Include dashboard,\nprojects, a future project-detail route, and settings. Decide where a dashboard layout would live, which sections\nshould share navigation, and where you would avoid route groups until the need is real.\n\nDebugging scenarios\nScenario                                             Your diagnosis should start with\n\nuseState error in page.tsx                           Server/Client boundary; isolate interactive component\n\n/projects is 404                                     Filesystem route structure and page.tsx location\n\nCSS class undefined                                  CSS Module import/name mismatch\n\npnpm --filter web says no package matched            Check apps/web package name and workspace membership\n\nWorks in dev, fails build                            Read build/type error; do not assume Fast Refresh proved\ncorrectness\n\nSecret appears in browser bundle                     Treat as exposure; remove public prefix and redesign ownership\n\nArchitecture oral exam\n•\nWhy can Next.js be called full-stack while this course still uses NestJS?\n•\nWhat is the difference between a route layout and a reusable UI component?\n•\nWhy are Server Components the default?\n•\nWhat capabilities force a Client Component?\n•\nWhy is use client at the root layout usually a poor first fix?\n•\nWhy is NEXT_PUBLIC_ a security boundary?\n\n•\nWhy do we build with static data before inventing an API that does not exist yet?\n\nExpected answers - concise\n•\nNext.js vs NestJS: Next.js has server capabilities, but TaskFlow centralizes authoritative domain rules in NestJS\nso there is one business API.\n•\nLayout vs component: a layout participates in the route tree and persists around descendant routes; a\ncomponent is reusable UI independent of route semantics.\n•\nServer default: non-interactive UI can render without shipping component JavaScript to the browser and can use\nserver capabilities.\n•\nClient requirement: browser event handlers, client hooks, browser APIs, or client-only libraries.\n•\nNEXT_PUBLIC_: it declares that a value may be included in browser-visible code; therefore secrets never belong\nthere.\n\nPhase exit checklist\n•\nI can recreate apps/web inside a pnpm monorepo without nesting Git or lockfiles.\n•\nI understand App Router pages, layouts and route segments.\n•\nI can explain Server versus Client Components using capabilities and network boundary.\n•\nI can build internal navigation with Link.\n•\nI understand loading, error and not-found as distinct UI states.\n•\nI can style with global CSS and CSS Modules without mixing responsibilities.\n•\nI understand public versus server-only environment variables.\n•\nI can diagnose common Next.js errors using terminal and browser evidence.\n•\nI can produce a successful production build.\n\nWhat changed in the architecture\nBEFORE PHASE 03\n\ntaskflow repository\n(no application runtime)\n\nAFTER PHASE 03\n\nBrowser\n^\n|\nNext.js App Router\n|\napps/web\n|\nTaskFlow monorepo\n\nNo backend yet. No database yet.\n\nNext phase preview\nPhase 04 introduces a second independent runtime: NestJS with Fastify in apps/api. That phase will deliberately\nkeep the two applications separate. Only Phase 06 will connect them over HTTP, so the learner can understand\neach side before crossing the network boundary.\n\nVolume 02 - Frontend + Backend Foundations",
+      "wordCount": 666,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using effects for work that belongs in server rendering or a data layer",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nBuild the Next.js application shell while understanding App Router routing, layouts, Server Components, Client Components, environment boundaries, and rendering behavior.",
+      "body": "Guided Build Lab — Phase 03: Next.js Fundamentals\n\nPurpose\nBuild the Next.js application shell while understanding App Router routing, layouts, Server Components, Client Components, environment boundaries, and rendering behavior.\n\nDeliverable\nA navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nRoute request -> App Router match -> layout/page Server Component -> optional server fetch -> Client Component island -> browser interaction\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Generate the web app in the monorepo and verify the development server from the correct workspace.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create nested routes and a shared layout, then predict which layouts persist across navigation.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Build one component as a Server Component and identify exactly why it can remain server-only.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Add one Client Component for interaction and explain what 'use client' changes in the dependency graph.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Add server-only and public environment values and prove which can reach the browser bundle.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Use browser DevTools and terminal logs to distinguish server rendering from client execution.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npnpm --filter web dev\npnpm --filter web build\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 711,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Adding 'use client' too high in the tree",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 03: Next.js Fundamentals\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nRoute request -> App Router match -> layout/page Server Component -> optional server fetch -> Client Component island -> browser interaction\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Adding 'use client' too high in the tree\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Accessing browser APIs from Server Components\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Leaking secrets through NEXT_PUBLIC variables\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Using effects for work that belongs in server rendering or a data layer\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 457,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Accessing browser APIs from Server Components",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 03 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Next.js Fundamentals\n\nMission\nRebuild the capability of Phase 03 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nBuild the Next.js application shell while understanding App Router routing, layouts, Server Components, Client Components, environment boundaries, and rendering behavior.\n\nRequired artifact\nA navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can choose server vs client intentionally.\n• Can explain layout/page routing.\n• Can identify where code executes.\n• Can debug a hydration or environment-boundary mistake.\n\nIndependent build sequence\n1. Generate the web app in the monorepo and verify the development server from the correct workspace.\n2. Create nested routes and a shared layout, then predict which layouts persist across navigation.\n3. Build one component as a Server Component and identify exactly why it can remain server-only.\n4. Add one Client Component for interaction and explain what 'use client' changes in the dependency graph.\n5. Add server-only and public environment values and prove which can reach the browser bundle.\n6. Use browser DevTools and terminal logs to distinguish server rendering from client execution.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 392,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Leaking secrets through NEXT_PUBLIC variables",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 03 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 03: Next.js Fundamentals. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 204,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Build the Next.js application shell while understanding App Router routing, layouts, Server Components, Client Components, environment boundaries, and rendering behavior.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Route request",
+          "App Router match",
+          "layout/page Server Component",
+          "optional server fetch",
+          "Client Component island",
+          "browser interaction"
+        ],
+        "steps": [
+          "Generate the web app in the monorepo and verify the development server from the correct workspace.",
+          "Create nested routes and a shared layout, then predict which layouts persist across navigation.",
+          "Build one component as a Server Component and identify exactly why it can remain server-only.",
+          "Add one Client Component for interaction and explain what 'use client' changes in the dependency graph.",
+          "Add server-only and public environment values and prove which can reach the browser bundle.",
+          "Use browser DevTools and terminal logs to distinguish server rendering from client execution.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can choose server vs client intentionally",
+          "Can explain layout/page routing",
+          "Can identify where code executes",
+          "Can debug a hydration or environment-boundary mistake"
+        ],
+        "breakIt": [
+          "Adding 'use client' too high in the tree",
+          "Accessing browser APIs from Server Components"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/package.json",
+      "preview": "{\n  \"name\": \"web\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": {\n    \"dev\": \"next dev\",\n    \"build\": \"next build\",\n    \"start\": \"next start\",\n    \"lint\": \"eslint\"\n  },\n  \"dependencies\": {\n    \"next\": \"16.3.3\",\n    \"react\": \"19.3.0\",\n    \"react-dom\": \"19.3.0\"\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/src/app/globals.css",
+      "preview": ":root {\n  --background: #f6f8fa;\n  --surface: #ffffff;\n  --text: #17212b;\n  --border: #d8e0e6;\n}\n\n* { box-sizing: border-box; }\n\nbody {\n  margin: 0;\n  background: var(--background);\n  color: var(--text);\n  font-family: Arial, sans-serif;\n}\n\nmain {\n  width: min(1100px, calc(100% - 2rem));\n  margin: 0 auto;\n  padding: 2rem 0;"
+    },
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/src/app/layout.tsx",
+      "preview": "import type { Metadata } from \"next\";\nimport Link from \"next/link\";\nimport \"./globals.css\";\n\nexport const metadata: Metadata = {\n  title: \"TaskFlow\",\n  description: \"Project and task management for focused teams\",\n};\n\nexport default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <header>\n          <Link href=\"/\">TaskFlow</Link>\n          <nav aria-label=\"Primary navigation\">\n            <Link href=\"/projects\">Projects</Link>\n            <Link href=\"/settings\">Settings</Link>\n          </nav>\n        </header>"
+    },
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/src/app/page.tsx",
+      "preview": "export default function HomePage() {\n  return (\n    <section>\n      <p>TaskFlow</p>\n      <h1>Keep work visible and moving.</h1>\n      <p>Projects, tasks, ownership, and progress will grow here throughout the course.</p>\n    </section>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/src/app/projects/page.tsx",
+      "preview": "const projects = [\n  { id: 1, name: \"Website refresh\", status: \"Active\" },\n  { id: 2, name: \"Inventory rollout\", status: \"Planning\" },\n];\n\nexport default function ProjectsPage() {\n  return (\n    <section>\n      <h1>Projects</h1>\n      {projects.map((project) => (\n        <article key={project.id}>\n          <h2>{project.name}</h2>\n          <p>{project.status}</p>\n        </article>\n      ))}\n    </section>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/src/app/settings/density-toggle.tsx",
+      "preview": "\"use client\";\n\nimport { useState } from \"react\";\n\nexport function DensityToggle() {\n  const [compact, setCompact] = useState(false);\n  return (\n    <button onClick={() => setCompact((value) => !value)}>\n      Density: {compact ? \"Compact\" : \"Comfortable\"}\n    </button>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Web_Snapshot/src/app/settings/page.tsx",
+      "preview": "import { DensityToggle } from \"./density-toggle\";\n\nexport default function SettingsPage() {\n  return (\n    <section>\n      <h1>Settings</h1>\n      <DensityToggle />\n    </section>\n  );\n}"
+    }
+  ],
+  "exercises": [
+    "Guided: Generate the web app in the monorepo and verify the development server from the correct workspace.",
+    "Practice: Build one component as a Server Component and identify exactly why it can remain server-only.",
+    "Debugging: reproduce and diagnose — Adding 'use client' too high in the tree.",
+    "Independent: deliver A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.",
+    "Explain-back: Can choose server vs client intentionally and Can explain layout/page routing."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use Server Components by default and introduce Client Components only where browser interactivity requires them.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use Server Components by default and introduce Client Components only where browser interactivity requires them."
+    },
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Treat the App Router file system as application structure, not as a place to hide business rules.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Treat the App Router file system as application structure, not as a place to hide business rules."
+    },
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Keep secrets and privileged data access on the server side of the Next.js boundary."
+      ],
+      "answer": 3,
+      "explanation": "Keep secrets and privileged data access on the server side of the Next.js boundary."
+    },
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Understand caching and rendering behavior before trying to fix stale UI with ad-hoc client state.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Understand caching and rendering behavior before trying to fix stale UI with ad-hoc client state."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Generate the web app in the monorepo and verify the development server from the correct workspace.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Adding 'use client' too high in the tree.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Generate the web app in the monorepo and verify the development server from the correct workspace."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Accessing browser APIs from Server Components.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create nested routes and a shared layout, then predict which layouts persist across navigation."
+      ],
+      "answer": 3,
+      "explanation": "Create nested routes and a shared layout, then predict which layouts persist across navigation."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Leaking secrets through NEXT_PUBLIC variables.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Build one component as a Server Component and identify exactly why it can remain server-only.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Build one component as a Server Component and identify exactly why it can remain server-only."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add one Client Component for interaction and explain what 'use client' changes in the dependency graph.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using effects for work that belongs in server rendering or a data layer."
+      ],
+      "answer": 1,
+      "explanation": "Add one Client Component for interaction and explain what 'use client' changes in the dependency graph."
+    }
+  ],
+  "lessonCount": 12,
+  "wordCount": 6534
+}

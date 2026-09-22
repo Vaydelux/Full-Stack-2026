@@ -1,0 +1,1218 @@
+{
+  "number": 22,
+  "slug": "phase-22",
+  "title": "TanStack Query",
+  "volume": 6,
+  "readme": "Full-Stack Developer 2026 - Phase 22\nTanStack Query\n\nThis phase continues Volume 06 after Phase 21. It gives TaskFlow a dedicated server-state cache and mutation lifecycle while preserving URL state, React Hook Form state, Next.js Server Components, Supabase authentication and NestJS as separate responsibilities.\n\nRead 13_Phase_22_Complete_Book.pdf continuously or use the numbered focused PDFs for targeted study.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "server-state-and-cache-mental-model",
+      "title": "Server State and Cache Mental Model",
+      "summary": "Server State and Cache Mental Model Know what TanStack Query owns - and what it does not Phase 22 - TanStack Query Volume 06 - Professional Frontend Four different kinds of frontend state A common React mistake is to place every changing value into component…",
+      "body": "Server State and Cache Mental\nModel\nKnow what TanStack Query owns - and what it does not\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nFour different kinds of frontend state\nA common React mistake is to place every changing value into component state. TaskFlow now has\nenough complexity that this becomes harmful. The important question is not “does this value change?”\nbut “who owns the truth?”\n\nState                     Examples                                         Owner\n\nServer state              Task rows, total count, Task detail              NestJS/PostgreSQL; cached by TanStack\nQuery\n\nURL state                 page, search, status, sort                       URL/searchParams\n\nForm state                title being edited, dirty fields, field errors   React Hook Form\n\nUI state                  mobile menu open, local dialog tab               React component\n\nWrong mental model                                           Better mental model\n\nfetch into useEffect                                     query describes remote data\n\ncopy response into useState                                      cache stores last result\n\nmanual loading flag                                      URL describes collection view\n\nmanual refresh everywhere                                     form owns unsaved input\n\nCache is not the database\nThe query cache is a performance and synchronization layer. It can become stale. It can be cleared. It\ncan be garbage collected. PostgreSQL remains authoritative. This means the application should be\ndesigned to tolerate refetching rather than treating cached objects as permanent local records.\n\nQueries versus mutations\nA query reads asynchronous data. A mutation performs a server-side effect such as create, update,\ndelete, approve or assign. A POST can technically be used as a query if it is only a read transport, but\nTaskFlow follows HTTP semantics and uses mutations for writes.\n\nDo not duplicate server state\n\nAvoid copying query.data into useState just to render it. Doing so creates two sources of truth and makes\nrefetches harder to reason about.",
+      "wordCount": 274,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Server State and Cache Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Server State and Cache Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Random query-key arrays scattered through components",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Server State and Cache Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Server State and Cache Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "queryclient-provider-and-important-defaults",
+      "title": "QueryClient Provider and Important Defaults",
+      "summary": "QueryClient, Provider and Important Defaults Install v5.103.1 and build a predictable cache boundary Phase 22 - TanStack Query Volume 06 - Professional Frontend Install the two Phase 22 packages cd apps/web pnpm add @tanstack/react-query@5.103.1 pnpm add -D @tanstack/react-query-devtools@5.103.1 Create one stable browser QueryClient The provider…",
+      "body": "QueryClient, Provider and\nImportant Defaults\nInstall v5.103.1 and build a predictable cache boundary\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nInstall the two Phase 22 packages\ncd apps/web\npnpm add @tanstack/react-query@5.103.1\npnpm add -D @tanstack/react-query-devtools@5.103.1\n\nCreate one stable browser QueryClient\nThe provider is a Client Component because QueryClientProvider uses React context. The rest of the\nApp Router tree does not become client-only merely because it is passed through this provider.\n\n// apps/web/src/lib/query/get-query-client.ts\nimport { environmentManager, QueryClient } from \"@tanstack/react-query\";\n\nfunction makeQueryClient() {\nreturn new QueryClient({\ndefaultOptions: {\nqueries: {\nstaleTime: 30_000,\nretry: 2,\n},\nmutations: { retry: 0 },\n},\n});\n}\n\nlet browserQueryClient: QueryClient | undefined;\n\nexport function getQueryClient() {\nif (environmentManager.isServer()) return makeQueryClient();\nif (!browserQueryClient) browserQueryClient = makeQueryClient();\nreturn browserQueryClient;\n}\n\n// apps/web/src/app/providers.tsx\n\"use client\";\n\nimport { QueryClientProvider } from \"@tanstack/react-query\";\nimport { ReactQueryDevtools } from \"@tanstack/react-query-devtools\";\nimport { getQueryClient } from \"@/lib/query/get-query-client\";\n\nexport function Providers({ children }: { children: React.ReactNode }) {\nconst queryClient = getQueryClient();\nreturn (\n<QueryClientProvider client={queryClient}>\n{children}\n<ReactQueryDevtools initialIsOpen={false} />\n</QueryClientProvider>\n);\n}\n\nWhy staleTime is not cache lifetime\n\nstaleTime controls when data is considered fresh. gcTime controls how long inactive query data\nremains before garbage collection. They answer different questions. TaskFlow starts with a modest\n30-second freshness window, then overrides it where the domain requires different behavior.\n\nCurrent v5 default to remember\n\nCached query data is stale by default unless staleTime is configured. Inactive queries are garbage-collected\nafter five minutes by default. Client queries retry failures three times by default, but TaskFlow deliberately\nstarts with a smaller retry budget.\n\nA default is a policy decision\nDo not copy staleTime values from another application. A stock-price dashboard, an HR directory and a\nstatic country list have different freshness expectations. Global defaults are baselines; individual\nqueries can override them when the domain requires it.\n\nSetting                      TaskFlow starting policy              Reason\n\nstaleTime                    30 seconds                            Avoid immediate duplicate refetch after\nhydration while keeping Tasks reasonably fresh\n\ngcTime                       library default                       No evidence yet that TaskFlow needs a different\ninactive-cache lifetime\n\nquery retry                  up to 2 selected transient failures   Avoid long retry loops while tolerating brief\ntransport faults\n\nmutation retry               0                                     Writes should not repeat automatically unless\nidempotency is designed",
+      "wordCount": 361,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain QueryClient Provider and Important Defaults in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “QueryClient Provider and Important Defaults” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying query data into useState/useEffect",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “QueryClient Provider and Important Defaults” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does QueryClient Provider and Important Defaults solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "query-keys-and-query-options",
+      "title": "Query Keys and Query Options",
+      "summary": "Query Keys and Query Options Design cache identity before writing hooks Phase 22 - TanStack Query Volume 06 - Professional Frontend A query key is the identity of cached data If two requests can return different data, they must not accidentally share the same key.…",
+      "body": "Query Keys and Query Options\nDesign cache identity before writing hooks\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nA query key is the identity of cached data\nIf two requests can return different data, they must not accidentally share the same key. TanStack\nQuery requires top-level array keys and hashes serializable key contents deterministically.\n\nexport const taskKeys = {\nall: [\"tasks\"] as const,\nlists: () => [...taskKeys.all, \"list\"] as const,\nlist: (query: TaskListQuery) =>\n[...taskKeys.lists(), query] as const,\ndetails: () => [...taskKeys.all, \"detail\"] as const,\ndetail: (id: string) => [...taskKeys.details(), id] as const,\n};\n\nVariables used by queryFn belong in the key\ntaskKeys.list({\npage: 2,\npageSize: 20,\nstatus: \"IN_PROGRESS\",\nsearch: \"payroll\",\n})\n\nPage, search, status, priority and sort affect the returned collection, so they belong in the list key. If\nyou omit one, the cache can return data produced under different inputs.\n\nUse queryOptions for reusable contracts\nimport { queryOptions } from \"@tanstack/react-query\";\n\nexport function taskListOptions(query: TaskListQuery) {\nreturn queryOptions({\nqueryKey: taskKeys.list(query),\nqueryFn: () => fetchTasks(query),\nstaleTime: 30_000,\n});\n}\n\nqueryOptions keeps the key and fetch function together. The same definition can later be used by\nuseQuery, prefetchQuery and cache operations.\n\nDo not put access tokens in query keys\n\nKeys are cache identifiers and debugging surfaces. Never include bearer tokens, refresh tokens, passwords or\nsecrets. Authentication is transport context, not data identity.\n\nPrefix invalidation\nThe key factory makes broad-but-targeted invalidation easy: invalidating taskKeys.lists() refreshes\nevery cached Task collection without also invalidating unrelated resources.",
+      "wordCount": 238,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Query Keys and Query Options in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Query Keys and Query Options” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Invalidating too broadly or not at all",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Query Keys and Query Options” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Query Keys and Query Options solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "usequery-freshness-retries-and-background-refetch",
+      "title": "useQuery Freshness Retries and Background Refetch",
+      "summary": "useQuery, Freshness, Retries and Background Refetch Read server state without recreating fetch lifecycle by hand Phase 22 - TanStack Query Volume 06 - Professional Frontend useQuery is a state machine for one remote dependency const tasksQuery = useQuery(taskListOptions(query)); if (tasksQuery.isPending) return <TaskListSkeleton />; if (tasksQuery.isError)…",
+      "body": "useQuery, Freshness, Retries and\nBackground Refetch\nRead server state without recreating fetch lifecycle by hand\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nuseQuery is a state machine for one remote\ndependency\nconst tasksQuery = useQuery(taskListOptions(query));\n\nif (tasksQuery.isPending) return <TaskListSkeleton />;\nif (tasksQuery.isError) return <TaskListError error={tasksQuery.error} />;\n\nreturn <TaskTable tasks={tasksQuery.data.data} />;\n\nPending is not the same as fetching\nSignal                           Meaning\n\nisPending                        No successful data is available yet\n\nisFetching                       A fetch is currently running, including background refetch\n\nisError                          The query reached an error result\n\ndataUpdatedAt                    When successful cached data last changed\n\nThis lets the page keep showing useful data during a background refresh instead of replacing the whole\ntable with a spinner.\n\nCached successful Tasks\n\nFreshness window expires\n\nWindow focus / mount / explicit invalidation\n\nBackground refetch\n\nUI keeps old data until replacement succeeds\n\nRetry policy should understand HTTP semantics\n\nfunction shouldRetry(failureCount: number, error: unknown) {\nif (error instanceof ApiClientError) {\nif ([400, 401, 403, 404, 409].includes(error.status)) return false;\n}\nreturn failureCount < 2;\n}\n\nRetrying an authorization failure does not create permission. Retrying malformed input does not fix it.\nTransient network and server failures are better retry candidates.\n\nBackground refresh is a feature\n\nDo not flash the whole page back to a first-load skeleton every time isFetching becomes true. A subtle refresh\nindicator can communicate activity while preserving the last successful result.\n\nThink in freshness transitions\nA successful query can be fresh, later become stale, remain visible while a refetch runs, and then\nreceive a newer successful value. Stale does not mean unusable. It means TanStack Query may seek a\nnewer answer according to its configured triggers.\n\nSituation                             What the user should usually see\n\nFirst visit, no cache                 Purposeful skeleton or pending state\n\nFresh cache                           Immediate data, no unnecessary request\n\nStale cache + refetch                 Existing table plus subtle refreshing feedback\n\nRefetch fails but old data exists     Keep useful data and offer retry\n\nNo data and final failure             Dedicated error state",
+      "wordCount": 321,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain useQuery Freshness Retries and Background Refetch in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “useQuery Freshness Retries and Background Refetch” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating staleTime as data lifetime/deletion",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “useQuery Freshness Retries and Background Refetch” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does useQuery Freshness Retries and Background Refetch solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "authenticated-task-queries-end-to-end",
+      "title": "Authenticated Task Queries End to End",
+      "summary": "Authenticated Task Queries End to End Connect query functions to the real protected NestJS API Phase 22 - TanStack Query Volume 06 - Professional Frontend Build an authenticated Task API client TanStack Query does not perform HTTP requests itself. The query function calls TaskFlow's existing…",
+      "body": "Authenticated Task Queries End\nto End\nConnect query functions to the real protected NestJS API\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nBuild an authenticated Task API client\nTanStack Query does not perform HTTP requests itself. The query function calls TaskFlow's existing\nauthenticated API client. This keeps authentication, error parsing and HTTP semantics outside React\ncomponents.\n\nexport async function fetchTasks(query: TaskListQuery) {\nconst params = new URLSearchParams();\nparams.set(\"page\", String(query.page));\nparams.set(\"pageSize\", String(query.pageSize));\nif (query.search) params.set(\"search\", query.search);\nif (query.status) params.set(\"status\", query.status);\nif (query.priority) params.set(\"priority\", query.priority);\n\nreturn authenticatedFetch<TaskPage>(\n`/tasks?${params.toString()}`,\n);\n}\n\nClient component reads cached server state\n\"use client\";\n\nexport function TasksScreen({ query }: { query: TaskListQuery }) {\nconst result = useQuery(taskListOptions(query));\n\nif (result.isPending) return <TaskListSkeleton />;\nif (result.isError) return <TaskListError error={result.error} />;\nif (result.data.data.length === 0) return <EmptyState />;\n\nreturn (\n<>\n{result.isFetching ? <span>Refreshing...</span> : null}\n<TaskTable tasks={result.data.data} />\n</>\n);\n}\n\nKeep the response shape typed\nexport type TaskPage = {\ndata: Task[];\nmeta: {\npage: number;\npageSize: number;\ntotalItems: number;\ntotalPages: number;\nhasPreviousPage: boolean;\nhasNextPage: boolean;\n};\n};\n\nOne API client, many consumers\n\nServer Components, TanStack Query hooks and form mutations should reuse the same transport contract where\npractical. Do not create a new fetch wrapper inside every component.\n\nPreserve the Phase 13 error contract\nThe API client should throw the structured ApiClientError created earlier, including status, stable error\ncode and requestId when available. TanStack Query stores that error as query state; it should not\nflatten every failure into a generic fetch string.\n\nTransport boundary checklist\nConcern                                   Owner\n\nAcquire current access token              Supabase auth helper\n\nAttach Authorization header               authenticatedFetch / API client\n\nVerify token                              NestJS AuthGuard\n\nParse non-2xx error envelope              API client\n\nCache successful response                 TanStack Query\n\nRender state                              React component",
+      "wordCount": 296,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Authenticated Task Queries End to End in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Authenticated Task Queries End to End” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Random query-key arrays scattered through components",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Authenticated Task Queries End to End” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Authenticated Task Queries End to End solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "pagination-filters-and-url-state",
+      "title": "Pagination Filters and URL State",
+      "summary": "Pagination, Filters and URL State Let URL state describe the collection while Query handles remote data Phase 22 - TanStack Query Volume 06 - Professional Frontend The URL still owns filters and page number TanStack Query should not replace the Phase 15/20 URL architecture. Search,…",
+      "body": "Pagination, Filters and URL State\nLet URL state describe the collection while Query handles remote data\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nThe URL still owns filters and page number\nTanStack Query should not replace the Phase 15/20 URL architecture. Search, status, sort and page are\nnavigational state. They belong in search parameters so the view remains refreshable, bookmarkable\nand shareable.\n\nURL: ?status=DONE&page=3\n\nNext.js searchParams\n\nnormalized TaskListQuery\n\ntaskKeys.list(query)\n\nTanStack Query cache entry\n\nNestJS collection API\n\nEvery page gets a separate cache entry\n[\"tasks\", \"list\", { page: 1, pageSize: 20, status: \"DONE\" }]\n[\"tasks\", \"list\", { page: 2, pageSize: 20, status: \"DONE\" }]\n\nKeep previous page visible during navigation\nimport { keepPreviousData, useQuery } from \"@tanstack/react-query\";\n\nconst result = useQuery({\n...taskListOptions(query),\nplaceholderData: keepPreviousData,\n});\n\nWhen the key changes from page 1 to page 2, the second page is a distinct query. keepPreviousData\nlets the previous successful result remain visible while the new page is fetched and exposes\nisPlaceholderData so Next can be disabled until the next page is known.\n\nReset page when filter identity changes\n\nIf a user is on page 8 and changes status or search, navigation should normally set page back to 1.\nThat remains URL logic, not cache logic.\n\nDo not make the key enormous by accident\n\nUse a normalized query object containing only values that affect the API response. Do not insert router objects,\nfunctions, class instances or access tokens into a query key.\n\nPrefetch the likely next page - only when justified\nOnce pagination is stable, TaskFlow can prefetch page N+1 when metadata says a next page exists.\nThis can make navigation feel instant. It is an optimization, not a correctness requirement, and should\nnot multiply requests for pages the user is unlikely to visit.\n\nif (result.data.meta.hasNextPage) {\nqueryClient.prefetchQuery(\ntaskListOptions({ ...query, page: query.page + 1 }),\n);\n}\n\nBecause the next page has its own query key, prefetching warms exactly that cache entry without\nreplacing the currently displayed page.",
+      "wordCount": 326,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "state",
+        "objectives": [
+          "Explain Pagination Filters and URL State in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this state concept.",
+          "Diagnose one representative state failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Pagination Filters and URL State matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "value",
+          "owner",
+          "lifetime",
+          "source of truth",
+          "consumer"
+        ],
+        "steps": [
+          "Restate the goal of “Pagination Filters and URL State” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: value → owner → lifetime → source of truth → consumer. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Classify before choosing a state tool",
+          "code": "API task rows       -> TanStack Query\nSearch/filter URL    -> URL/search params\nCreate form fields   -> React Hook Form\nDialog open/closed   -> local UI state\nAuthenticated user  -> auth/session state"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying query data into useState/useEffect",
+          "Change one assumption in the state example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Pagination Filters and URL State” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Pagination Filters and URL State solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the state boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "mutations-and-targeted-invalidation",
+      "title": "Mutations and Targeted Invalidation",
+      "summary": "Mutations and Targeted Invalidation Create and update remote state without manual refresh choreography Phase 22 - TanStack Query Volume 06 - Professional Frontend Writes belong in mutations export function useCreateTask() { const queryClient = useQueryClient(); return useMutation({ mutationFn: createTask, onSuccess: async () => { await…",
+      "body": "Mutations and Targeted\nInvalidation\nCreate and update remote state without manual refresh choreography\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nWrites belong in mutations\nexport function useCreateTask() {\nconst queryClient = useQueryClient();\n\nreturn useMutation({\nmutationFn: createTask,\nonSuccess: async () => {\nawait queryClient.invalidateQueries({\nqueryKey: taskKeys.lists(),\n});\n},\n});\n}\n\nA successful create means cached Task lists may now be stale. We do not need to manually discover\nevery rendered list and call refetch on it. We invalidate the relevant key family.\n\nUpdate mutation\nexport function useUpdateTask(taskId: string) {\nconst queryClient = useQueryClient();\n\nreturn useMutation({\nmutationFn: (input: UpdateTaskInput) => updateTask(taskId, input),\nonSuccess: async (saved) => {\nqueryClient.setQueryData(taskKeys.detail(taskId), saved);\nawait queryClient.invalidateQueries({ queryKey: taskKeys.lists() });\n},\n});\n}\n\nWhy invalidate instead of patching every list manually?\nTaskFlow lists can differ by status, priority, search, sort and page. A status update can move a record\nout of one list and into another. Manual patching is possible, but it is easy to create subtle cache\ninconsistencies. Phase 22 starts with targeted invalidation. Optimistic cache manipulation is\nintentionally deferred to Phase 25.\n\nMutation retry\nMutations default to zero retries, which is safer for writes because a retry can repeat a side effect\nunless the operation is known to be idempotent. TaskFlow keeps retry disabled until an operation\nexplicitly earns it.\n\nAwait invalidation when the UX depends on fresh data\n\nIf onSuccess returns the invalidateQueries promise, the mutation remains pending until the related active\nqueries have finished invalidation/refetch work. This can make “Save -> return to refreshed list” deterministic.\n\nInvalidation matrix\nMutation                        Detail cache                         List caches\n\nCreate Task                     Usually no existing detail key       Invalidate Task lists\n\nUpdate Task                     Set saved Task into its detail key   Invalidate lists because filters/sort\nmembership may change\n\nDelete Task                     Remove or invalidate detail          Invalidate lists\n\nStatus transition               Refresh detail if viewed             Invalidate lists; record may enter or leave\nfiltered pages\n\nThis is deliberately conservative. Phase 25 can optimize perceived latency with optimistic updates after\nrollback and concurrency hazards are understood.",
+      "wordCount": 322,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Mutations and Targeted Invalidation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Mutations and Targeted Invalidation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Mutations and Targeted Invalidation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Invalidating too broadly or not at all",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Mutations and Targeted Invalidation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Mutations and Targeted Invalidation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "react-hook-form-and-query-mutations",
+      "title": "React Hook Form and Query Mutations",
+      "summary": "React Hook Form and Query Mutations Connect Phase 21 forms without merging unrelated state systems Phase 22 - TanStack Query Volume 06 - Professional Frontend React Hook Form and TanStack Query have different jobs React Hook Form TanStack Query draft field values remote record cache…",
+      "body": "React Hook Form and Query\nMutations\nConnect Phase 21 forms without merging unrelated state systems\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nReact Hook Form and TanStack Query have different\njobs\nReact Hook Form                                     TanStack Query\n\ndraft field values                               remote record cache\n\ntouched / dirty fields                            mutation pending state\n\nfield validation errors                             server request result\n\nsubmit intent                                 related query invalidation\n\nPhase 21 already built reliable field behavior. Phase 22 changes only the network side of submission.\n\nconst updateTaskMutation = useUpdateTask(taskId);\n\nconst onSubmit = handleSubmit(async (values) => {\nclearErrors(\"root.server\");\ntry {\nconst saved = await updateTaskMutation.mutateAsync(toApiInput(values));\nreset(toFormValues(saved));\nrouter.push(\"/tasks\");\n} catch (error) {\nsetError(\"root.server\", {\ntype: \"server\",\nmessage: getSafeMessage(error),\n});\n}\n});\n\nWhich pending flag should disable Save?\nReact Hook Form has isSubmitting; TanStack mutation has isPending. If handleSubmit awaits\nmutateAsync, isSubmitting naturally covers the submission promise. The mutation state remains useful\nto other UI elements or extracted mutation components. Avoid inventing a third manual loading\nboolean.\n\nServer errors stay server errors\nA 409 business conflict should not be rewritten as a fake client-side Zod field rule. Keep validation\nresponsibilities honest: Zod handles input shape; the server can reject valid-shaped data because of\ncurrent business state.\n\nForm state is not cache state\n\nDo not bind every keystroke directly into queryClient.setQueryData. Unsaved form edits belong to the form until\nthe server accepts them.\n\nSubmission sequence\nUser presses Save\n\nReact Hook Form validates client schema\n\nmutateAsync sends accepted values\n\nNestJS validates, authorizes and applies rules\n\nMutation resolves with saved Task\n\nreset(saved values) + invalidate related queries\n\nIf any server step fails, the form retains the user's input. That is a better recovery experience than\nclearing the form merely because an HTTP request was attempted.",
+      "wordCount": 283,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "forms",
+        "objectives": [
+          "Explain React Hook Form and Query Mutations in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this forms concept.",
+          "Diagnose one representative forms failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "React Hook Form and Query Mutations matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "user input",
+          "form state",
+          "Zod validation",
+          "mutation",
+          "server feedback"
+        ],
+        "steps": [
+          "Restate the goal of “React Hook Form and Query Mutations” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: user input → form state → Zod validation → mutation → server feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Runtime schema + form state + server mutation",
+          "code": "const form = useForm<CreateTaskInput>({\n  resolver: zodResolver(CreateTaskSchema),\n  defaultValues: { title: \"\", priority: \"MEDIUM\" },\n});\n\nconst onSubmit = form.handleSubmit(values => mutate(values));"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating staleTime as data lifetime/deletion",
+          "Change one assumption in the forms example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “React Hook Form and Query Mutations” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does React Hook Form and Query Mutations solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the forms boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "next-js-app-router-prefetch-and-hydration",
+      "title": "Next.js App Router Prefetch and Hydration",
+      "summary": "Next.js App Router Prefetch and Hydration Keep server rendering while gaining a live client cache Phase 22 - TanStack Query Volume 06 - Professional Frontend Preserve Server Components with hydration A common migration mistake is adding useQuery directly to a page and converting the entire…",
+      "body": "Next.js App Router Prefetch and\nHydration\nKeep server rendering while gaining a live client cache\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nPreserve Server Components with hydration\nA common migration mistake is adding useQuery directly to a page and converting the entire route to a\nClient Component. Next.js App Router and TanStack Query can work together: the Server Component\ncan prefetch, dehydrate the cache, and a smaller Client Component can subscribe to the same query.\n\nNext.js Server Component\n\nrequest-scoped QueryClient\n\nprefetchQuery(taskListOptions)\n\ndehydrate(queryClient)\n\nHydrationBoundary\n\nClient TasksScreen useQuery\n\n// app/(app)/tasks/page.tsx - Server Component\nimport { dehydrate, HydrationBoundary } from \"@tanstack/react-query\";\nimport { getQueryClient } from \"@/lib/query/get-query-client\";\n\nexport default async function TasksPage({ searchParams }: PageProps) {\nconst query = normalizeTaskSearchParams(await searchParams);\nconst queryClient = getQueryClient();\n\nawait queryClient.prefetchQuery(taskListOptions(query));\n\nreturn (\n<HydrationBoundary state={dehydrate(queryClient)}>\n<TasksScreen query={query} />\n</HydrationBoundary>\n);\n}\n\nServer authentication context matters\n\nThe server-side query function must be able to forward the current Supabase access token to NestJS.\nThe browser query function can acquire the browser session token. Keep these transport details behind\nenvironment-appropriate API client helpers rather than making every component understand cookies\nand bearer headers.\n\nSet a non-zero staleTime for hydrated data\nWithout a freshness window, the client can immediately consider the hydrated result stale and refetch\nas soon as it mounts. The official App Router guidance recommends a staleTime above zero for this\npattern.\n\nData ownership warning\n\nAvoid rendering the same mutable query data independently in a Server Component and a Client Component if\nthe client can later refetch it. The two surfaces can drift. Prefer the Server Component as a preloader and the\nClient Component as the owner of data that will revalidate in the browser.\n\nDo not prefetch everything\nServer prefetch is most valuable for above-the-fold data that materially improves the first render.\nLow-priority panels can remain ordinary client queries. Prefetching every possible query increases\nserver work and hydration payload without necessarily improving the experience.\n\nData                                     Likely strategy\n\nPrimary Task table                       Server prefetch + hydrate\n\nTask detail needed for initial route     Prefetch detail\n\nHidden advanced panel                    Client query when opened\n\nRare admin diagnostics                   Fetch on demand",
+      "wordCount": 352,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "next",
+        "objectives": [
+          "Explain Next.js App Router Prefetch and Hydration in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this next concept.",
+          "Diagnose one representative next failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Next.js is useful only when you can explain what runs on the server, what crosses into the browser, and which route owns a user-visible state.",
+        "mentalModel": [
+          "route",
+          "Server Component",
+          "client boundary",
+          "request/data source",
+          "rendered UI"
+        ],
+        "steps": [
+          "Restate the goal of “Next.js App Router Prefetch and Hydration” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route → Server Component → client boundary → request/data source → rendered UI. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Small server/client boundary",
+          "code": "// app/tasks/page.tsx\nimport { TaskList } from \"./task-list\";\n\nexport default async function TasksPage() {\n  const tasks = await loadTasks();\n  return <TaskList initialTasks={tasks} />;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Random query-key arrays scattered through components",
+          "Change one assumption in the next example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Server/client mismatch",
+            "investigation": "Locate the first browser-only API or stateful hook and move the client boundary to the smallest component that needs it."
+          },
+          {
+            "symptom": "Route renders unexpected data",
+            "investigation": "Verify route params, fetch location, cache behavior, and the exact server response before changing JSX."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Next.js App Router Prefetch and Hydration” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Next.js App Router Prefetch and Hydration solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the next boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "authentication-cache-isolation-and-privacy",
+      "title": "Authentication Cache Isolation and Privacy",
+      "summary": "Authentication, Cache Isolation and Privacy Treat logout as a data-boundary event, not just a navigation action Phase 22 - TanStack Query Volume 06 - Professional Frontend Cached data can be sensitive A browser QueryClient can outlive individual route components. If user A signs out and…",
+      "body": "Authentication, Cache Isolation\nand Privacy\nTreat logout as a data-boundary event, not just a navigation action\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nCached data can be sensitive\nA browser QueryClient can outlive individual route components. If user A signs out and user B signs in\nwithout a full browser reload, stale cache entries must not become an accidental cross-account\ndisclosure.\n\nUser A loads authorized Tasks\n\nTasks stored in browser QueryCache\n\nUser A signs out\n\nqueryClient.clear()\n\nSupabase session cleared\n\nUser B starts with empty application cache\n\nexport async function signOutTaskFlow(queryClient: QueryClient) {\nawait supabase.auth.signOut({ scope: \"local\" });\nqueryClient.clear();\nwindow.location.assign(\"/sign-in\");\n}\n\nDo query keys need the user ID?\nSometimes tenant/user context belongs in a query key because it changes the requested resource.\nHowever, adding user IDs everywhere is not a substitute for clearing security-sensitive caches on auth\ntransitions. TaskFlow treats logout as a cache lifecycle boundary.\n\n401 handling\nA query that receives 401 should not retry repeatedly. The API client should surface an ApiClientError;\nretry policy returns false; the UI can start session recovery or redirect to sign-in. Authorization failures\n(403) should remain visible as permission outcomes, not auth-refresh loops.\n\nNever persist auth-bearing cache casually\n\nPhase 22 does not enable localStorage persistence for QueryCache. Persisting cached business data introduces\nprivacy, staleness and logout-cleanup responsibilities that should be justified by a concrete offline requirement.\n\nAccount-transition checklist\nEvent                                 Cache action\n\nLocal sign-out                        Clear QueryClient before or with redirect\n\nSession becomes invalid               Stop retries; recover auth; clear sensitive cache if identity is lost\n\nSwitch tenant/workspace               Scope request/key and invalidate obsolete scoped data\n\nSign in as another account            Start from a clean account-sensitive cache\n\nThis is a privacy boundary as much as a correctness rule. A stale cache must never become an\nalternate way to view data the current identity could not retrieve from the API.",
+      "wordCount": 310,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Authentication Cache Isolation and Privacy in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Authentication Cache Isolation and Privacy” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying query data into useState/useEffect",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Authentication Cache Isolation and Privacy” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Authentication Cache Isolation and Privacy solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "devtools-testing-and-debugging",
+      "title": "Devtools Testing and Debugging",
+      "summary": "Devtools, Testing and Debugging Learn to diagnose cache behavior instead of fighting it Phase 22 - TanStack Query Volume 06 - Professional Frontend Devtools make the invisible cache visible During development, React Query Devtools lets you inspect query keys, status, observers, freshness and cached data.…",
+      "body": "Devtools, Testing and Debugging\nLearn to diagnose cache behavior instead of fighting it\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nDevtools make the invisible cache visible\nDuring development, React Query Devtools lets you inspect query keys, status, observers, freshness\nand cached data. It is especially useful when a query “does not refetch” or “refetches too much.”\n\nDebug in this order\nSymptom                                   First questions\n\nWrong list appears                        Does queryKey include every input used by queryFn?\n\nRefetches constantly                      What is staleTime? Is focus refetch expected?\n\nMutation succeeds but UI old              Was the correct key family invalidated?\n\nPagination flashes empty                  Use placeholderData / keepPreviousData?\n\n401 repeats                               Is retry disabled for auth failures?\n\nDifferent user sees old data              Was QueryClient cleared on auth transition?\n\nTest the contract, not the library\nComponent tests should verify loading, success, error and mutation behavior. Query-option tests can\nverify key shape. End-to-end tests should prove a successful mutation eventually produces the correct\nserver-backed UI. Avoid writing tests that merely reproduce TanStack Query internals.\n\n// Example key-level assertion\nexpect(taskKeys.list({ page: 2, pageSize: 20 })).toEqual([\n\"tasks\",\n\"list\",\n{ page: 2, pageSize: 20 },\n]);\n\nUseful development checks\nOpen Devtools, navigate page 1 -> page 2 -> page 1 and observe cache reuse. Trigger a create\nmutation and observe list queries become invalidated. Refocus the browser after staleTime expires and\nwatch background fetching without losing the previous successful table.\n\nA cache bug usually starts as an identity bug\n\nWhen data looks unexpectedly shared or stale, inspect the query key before adding manual refetch calls.\nManual refetch often hides a poorly modeled key rather than fixing it.",
+      "wordCount": 260,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain Devtools Testing and Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “Devtools Testing and Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Invalidating too broadly or not at all",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Devtools Testing and Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Devtools Testing and Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab and Phase Exit Prove that you understand server-state ownership before moving on Phase 22 - TanStack Query Volume 06 - Professional Frontend Hands-on lab: migrate the Task collection Complete the lab in order. Do not start by copying the final snapshot. The goal…",
+      "body": "Hands-On Lab and Phase Exit\nProve that you understand server-state ownership before moving on\n\nPhase 22 - TanStack Query\nVolume 06 - Professional Frontend\n\nHands-on lab: migrate the Task collection\nComplete the lab in order. Do not start by copying the final snapshot. The goal is to feel which manual\nresponsibilities disappear as TanStack Query takes them over.\n\nLevel 1 - Provider\nInstall the locked packages, create getQueryClient(), mount QueryClientProvider, and confirm Devtools\ncan see an empty cache.\n\nLevel 2 - Read\nCreate taskKeys and taskListOptions. Replace the client-side manual fetch lifecycle with useQuery.\nVerify first load, cached navigation, background refetch and error UI.\n\nLevel 3 - Pagination\nDrive page/status/search from URL search parameters. Put the normalized query object into the key.\nUse keepPreviousData and verify page transitions no longer collapse into an empty loading state.\n\nLevel 4 - Mutations\nMove create and update network state to useMutation. Invalidate Task lists after successful writes. Do\nnot implement optimistic updates yet.\n\nLevel 5 - Production App Router\nPrefetch the current task-list query from the Server Component and hydrate it into TasksScreen.\nConfirm the first render contains data while the browser still owns later revalidation.\n\nSecurity verification\nLoad Task data as user A, sign out, clear the query cache, sign in as user B and verify no prior cached\nTask content is displayed.\n\nPhase exit checklist\nCheck                             Required result\n\nQuery key model                   Every fetch variable that changes data is represented\n\nCache freshness                   staleTime chosen intentionally, not accidentally\n\nMutation behavior                 writes use useMutation and targeted invalidation\n\nPagination                        URL owns page/filter state; cache owns server result\n\nSSR                               critical list can prefetch/hydrate without clientifying entire route\n\nAuth boundary                     cache cleared on logout/account transition\n\nCheck                             Required result\n\nNo premature feature              optimistic updates deferred to Phase 25\n\nExit criterion\n\nYou should be able to explain why a Task query refetched, why it did not refetch, which cache entry a page\nuses, and which queries a successful mutation invalidates without guessing.\n\nRequired evidence\nDo not mark the phase complete just because the page renders. Capture evidence showing two distinct\npagination keys, mutation-driven invalidation, background refetch that preserves the table, and an\nempty cache after logout.\n\nCommon mistakes to deliberately test\nMistake                                 Observed symptom\n\nOmit page from key                      Different pages reuse the wrong cache\n\nInvalidate only one exact page          Other Task list views stay stale\nafter create\n\nRetry 401 repeatedly                    Slow, noisy auth failure with no chance of success\n\nCreate QueryClient during every         Cache disappears unpredictably\nclient render\n\nCopy query.data into component          Refetched cache and local copy diverge\nstate",
+      "wordCount": 419,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating staleTime as data lifetime/deletion",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nUse TanStack Query as the owner of asynchronous server state with deliberate query keys, freshness, invalidation, mutations, and pagination behavior.",
+      "body": "Guided Build Lab — Phase 22: TanStack Query\n\nPurpose\nUse TanStack Query as the owner of asynchronous server state with deliberate query keys, freshness, invalidation, mutations, and pagination behavior.\n\nDeliverable\nTaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\ncomponent -> query key/options -> cache -> HTTP fetch -> server -> cache update/invalidation -> render\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Install/configure one QueryClient at the correct client boundary.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Define a query-key factory that includes every parameter affecting the result.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Move task-list fetching into query options and observe loading/error/success/cache states.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Add task detail query and prove list/detail caches are distinct.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Implement create/update mutations and choose between invalidation and direct cache updates deliberately.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Add pagination/filter URL state and inspect how query keys prevent cross-filter cache corruption.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 639,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Random query-key arrays scattered through components",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 22: TanStack Query\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\ncomponent -> query key/options -> cache -> HTTP fetch -> server -> cache update/invalidation -> render\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Random query-key arrays scattered through components\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Copying query data into useState/useEffect\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Invalidating too broadly or not at all\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Treating staleTime as data lifetime/deletion\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 444,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Copying query data into useState/useEffect",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 22 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — TanStack Query\n\nMission\nRebuild the capability of Phase 22 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nUse TanStack Query as the owner of asynchronous server state with deliberate query keys, freshness, invalidation, mutations, and pagination behavior.\n\nRequired artifact\nTaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain cache freshness vs garbage collection.\n• Can design stable keys.\n• Can reconcile mutations.\n• Can debug stale/wrong cache entries.\n\nIndependent build sequence\n1. Install/configure one QueryClient at the correct client boundary.\n2. Define a query-key factory that includes every parameter affecting the result.\n3. Move task-list fetching into query options and observe loading/error/success/cache states.\n4. Add task detail query and prove list/detail caches are distinct.\n5. Implement create/update mutations and choose between invalidation and direct cache updates deliberately.\n6. Add pagination/filter URL state and inspect how query keys prevent cross-filter cache corruption.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 369,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this query concept.",
+          "Diagnose one representative query failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TanStack Query is a server-state synchronization system, not merely a fetch helper. Cache identity, freshness, invalidation, and mutation semantics are the core model.",
+        "mentalModel": [
+          "component",
+          "query key",
+          "cache state",
+          "fetch/mutation",
+          "reconciliation"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: component → query key → cache state → fetch/mutation → reconciliation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Cache identity should mirror resource identity",
+          "code": "export const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters: TaskFilters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id: string) => [\"tasks\", \"detail\", id] as const,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Invalidating too broadly or not at all",
+          "Change one assumption in the query example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the query boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 16,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 22 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 22: TanStack Query. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nTaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 202,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "query",
+        "objectives": [
+          "Use TanStack Query as the owner of asynchronous server state with deliberate query keys, freshness, invalidation, mutations, and pagination behavior.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "component",
+          "query key/options",
+          "cache",
+          "HTTP fetch",
+          "server",
+          "cache update/invalidation",
+          "render"
+        ],
+        "steps": [
+          "Install/configure one QueryClient at the correct client boundary.",
+          "Define a query-key factory that includes every parameter affecting the result.",
+          "Move task-list fetching into query options and observe loading/error/success/cache states.",
+          "Add task detail query and prove list/detail caches are distinct.",
+          "Implement create/update mutations and choose between invalidation and direct cache updates deliberately.",
+          "Add pagination/filter URL state and inspect how query keys prevent cross-filter cache corruption.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain cache freshness vs garbage collection",
+          "Can design stable keys",
+          "Can reconcile mutations",
+          "Can debug stale/wrong cache entries"
+        ],
+        "breakIt": [
+          "Random query-key arrays scattered through components",
+          "Copying query data into useState/useEffect"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/QUERY_KEY_CATALOG.md",
+      "preview": "# TaskFlow query key catalog\n\n- [\"tasks\"] - Task resource family\n- [\"tasks\", \"list\", query] - one normalized collection view\n- [\"tasks\", \"detail\", taskId] - one Task detail\n\nRules:\n1. Include every variable used by queryFn that changes returned data.\n2. Keep keys JSON-serializable.\n3. Never include access/refresh tokens or secrets.\n4. Use prefixes for intentional invalidation families."
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/README.md",
+      "preview": "# TaskFlow Phase 22 reference snapshot\n\nThis snapshot demonstrates TanStack Query v5.103.1 integration with the existing Next.js App Router, Supabase-authenticated API client and NestJS Task API. It is a teaching reference, not a wholesale replacement for earlier phase files.\n\nKey rule: TanStack Query owns remote server-state lifecycle; URL state, form state, local UI state, authentication and backend business rules keep their existing owners."
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/package.phase22.json",
+      "preview": "{\n  \"dependencies\": {\n    \"@tanstack/react-query\": \"5.103.1\"\n  },\n  \"devDependencies\": {\n    \"@tanstack/react-query-devtools\": \"5.103.1\"\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/app/(app)/tasks/page.phase22.tsx",
+      "preview": "import { dehydrate, HydrationBoundary } from \"@tanstack/react-query\";\nimport { getQueryClient } from \"@/lib/query/get-query-client\";\nimport { taskListOptions } from \"@/lib/query/task-options\";\nimport { normalizeTaskSearchParams } from \"@/lib/tasks/normalize-task-search-params\";\nimport { TasksScreen } from \"@/components/tasks/tasks-screen\";\n\nexport default async function TasksPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {\n  const query = normalizeTaskSearchParams(await searchParams);\n  const queryClient = getQueryClient();\n  await queryClient.prefetchQuery(taskListOptions(query));\n\n  return (\n    <HydrationBoundary state={dehydrate(queryClient)}>\n      <TasksScreen query={query} />\n    </HydrationBoundary>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/app/providers.tsx",
+      "preview": "\"use client\";\n\nimport { QueryClientProvider } from \"@tanstack/react-query\";\nimport { ReactQueryDevtools } from \"@tanstack/react-query-devtools\";\nimport { getQueryClient } from \"@/lib/query/get-query-client\";\n\nexport function Providers({ children }: { children: React.ReactNode }) {\n  const queryClient = getQueryClient();\n  return (\n    <QueryClientProvider client={queryClient}>\n      {children}\n      <ReactQueryDevtools initialIsOpen={false} />\n    </QueryClientProvider>\n  );\n}"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/components/tasks/tasks-screen.tsx",
+      "preview": "\"use client\";\n\nimport { keepPreviousData, useQuery } from \"@tanstack/react-query\";\nimport { taskListOptions } from \"@/lib/query/task-options\";\nimport type { TaskListQuery } from \"@/lib/api/tasks\";\nimport { TaskTable } from \"./task-table\";\nimport { EmptyState } from \"@/components/ui/empty-state\";\n\nexport function TasksScreen({ query }: { query: TaskListQuery }) {\n  const result = useQuery({\n    ...taskListOptions(query),\n    placeholderData: keepPreviousData,\n  });\n\n  if (result.isPending) return <p>Loading tasks...</p>;\n  if (result.isError) return <p role=\"alert\">Unable to load tasks.</p>;\n  if (result.data.data.length === 0) return <EmptyState title=\"No tasks found\" />;\n\n  return (\n    <>"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/hooks/use-task-mutations.ts",
+      "preview": "\"use client\";\n\nimport { useMutation, useQueryClient } from \"@tanstack/react-query\";\nimport { createTask, updateTask, type CreateTaskInput, type UpdateTaskInput } from \"@/lib/api/task-mutations\";\nimport { taskKeys } from \"@/lib/query/task-keys\";\n\nexport function useCreateTask() {\n  const queryClient = useQueryClient();\n  return useMutation({\n    mutationFn: (input: CreateTaskInput) => createTask(input),\n    onSuccess: async () => {\n      await queryClient.invalidateQueries({ queryKey: taskKeys.lists() });\n    },\n  });\n}\n\nexport function useUpdateTask(taskId: string) {\n  const queryClient = useQueryClient();\n  return useMutation({\n    mutationFn: (input: UpdateTaskInput) => updateTask(taskId, input),"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/lib/auth/sign-out-with-cache-clear.ts",
+      "preview": "\"use client\";\n\nimport type { QueryClient } from \"@tanstack/react-query\";\nimport { createClient } from \"@/lib/supabase/client\";\n\nexport async function signOutWithCacheClear(queryClient: QueryClient) {\n  const supabase = createClient();\n  await supabase.auth.signOut({ scope: \"local\" });\n  queryClient.clear();\n  window.location.assign(\"/sign-in\");\n}"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/lib/query/get-query-client.ts",
+      "preview": "import { environmentManager, QueryClient } from \"@tanstack/react-query\";\nimport { ApiClientError } from \"@/lib/api/api-error\";\n\nfunction shouldRetry(failureCount: number, error: unknown) {\n  if (error instanceof ApiClientError && [400, 401, 403, 404, 409].includes(error.status)) {\n    return false;\n  }\n  return failureCount < 2;\n}\n\nfunction makeQueryClient() {\n  return new QueryClient({\n    defaultOptions: {\n      queries: { staleTime: 30_000, retry: shouldRetry },\n      mutations: { retry: 0 },\n    },\n  });\n}\n\nlet browserQueryClient: QueryClient | undefined;"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/lib/query/task-keys.ts",
+      "preview": "import type { TaskListQuery } from \"@/lib/api/tasks\";\n\nexport const taskKeys = {\n  all: [\"tasks\"] as const,\n  lists: () => [...taskKeys.all, \"list\"] as const,\n  list: (query: TaskListQuery) => [...taskKeys.lists(), query] as const,\n  details: () => [...taskKeys.all, \"detail\"] as const,\n  detail: (id: string) => [...taskKeys.details(), id] as const,\n};"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/apps/web/src/lib/query/task-options.ts",
+      "preview": "import { queryOptions } from \"@tanstack/react-query\";\nimport { fetchTask, fetchTasks, type TaskListQuery } from \"@/lib/api/tasks\";\nimport { taskKeys } from \"./task-keys\";\n\nexport function taskListOptions(query: TaskListQuery) {\n  return queryOptions({\n    queryKey: taskKeys.list(query),\n    queryFn: () => fetchTasks(query),\n    staleTime: 30_000,\n  });\n}\n\nexport function taskDetailOptions(id: string) {\n  return queryOptions({\n    queryKey: taskKeys.detail(id),\n    queryFn: () => fetchTask(id),\n    staleTime: 30_000,\n  });\n}"
+    },
+    {
+      "path": "reference/TaskFlow_TanStack_Query_Snapshot/tests/tanstack-query-test-matrix.md",
+      "preview": "# Phase 22 test matrix\n\n- First Task list visit -> pending state, then successful table.\n- Return to a still-fresh page -> cached data reused without unnecessary fetch.\n- Let staleTime expire, refocus window -> background refetch while table remains visible.\n- Change page -> URL changes, query key changes, previous page remains as placeholder while next loads.\n- Change search/status -> page resets to 1 and a distinct list key is used.\n- Create Task -> mutation succeeds, Task list key family invalidated, active list refreshes.\n- Update Task -> detail cache receives saved Task and list family invalidates.\n- 401/403/409 -> query/mutation does not loop retries.\n- User A sign-out -> queryClient.clear(); User B sign-in starts with no User A cached Task data.\n- Devtools -> keys show no bearer token or secret values."
+    }
+  ],
+  "exercises": [
+    "Guided: Install/configure one QueryClient at the correct client boundary.",
+    "Practice: Move task-list fetching into query options and observe loading/error/success/cache states.",
+    "Debugging: reproduce and diagnose — Random query-key arrays scattered through components.",
+    "Independent: deliver TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.",
+    "Explain-back: Can explain cache freshness vs garbage collection and Can design stable keys."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "TanStack Query owns asynchronous server state; it is not a replacement for every kind of React state.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "TanStack Query owns asynchronous server state; it is not a replacement for every kind of React state."
+    },
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Choose query keys that uniquely describe the data and parameters being cached.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Choose query keys that uniquely describe the data and parameters being cached."
+    },
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Invalidate or update the relevant cache after mutations so UI state converges with the server.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Invalidate or update the relevant cache after mutations so UI state converges with the server."
+    },
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Configure stale time and refetch behavior based on data freshness needs rather than copying defaults blindly."
+      ],
+      "answer": 3,
+      "explanation": "Configure stale time and refetch behavior based on data freshness needs rather than copying defaults blindly."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Install/configure one QueryClient at the correct client boundary.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Random query-key arrays scattered through components."
+      ],
+      "answer": 1,
+      "explanation": "Install/configure one QueryClient at the correct client boundary."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define a query-key factory that includes every parameter affecting the result.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Copying query data into useState/useEffect.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define a query-key factory that includes every parameter affecting the result."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Invalidating too broadly or not at all.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Move task-list fetching into query options and observe loading/error/success/cache states."
+      ],
+      "answer": 3,
+      "explanation": "Move task-list fetching into query options and observe loading/error/success/cache states."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Treating staleTime as data lifetime/deletion.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add task detail query and prove list/detail caches are distinct.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Add task detail query and prove list/detail caches are distinct."
+    }
+  ],
+  "lessonCount": 16,
+  "wordCount": 5416
+}

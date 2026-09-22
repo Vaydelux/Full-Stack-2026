@@ -1,0 +1,39 @@
+{
+  "number": 3,
+  "track": "f02-javascript",
+  "slug": "f02-javascript",
+  "title": "Build TaskFlow Lite in JavaScript",
+  "goal": "Turn the static page into a working task manager using only browser JavaScript so the language fundamentals are visible.",
+  "deliverables": [
+    "Create task",
+    "Toggle complete",
+    "Delete task",
+    "Search/filter",
+    "localStorage persistence",
+    "One async fetch exercise"
+  ],
+  "steps": [
+    "Model one task as a plain object, then create an array of tasks.",
+    "Write pure functions for creating, updating, filtering, and deleting tasks.",
+    "Render the array into the DOM and keep rendering separate from state-changing functions.",
+    "Wire form submit and button events to the state functions.",
+    "Add search and status filtering as derived values rather than duplicate state.",
+    "Persist tasks to localStorage and safely handle missing or malformed stored JSON.",
+    "Add an async request with `fetch`, loading/error handling, and cancellation.",
+    "Introduce one race or stale-result bug, then fix it deliberately.",
+    "Reload the page and prove all expected behavior still works."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

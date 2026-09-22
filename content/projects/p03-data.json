@@ -1,0 +1,40 @@
+{
+  "number": 9,
+  "track": "p03-data",
+  "slug": "p03-data",
+  "title": "Design the TaskFlow PostgreSQL Schema",
+  "goal": "Build and query the relational model directly in PostgreSQL before introducing the ORM.",
+  "deliverables": [
+    "Users/workspaces/tasks schema",
+    "constraints",
+    "sample data",
+    "joins/aggregates",
+    "transaction",
+    "index investigation",
+    "EXPLAIN ANALYZE evidence"
+  ],
+  "steps": [
+    "Create tables with deliberate data types and primary keys.",
+    "Add foreign keys plus NOT NULL, UNIQUE, and CHECK constraints where they express real invariants.",
+    "Insert realistic sample rows.",
+    "Write SELECT/WHERE/ORDER BY queries used by TaskFlow.",
+    "Write a JOIN showing task owner or workspace information.",
+    "Write an aggregate query for task counts by status.",
+    "Wrap a multi-row business change in a transaction and test rollback.",
+    "Create a candidate index for a real list query, then compare `EXPLAIN ANALYZE` before and after.",
+    "Explain which rules belong in PostgreSQL versus application code."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

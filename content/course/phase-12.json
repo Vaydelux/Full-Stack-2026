@@ -1,0 +1,1064 @@
+{
+  "number": 12,
+  "slug": "phase-12",
+  "title": "DTOs, Zod & Input Validation",
+  "volume": 4,
+  "readme": "FULL-STACK DEVELOPER 2026\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nThis phase continues Phase 11's persistent Task CRUD API.\nIt introduces NestJS 12 first-class Standard Schema validation with Zod 4.6.5.\n\nImportant course locks:\n- NestJS 12.0.3\n- Zod 4.6.5\n- Prisma 7.9.1\n\nStart with 00_Phase_12_Guide.pdf or read 11_Phase_12_Complete_Book.pdf.\nThe reference snapshot contains only Phase 12 changed files and assumes the Phase 11 project already exists.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "runtime-validation-mental-model",
+      "title": "Runtime Validation Mental Model",
+      "summary": "Runtime Validation Mental Model Why TypeScript types are not runtime validation and where trust boundaries belong Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone JSON crosses the network ↓ Schema validates at runtime ↓ Service applies business rules…",
+      "body": "Runtime Validation Mental Model\nWhy TypeScript types are not runtime validation and where trust boundaries belong\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nJSON crosses the network\n\n↓\n\nSchema validates at runtime\n\n↓\n\nService applies business rules\n\n↓\n\nDatabase enforces persistence constraints\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nStatic types are not a firewall\nA TypeScript annotation exists for the compiler and editor. By the time JSON arrives over HTTP, the sender is\nnot constrained by your TypeScript source code. Postman, PowerShell, a browser, a mobile app, or a malicious\ncaller can send any syntactically valid JSON value.\n\ntype CreateTaskInput = {\nprojectId: string;\ntitle: string;\n};\n\n// This type cannot stop a network caller from sending:\n{\n\"projectId\": 123,\n\"title\": false,\n\"admin\": true\n}\n\nFigure 1 - Trust boundary\nExternal caller\n\n↓\n\nHTTP / JSON\n\n↓\n\nRuntime validation boundary\n\n↓\n\nController receives validated value\n\n↓\n\nService applies business rules\n\n↓\n\nPrisma persists valid domain data\n\nValidation belongs at the system boundary because that is where untrusted external data enters trusted application code.\n\nValidation vs business rules vs database constraints\nQuestion                               Best first owner                         Example\n\nIs this input shaped correctly?        Validation schema                        title is a non-empty string\n\nIs this request allowed by the         Service/business logic                   assignee belongs to workspace\ndomain?\n\nMust this invariant hold for           Database constraint                      foreign key references a real Project\npersisted rows?\n\nStrong systems usually use all three layers. Validation is not a replacement for database constraints, and\ndatabase constraints are not a replacement for meaningful application rules.\n\nDTO does not have to mean class\nIn older NestJS examples, DTO usually means a class decorated with class-validator annotations. NestJS 12\nadds a first-class schema-first workflow. In this course, a DTO means the validated data shape crossing the\nHTTP boundary. We infer the TypeScript DTO type from the Zod schema instead of manually duplicating it in a\nclass.\n\nexport const createTaskSchema = z.strictObject({\nprojectId: z.uuid(),\ntitle: z.string().trim().min(1).max(200),\n});\n\nexport type CreateTaskDto =\nz.infer<typeof createTaskSchema>;\n\nOne source of truth\n\nThe schema is executable at runtime and also produces the TypeScript type. This removes a common source of drift\nwhere validation says one thing while a separately maintained interface says another.\n\nParsing may also transform\nValidation libraries can do more than return yes/no. Trimming, coercion, defaults, and transformations can\nchange the value that crosses the boundary. For that reason, think in terms of input -> parse -> validated\noutput rather than input -> boolean.\n\nFigure 2 - Parse lifecycle\nraw JSON value\n\n↓\n\nZod schema\n\n↓\n\nvalidated / transformed output\n\n↓\n\ncontroller parameter\n\nThe controller should operate on the parsed output, not on the raw body.",
+      "wordCount": 433,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Runtime Validation Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Runtime Validation Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Runtime Validation Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming TypeScript validates runtime JSON",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Runtime Validation Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Runtime Validation Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "zod-4-and-nestjs-12-standard-schema",
+      "title": "Zod 4 and NestJS 12 Standard Schema",
+      "summary": "Zod 4 + NestJS 12 Standard Schema Install Zod, lock the version, and use NestJS 12 built-in schema-first validation Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone Zod schema metadata ↓ StandardSchemaValidationPipe ↓ validated controller parameter Phase 12…",
+      "body": "Zod 4 + NestJS 12 Standard Schema\nInstall Zod, lock the version, and use NestJS 12 built-in schema-first validation\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nZod schema metadata\n\n↓\n\nStandardSchemaValidationPipe\n\n↓\n\nvalidated controller parameter\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nSTEP 1 - Install Zod in the API package\nZod belongs to apps/api because Phase 12 uses it to validate NestJS request inputs. Do not add it to the\nmonorepo root merely because multiple applications might use it someday.\n\nFrom taskflow\\apps\\api run:\n\npnpm add zod@4.6.5\n\nThen verify the package version from the same directory:\n\npnpm list zod\n\nCourse lock\n\nZod 4.6.5 is locked for this phase. If a newer patch appears later, keep the book series internally consistent unless\nthe course is intentionally upgraded.\n\nWhy Zod in this course?\n• Schema definitions execute at runtime.\n\n• The same schema can infer TypeScript types.\n\n• Zod implements the Standard Schema interface used by NestJS 12.\n\n• It works in Node.js and browsers, which gives us future reuse options without forcing shared packages today.\n\n• The API can express strict object boundaries, enums, UUIDs, string rules, nullable fields, and custom\nrefinements.\n\nNestJS 12 changed the recommended teaching path\nHistorically, many NestJS courses used class-validator + class-transformer or a custom ZodValidationPipe.\nThose approaches still exist. NestJS 12, however, added first-class Standard Schema support to route\nparameter decorators and a built-in StandardSchemaValidationPipe.\n\nApproach                                        Good fit                                 TaskFlow Phase 12\n\nValidationPipe + class-validator                Existing class-decorator DTO projects    Not selected\n\nCustom Zod pipe                                 Older Nest versions / special behavior   Not necessary\n\nStandardSchemaValidationPipe + Zod              Schema-first NestJS 12 projects          Selected\n\nSTEP 2 - Register validation globally\nThe route decorators will attach schema metadata. The global pipe is what actually validates that metadata\nbefore the controller handler runs.\n\nimport { StandardSchemaValidationPipe } from \"@nestjs/common\";\n\n// inside bootstrap()\napp.useGlobalPipes(new StandardSchemaValidationPipe());\n\nFigure 1 - NestJS validation position\n\nFastify receives request\n\n↓\n\nNest resolves route parameters\n\n↓\n\nStandardSchemaValidationPipe validates schema metadata\n\n↓\n\nController method is invoked\n\n↓\n\nService runs\n\nWhen schema validation fails, the controller method is not called.\n\nDo not validate twice\n\nOnce the schema is attached to @Body() or @Param() and the global StandardSchemaValidationPipe is registered,\ndo not immediately call createTaskSchema.parse(body) again inside the service. That would duplicate the boundary\nwork.",
+      "wordCount": 376,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Zod 4 and NestJS 12 Standard Schema in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Zod 4 and NestJS 12 Standard Schema matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Zod 4 and NestJS 12 Standard Schema” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating client and server validation rules without a sharing strategy",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Zod 4 and NestJS 12 Standard Schema” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Zod 4 and NestJS 12 Standard Schema solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "task-schemas-and-inferred-dtos",
+      "title": "Task Schemas and Inferred DTOs",
+      "summary": "Task Schemas & Inferred DTOs Create/update schemas, UUIDs, enums, nullable fields, strict objects, and DTO inference Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone field schemas ↓ request object schemas ↓ z.infer DTO types Phase 12 introduces an…",
+      "body": "Task Schemas & Inferred DTOs\nCreate/update schemas, UUIDs, enums, nullable fields, strict objects, and DTO\ninference\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nfield schemas\n\n↓\n\nrequest object schemas\n\n↓\n\nz.infer DTO types\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nCreate the Task schemas\nReplace the temporary tasks.types.ts idea from Phase 11 with a schema-first file. The schema is now the\nboundary contract; DTO types are inferred from it.\n\nimport { z } from \"zod\";\nimport {\nTaskPriority,\nTaskStatus,\n} from \"../generated/prisma/client\";\n\nconst taskTitleSchema = z\n.string()\n.trim()\n.min(1)\n.max(200);\n\nconst taskDescriptionSchema = z\n.string()\n.trim()\n.max(2000)\n.nullable();\n\nexport const taskIdSchema = z.uuid();\n\nexport const createTaskSchema = z.strictObject({\nprojectId: z.uuid(),\ntitle: taskTitleSchema,\ndescription: taskDescriptionSchema.optional(),\n});\n\nexport const updateTaskSchema = z\n.strictObject({\ntitle: taskTitleSchema.optional(),\ndescription: taskDescriptionSchema.optional(),\nstatus: z.enum(TaskStatus).optional(),\npriority: z.enum(TaskPriority).optional(),\n})\n.refine(\n(value) => Object.keys(value).length > 0,\n\"At least one updatable field must be provided.\",\n);\n\nexport type CreateTaskDto = z.infer<typeof createTaskSchema>;\nexport type UpdateTaskDto = z.infer<typeof updateTaskSchema>;\n\nWhy z.strictObject?\nA normal object schema can choose how to handle unknown keys. For API request bodies in this phase, we\ndeliberately reject unknown properties. This catches misspellings and prevents clients from assuming\nunsupported fields are accepted.\n\n{\n\"projectId\": \"...\",\n\"title\": \"Ship feature\",\n\"admin\": true\n}\n\n// strict object => reject \"admin\"\n\nReject vs strip\n\nSilently stripping unknown fields can be useful in some systems. TaskFlow chooses rejection at the API boundary\nbecause a 400 response exposes client mistakes early and makes the request contract explicit.\n\nTitle rules\n• string: callers cannot submit numbers, booleans, arrays, or objects as a title.\n\n• trim: whitespace at both ends is normalized before the service receives it.\n\n• min(1): a string containing only spaces becomes empty after trim and fails.\n\n• max(200): request payload size and domain expectations are bounded.\n\nNullable and optional are different\nShape                                           Meaning\n\ndescription omitted                             Client did not provide this field\n\ndescription: null                               Client explicitly clears / sets no description\n\ndescription: \"text\"                             Client supplies a description\n\nThis distinction becomes especially useful for PATCH semantics, where omitted means “do not change” while\nnull can mean “clear the current value.”\n\nEnums come from the generated domain model\nTaskStatus and TaskPriority are imported from the generated Prisma client so the validation vocabulary\nremains aligned with the domain enum vocabulary already used by persistence.\n\nUpdate schema: all fields optional, empty object forbidden\nPATCH should permit any supported subset of fields, but an empty update does not express a meaningful\nchange. The refine rule makes that contract explicit.\n\n.refine(\n(value) => Object.keys(value).length > 0,\n\"At least one updatable field must be provided.\",\n);",
+      "wordCount": 439,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Task Schemas and Inferred DTOs in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Task Schemas and Inferred DTOs matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Task Schemas and Inferred DTOs” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Putting database existence checks into pure syntax schemas",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Task Schemas and Inferred DTOs” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Task Schemas and Inferred DTOs solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "controller-integration-and-validation-pipeline",
+      "title": "Controller Integration and Validation Pipeline",
+      "summary": "Controller Integration & Validation Pipeline Attach schemas to @Body and @Param and keep controllers/services focused Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone Fastify request ↓ Nest parameter extraction ↓ schema validation ↓ controller ↓ service Phase 12…",
+      "body": "Controller Integration & Validation\nPipeline\nAttach schemas to @Body and @Param and keep controllers/services focused\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nFastify request\n\n↓\n\nNest parameter extraction\n\n↓\n\nschema validation\n\n↓\n\ncontroller\n\n↓\n\nservice\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nAttach schemas to controller parameters\nNestJS 12 route parameter decorators can carry Standard Schema metadata. The controller remains concise\nbecause validation is declared where the data enters the handler.\n\nimport {\nBody,\nController,\nDelete,\nGet,\nHttpCode,\nHttpStatus,\nParam,\nPatch,\nPost,\n} from \"@nestjs/common\";\nimport { TasksService } from \"./tasks.service\";\nimport {\ncreateTaskSchema,\nCreateTaskDto,\ntaskIdSchema,\nupdateTaskSchema,\nUpdateTaskDto,\n} from \"./tasks.schemas\";\n\n@Controller(\"tasks\")\nexport class TasksController {\nconstructor(private readonly tasksService: TasksService) {}\n\n@Post()\ncreate(\n@Body({ schema: createTaskSchema }) body: CreateTaskDto,\n) {\nreturn this.tasksService.create(body);\n}\n\n@Get()\nfindAll() {\nreturn this.tasksService.findAll();\n}\n\n@Get(\":id\")\nfindOne(\n@Param(\"id\", { schema: taskIdSchema }) id: string,\n) {\nreturn this.tasksService.findOne(id);\n}\n\n@Patch(\":id\")\nupdate(\n@Param(\"id\", { schema: taskIdSchema }) id: string,\n@Body({ schema: updateTaskSchema }) body: UpdateTaskDto,\n) {\nreturn this.tasksService.update(id, body);\n}\n\n@Delete(\":id\")\n@HttpCode(HttpStatus.NO_CONTENT)\nasync remove(\n@Param(\"id\", { schema: taskIdSchema }) id: string,\n) {\nawait this.tasksService.remove(id);\n}\n}\n\nRead the create route in English\n\n@Post()\ncreate(\n@Body({ schema: createTaskSchema }) body: CreateTaskDto,\n) {\nreturn this.tasksService.create(body);\n}\n\n• @Post() maps POST /tasks.\n\n• @Body(...) extracts the JSON body.\n\n• schema: createTaskSchema attaches the runtime contract.\n\n• the global StandardSchemaValidationPipe parses the value before the method runs.\n\n• CreateTaskDto documents the validated output type at compile time.\n\n• TasksService receives already validated request shape data.\n\nPath parameters need validation too\nHTTP path parameters arrive as strings. A malformed task identifier should be rejected before Prisma receives\na query for it.\n\n@Get(\":id\")\nfindOne(\n@Param(\"id\", { schema: taskIdSchema }) id: string,\n) {\nreturn this.tasksService.findOne(id);\n}\n\nFigure 1 - Invalid UUID short-circuit\nGET /tasks/not-a-uuid\n\n↓\n\ntaskIdSchema fails\n\n↓\n\n400 Bad Request\n\n↓\n\nTasksService is not called\n\n↓\n\nPrisma is not queried\n\nValidation reduces unnecessary database work and creates a clearer client error.\n\nThe service becomes simpler\nThe service no longer needs to defend against “title is a boolean” or “projectId is an object.” Its remaining\nresponsibilities are business/application behavior and persistence orchestration.\n\nBoundary concern                                Owner after Phase 12\n\nJSON shape / primitive type                     Zod schema\n\nUUID syntax                                     Zod schema\n\nTask status vocabulary                          Zod schema\n\nDoes Project actually exist?                    TasksService\n\nDoes Task actually exist?                       TasksService / Prisma error mapping\n\nForeign key integrity                           PostgreSQL",
+      "wordCount": 384,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Controller Integration and Validation Pipeline in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Controller Integration and Validation Pipeline” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Accepting arbitrary unknown keys into persistence calls",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Controller Integration and Validation Pipeline” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Controller Integration and Validation Pipeline solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "create-task-validation",
+      "title": "Create Task Validation",
+      "summary": "Create Task Validation Validate POST bodies before Project lookup or Prisma persistence Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone POST /tasks ↓ createTaskSchema ↓ service Project check ↓ Prisma create Phase 12 introduces an explicit runtime validation…",
+      "body": "Create Task Validation\nValidate POST bodies before Project lookup or Prisma persistence\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nPOST /tasks\n\n↓\n\ncreateTaskSchema\n\n↓\n\nservice Project check\n\n↓\n\nPrisma create\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nPOST /tasks - validate before creating\nThe create endpoint is an ideal place to see the validation boundary because it accepts multiple fields and then\nperforms a real parent-existence business check.\n\nFigure 1 - Valid create request\nPOST JSON\n\n↓\n\ncreateTaskSchema parses\n\n↓\n\nTasksController.create\n\n↓\n\nTasksService verifies Project\n\n↓\n\nPrisma INSERT\n\n↓\n\n201 Created\n\nInput validation is first; business validation and persistence follow.\n\nValid request\n{\n\"projectId\": \"3d9c5d68-4d2f-4db0-a48a-48b5adf0988b\",\n\"title\": \" Validate TaskFlow input \",\n\"description\": \"Schema-first validation\"\n}\n\nThe title received by the service is trimmed because the Zod schema produces the parsed output.\n\nInvalid: blank title\n{\n\"projectId\": \"3d9c5d68-4d2f-4db0-a48a-48b5adf0988b\",\n\"title\": \"     \"\n}\n\nFigure 2 - Blank-title failure\nraw body\n\n↓\n\ntrim title\n\n↓\n\nempty string\n\n↓\n\nmin(1) fails\n\n↓\n\n400 response\n\nThe Project lookup never runs because shape validation fails earlier.\n\nInvalid: malformed projectId\n{\n\"projectId\": \"project-123\",\n\"title\": \"Should not reach the service\"\n}\n\nThis fails UUID syntax validation. That is different from a syntactically valid UUID that simply does not identify\nan existing Project; the latter reaches TasksService and becomes a Project-not-found business result.\n\nInvalid: unknown property\n{\n\"projectId\": \"3d9c5d68-4d2f-4db0-a48a-48b5adf0988b\",\n\"title\": \"Should fail\",\n\"admin\": true\n}\n\nWhy this matters\n\nStrict request schemas make accidental contract expansion visible. They also stop a client from believing arbitrary\nextra fields influence server behavior.\n\nPowerShell testing\nA browser UI is not required to prove the boundary. Keep testing the backend independently.\n\n$body = @{\nprojectId = \"<PROJECT-ID>\"\ntitle = \"Validated from PowerShell\"\n} | ConvertTo-Json\n\nInvoke-RestMethod `\n-Method Post `\n-Uri \"http://localhost:4000/tasks\" `\n-ContentType \"application/json\" `\n-Body $body",
+      "wordCount": 274,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Create Task Validation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Create Task Validation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Create Task Validation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming TypeScript validates runtime JSON",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Create Task Validation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Create Task Validation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "update-task-validation",
+      "title": "Update Task Validation",
+      "summary": "Update Task Validation PATCH semantics, optional fields, nullable values, enums, and empty-update rejection Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone PATCH body ↓ updateTaskSchema ↓ service ↓ Prisma update Phase 12 introduces an explicit runtime validation boundary…",
+      "body": "Update Task Validation\nPATCH semantics, optional fields, nullable values, enums, and empty-update\nrejection\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nPATCH body\n\n↓\n\nupdateTaskSchema\n\n↓\n\nservice\n\n↓\n\nPrisma update\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nPATCH /tasks/:id - partial updates have different\nsemantics\nCreate and update inputs are related but not identical. POST requires the fields needed to create a new Task.\nPATCH represents a partial change to an existing Task.\n\nField                                 POST create                        PATCH update\n\nprojectId                             required                           not editable in this phase\n\ntitle                                 required                           optional\n\ndescription                           optional                           optional / nullable\n\nstatus                                defaulted by DB/domain             optional enum update\n\npriority                              defaulted by DB/domain             optional enum update\n\nValid partial update\n{\n\"status\": \"IN_PROGRESS\",\n\"priority\": \"HIGH\"\n}\n\nInvalid enum\n{\n\"status\": \"ALMOST_DONE\"\n}\n\nThe API vocabulary is the domain enum. A typo or invented state should be rejected before Prisma receives it.\n\nEmpty PATCH body\n{}\n\nEvery property is optional, but the object itself must contain at least one supported field. The refinement rule\nrejects a no-op PATCH.\n\nClearing a nullable field\n{\n\"description\": null\n}\n\nBecause null is explicitly allowed, this request means “clear the description.” Omitting description means “leave\nthe current description unchanged.”\n\nWhy not derive update with .partial() blindly?\nZod can derive a partial object, and that is useful. But update contracts often diverge from create contracts:\nimmutable fields may disappear, different fields may become editable, and empty updates may need rejection.\nExplicit update schemas can be easier to reason about in business APIs.\n\nDesign principle\n\nPrefer a schema that expresses the real HTTP contract over maximum schema cleverness. Reuse small field\nschemas such as taskTitleSchema when it improves consistency without hiding meaning.",
+      "wordCount": 276,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Update Task Validation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Update Task Validation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Update Task Validation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating client and server validation rules without a sharing strategy",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Update Task Validation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Update Task Validation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "path-query-and-unknown-field-validation",
+      "title": "Path Query and Unknown Field Validation",
+      "summary": "Path, Query & Unknown-Field Validation UUID parameters, query coercion mental model, strict objects, and layered boundary defense Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone path/query/body input ↓ schema policy ↓ validated values Phase 12 introduces an explicit…",
+      "body": "Path, Query & Unknown-Field\nValidation\nUUID parameters, query coercion mental model, strict objects, and layered boundary\ndefense\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\npath/query/body input\n\n↓\n\nschema policy\n\n↓\n\nvalidated values\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nValidate every external entry point deliberately\nRequest bodies are only one input source. Path parameters, query strings, headers, and eventually uploaded\nfiles all cross trust boundaries. The validation technique depends on the input and phase.\n\nUUID path parameters\nexport const taskIdSchema = z.uuid();\n\n@Param(\"id\", { schema: taskIdSchema }) id: string\n\nThe same schema is reused by GET, PATCH, and DELETE, making the route contract consistent.\n\nQuery parameters arrive as strings\nWe intentionally postpone the full Task filtering API until Phase 15, but the mental model starts here. A URL\nsuch as ?page=2 still enters as text. If the handler wants a number, the schema must coerce or parse it\nintentionally.\n\nconst pageSchema = z.coerce.number().int().positive();\n\n// \"2\" -> 2\n// \"banana\" -> validation failure\n\nTransformation needs intention\n\nCoercion is convenient, but do not coerce every malformed input into something valid. Decide which representations\nyour API deliberately accepts.\n\nUnknown fields: reject, strip, or preserve?\nPolicy                       Behavior                            When it can make sense\n\nReject                       400 on unexpected property          Strict APIs, catch client mistakes early\n\nStrip                        Remove unknown properties           Compatibility-oriented form payloads\n\nPreserve                     Keep extras                         Extensible metadata contracts\n\nTaskFlow Phase 12 chooses reject for write DTOs using z.strictObject. This is a contract choice, not a\nuniversal law.\n\nPrototype pollution and framework boundaries\nNestJS itself includes protections around request transformation and dangerous prototype keys. Validation still\nmatters because security hardening and semantic correctness are different concerns: “this object cannot\npoison a prototype” does not mean “this is a valid Task request.”\n\nFigure 1 - Layered boundary defense\nHTTP framework parsing\n\n↓\n\nframework safety checks\n\n↓\n\nschema validation\n\n↓\n\nbusiness authorization/rules later\n\n↓\n\ndatabase constraints\n\nSecurity and correctness come from layered controls, not one magical validator.",
+      "wordCount": 324,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Path Query and Unknown Field Validation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Path Query and Unknown Field Validation matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Path Query and Unknown Field Validation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Putting database existence checks into pure syntax schemas",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Path Query and Unknown Field Validation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Path Query and Unknown Field Validation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "validation-errors-testing-and-debugging",
+      "title": "Validation Errors Testing and Debugging",
+      "summary": "Validation Errors, Testing & Debugging Diagnose failures by layer and prove malformed input never reaches persistence Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone invalid request ↓ validation failure ↓ 400 response Phase 12 introduces an explicit runtime…",
+      "body": "Validation Errors, Testing & Debugging\nDiagnose failures by layer and prove malformed input never reaches persistence\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\ninvalid request\n\n↓\n\nvalidation failure\n\n↓\n\n400 response\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nWhat a validation failure should mean\nAt this phase, invalid request shape should produce a client error before business logic executes. We keep\nNestJS's framework-provided validation response rather than designing a custom enterprise error envelope\nprematurely; Phase 13 will standardize application errors.\n\nFigure 1 - Error ownership\nMalformed input\n\n↓\n\nStandardSchemaValidationPipe\n\n↓\n\n400 Bad Request\n\n↓\n\nclient fixes request\n\nShape errors are client contract failures, not database failures.\n\nDo not expose raw database errors for input mistakes\nIf a malformed enum reaches Prisma and Prisma rejects it, the architecture has already allowed invalid external\ndata too far into the system. The client should learn about contract errors at the boundary, not from persistence\ninternals.\n\nDiagnostic sequence\nSymptom                                                    First question\n\nInvalid body still reaches service                         Is the global StandardSchemaValidationPipe registered?\n\nSchema seems ignored                                       Did @Body/@Param attach schema metadata?\n\nValid request fails                                        Which exact Zod issue failed?\n\nUnknown field is accepted                                  Did you use a strict object schema?\n\nPATCH {} succeeds                                          Did the update schema refine against empty objects?\n\nUUID validation fails for real IDs                         Does the persisted ID format match the schema?\n\nTesting malformed requests systematically\n• missing required field\n\n• wrong primitive type\n\n• blank string after trimming\n\n• string above maximum length\n\n• invalid UUID\n\n• invalid enum member\n\n• unknown property\n\n• empty PATCH object\n\n• valid null for a nullable field\n\n• fully valid request still persists\n\nRepresentative request matrix\nRequest                                         Expected layer                      Expected outcome\n\nPOST title=false                                schema                              400\n\nPOST projectId=bad-uuid                         schema                              400\n\nPOST valid UUID but Project missing             service                             404\n\nGET /tasks/not-a-uuid                           schema                              400\n\nGET /tasks/                                     service                             404\n\nPATCH {}                                        schema                              400\n\nPATCH status=ALMOST_DONE                        schema                              400\n\nPATCH status=DONE                               service/Prisma                      success if Task exists\n\n400 and 404 tell different stories\n\n400 says the request does not satisfy the endpoint contract. 404 says the request was structurally valid, but the\nreferenced application resource was not found.",
+      "wordCount": 345,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Validation Errors Testing and Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Validation Errors Testing and Debugging matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Validation Errors Testing and Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Accepting arbitrary unknown keys into persistence calls",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Validation Errors Testing and Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Validation Errors Testing and Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "shared-schemas-and-boundary-design",
+      "title": "Shared Schemas and Boundary Design",
+      "summary": "Shared Schemas & Boundary Design When to share validation, why transport schemas are not Prisma models, and avoiding premature packages Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone API transport contract ↓ application/domain rules ↓ persistence model Phase…",
+      "body": "Shared Schemas & Boundary Design\nWhen to share validation, why transport schemas are not Prisma models, and\navoiding premature packages\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\nAPI transport contract\n\n↓\n\napplication/domain rules\n\n↓\n\npersistence model\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nShould Zod schemas be shared with Next.js now?\nZod can run in both Node.js and browsers, so it is tempting to immediately move every schema into\npackages/validators. That may eventually be useful, but Phase 12 does not create a shared package merely\nbecause sharing is possible.\n\nQuestion                                                         If yes...\n\nDoes the frontend need exactly the same request contract?        A shared schema may reduce drift.\n\nDoes moving the schema create package/build complexity now?      Keep it API-local until the benefit is concrete.\n\nDoes the backend schema import server-only generated Prisma      Avoid shipping server coupling into a browser package.\ncode?\n\nWould a shared transport schema be stable across clients?        Shared validation may become valuable.\n\nOur current task schemas import generated Prisma enums. That is convenient inside the API but is also a\nsignal that blindly exporting the file to a browser package could couple frontend code to backend persistence\ngeneration.\n\nA future shared-contract direction\nFigure 1 - Possible later evolution\npackages/validators: transport-only schemas\n\n↓\n\napps/web imports browser-safe request schema\n\n↓\n\napps/api imports same transport schema\n\n↓\n\nNestJS service maps validated transport data to domain/persistence\n\nShare a contract because multiple consumers genuinely need it, not because the monorepo has a packages folder.\n\nValidation schema is not your database model\nA transport schema describes what an API caller may send. Prisma schema describes durable relational\nstructure. They overlap, but they should not be treated as identical artifacts.\n\nTransport/API concern                                        Database concern\n\ntitle max length policy                                      column type / persisted value\n\nunknown request keys                                         not applicable to row schema\n\nPATCH omits unchanged field                                  UPDATE operation semantics\n\nprojectId must be UUID text                                  foreign key relation must reference existing Project\n\nArchitecture rule\n\nDo not make the frontend speak Prisma. Do not make Prisma schema the HTTP API. Let each boundary have the\nrepresentation that matches its responsibility.\n\nAvoid validation duplication inside service methods\nOnce a service is only callable through validated controllers, it can often assume transport shape correctness.\nBut service methods may later be reused by jobs, CLI tools, tests, or internal workflows. At that point, decide\nwhether those callers need their own validated boundary or a stronger domain-level invariant. Do not simply\nsprinkle schema.parse() everywhere.",
+      "wordCount": 416,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Shared Schemas and Boundary Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Shared Schemas and Boundary Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming TypeScript validates runtime JSON",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Shared Schemas and Boundary Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Shared Schemas and Boundary Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "hands-on-lab-and-phase-exit",
+      "title": "Hands On Lab and Phase Exit",
+      "summary": "Hands-On Lab & Phase Exit Request matrix, exercises, oral exam, and completion checklist Phase 12 - DTOs, Zod & Input Validation Volume 04 - Professional Backend Architecture milestone install ↓ wire ↓ test invalid inputs ↓ verify persistence ↓ explain architecture Phase 12 introduces an…",
+      "body": "Hands-On Lab & Phase Exit\nRequest matrix, exercises, oral exam, and completion checklist\n\nPhase 12 - DTOs, Zod & Input Validation\nVolume 04 - Professional Backend\n\nArchitecture milestone\ninstall\n\n↓\n\nwire\n\n↓\n\ntest invalid inputs\n\n↓\n\nverify persistence\n\n↓\n\nexplain architecture\n\nPhase 12 introduces an explicit runtime validation boundary before controller and service logic.\n\nHands-on lab\nComplete the lab against the running Phase 11 TaskFlow API. The goal is not only to make valid requests\nsucceed; you must prove invalid data is rejected at the intended layer.\n\nLab A - Install and wire validation\n• From apps/api install zod@4.6.5.\n\n• Register StandardSchemaValidationPipe globally in main.ts.\n\n• Create tasks.schemas.ts.\n\n• Remove the temporary tasks.types.ts once controller/service imports have been migrated.\n\n• Build the API before running it.\n\nLab B - Create schema tests\nPayload                                                                 Expected\n\nvalid projectId + title                                                 201\n\nmissing title                                                           400\n\ntitle with only spaces                                                  400\n\ntitle > 200 chars                                                       400\n\nprojectId not UUID                                                      400\n\nunknown admin field                                                     400\n\nvalid UUID for missing Project                                          404\n\nLab C - Update schema tests\nPayload                                                                 Expected\n\n{\"status\":\"DONE\"}                                                       success for existing Task\n\n{\"status\":\"ALMOST_DONE\"}                                                400\n\n{\"description\":null}                                                    success; clear description\n\n{}                                                                      400\n\n{\"projectId\":\"...\"}                                                     400 unknown field\n\nLab D - Path parameter tests\n• GET /tasks/not-a-uuid should return 400 without querying the service for a Task.\n\n• GET /tasks/ should pass validation and then return 404 from application logic.\n\n• PATCH and DELETE should apply the same UUID contract.\n\nExercise levels\n\nLevel                     Challenge\n\n1 - Follow                Reproduce the reference schemas exactly and pass the matrix.\n\n2 - Modify                Lower title max length temporarily and observe the boundary behavior, then restore it.\n\n3 - Implement             Add a validated dueAt transport field with an intentional accepted format; map it safely into the service.\n\n4 - Engineer              Design whether TaskFlow should reject or strip unknown fields in public API v1, and defend the decision\nwith compatibility and debugging trade-offs.\n\nArchitecture oral exam\n• Why can a TypeScript interface not validate JSON arriving over HTTP?\n\n• What does StandardSchemaValidationPipe do, and what does the route decorator schema option do?\n\n• Why does a valid UUID for a missing Project become 404 rather than 400?\n\n• What is the semantic difference between omitted description and description: null in PATCH?\n\n• Why should TaskFlow not automatically move all Zod schemas into packages/validators today?\n\n• Which layer should verify that an assignee belongs to the same Workspace as the Task?\n\nPhase exit checklist\n• zod is installed and locked at 4.6.5.\n\n• global StandardSchemaValidationPipe is active.\n\n• create/update/path schemas are attached to controller inputs.\n\n• unknown body fields are rejected.\n\n• valid data still persists through Prisma.\n\n• invalid shape does not reach TasksService.\n\n• API build passes.\n\n• you can explain validation vs business rule vs database constraint without looking at the book.\n\nFigure 1 - Phase 12 complete architecture\nUntrusted HTTP input\n\n↓\n\nZod / Standard Schema validation\n\n↓\n\nTasksController\n\n↓\n\nTasksService\n\n↓\n\nPrismaService\n\n↓\n\nSupabase PostgreSQL\n\nTaskFlow now has a clean request-shape boundary before application logic.\n\nNext phase\n\nPhase 13 will make errors professional across the whole API: consistent error structure, exception boundaries,\nPrisma conflict translation, request correlation, and what should or should not be exposed to clients.",
+      "wordCount": 499,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Hands On Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating client and server validation rules without a sharing strategy",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nValidate untrusted input with Zod and DTO/boundary patterns while keeping transport validation distinct from business rules.",
+      "body": "Guided Build Lab — Phase 12: DTOs, Zod & Input Validation\n\nPurpose\nValidate untrusted input with Zod and DTO/boundary patterns while keeping transport validation distinct from business rules.\n\nDeliverable\nReusable create/update/query schemas integrated into NestJS request handling with useful validation errors.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nuntrusted JSON/query -> schema parse -> typed validated value -> business rules -> persistence\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Integrate validation at the NestJS boundary before the service receives data.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Create a partial update schema carefully and reason about omitted vs nullable fields.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Validate query parameters such as page size/sort values instead of trusting strings.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Send malformed requests and verify the error contract is actionable but does not expose internals.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 643,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Putting database existence checks into pure syntax schemas",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 12: DTOs, Zod & Input Validation\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nuntrusted JSON/query -> schema parse -> typed validated value -> business rules -> persistence\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Assuming TypeScript validates runtime JSON\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Duplicating client and server validation rules without a sharing strategy\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Putting database existence checks into pure syntax schemas\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Accepting arbitrary unknown keys into persistence calls\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 450,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Accepting arbitrary unknown keys into persistence calls",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 12 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — DTOs, Zod & Input Validation\n\nMission\nRebuild the capability of Phase 12 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nValidate untrusted input with Zod and DTO/boundary patterns while keeping transport validation distinct from business rules.\n\nRequired artifact\nReusable create/update/query schemas integrated into NestJS request handling with useful validation errors.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can distinguish type checking from runtime validation.\n• Can build create/update/query schemas.\n• Can map Zod failures to HTTP responses.\n• Can identify domain rules that belong after validation.\n\nIndependent build sequence\n1. List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately.\n2. Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts.\n3. Integrate validation at the NestJS boundary before the service receives data.\n4. Create a partial update schema carefully and reason about omitted vs nullable fields.\n5. Validate query parameters such as page size/sort values instead of trusting strings.\n6. Send malformed requests and verify the error contract is actionable but does not expose internals.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 382,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this validation concept.",
+          "Diagnose one representative validation failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "untrusted input",
+          "runtime schema",
+          "validated value",
+          "business rule",
+          "safe operation"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: untrusted input → runtime schema → validated value → business rule → safe operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Parse untrusted values at runtime",
+          "code": "const CreateTaskSchema = z.object({\n  title: z.string().trim().min(1).max(160),\n  priority: z.enum([\"LOW\", \"MEDIUM\", \"HIGH\"]),\n});\n\nconst input = CreateTaskSchema.parse(requestBody);"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Assuming TypeScript validates runtime JSON",
+          "Change one assumption in the validation example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the validation boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 12 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 12: DTOs, Zod & Input Validation. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nReusable create/update/query schemas integrated into NestJS request handling with useful validation errors.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 201,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "validation",
+        "objectives": [
+          "Validate untrusted input with Zod and DTO/boundary patterns while keeping transport validation distinct from business rules.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "untrusted JSON/query",
+          "schema parse",
+          "typed validated value",
+          "business rules",
+          "persistence"
+        ],
+        "steps": [
+          "List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately.",
+          "Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts.",
+          "Integrate validation at the NestJS boundary before the service receives data.",
+          "Create a partial update schema carefully and reason about omitted vs nullable fields.",
+          "Validate query parameters such as page size/sort values instead of trusting strings.",
+          "Send malformed requests and verify the error contract is actionable but does not expose internals.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can distinguish type checking from runtime validation",
+          "Can build create/update/query schemas",
+          "Can map Zod failures to HTTP responses",
+          "Can identify domain rules that belong after validation"
+        ],
+        "breakIt": [
+          "Assuming TypeScript validates runtime JSON",
+          "Duplicating client and server validation rules without a sharing strategy"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/README.txt",
+      "preview": "TaskFlow Phase 12 validation reference snapshot\n\nThis snapshot focuses only on the files changed by the validation phase.\nIt assumes the Phase 11 Prisma schema, seed, PrismaService, TasksModule, and database configuration already exist.\n\nRun from apps/api:\n  pnpm add zod@4.6.5\n  pnpm run build\n  pnpm run start:dev\n\nThen run the PowerShell smoke tests in reference/tests/validation-smoke-tests.ps1."
+    },
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/apps/api/package.snippet.json",
+      "preview": "{\n  \"dependencies\": {\n    \"zod\": \"4.6.5\"\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/apps/api/src/main.ts",
+      "preview": "import { StandardSchemaValidationPipe } from \"@nestjs/common\";\nimport { NestFactory } from \"@nestjs/core\";\nimport {\n  FastifyAdapter,\n  NestFastifyApplication,\n} from \"@nestjs/platform-fastify\";\nimport { AppModule } from \"./app.module\";\n\nasync function bootstrap() {\n  const app = await NestFactory.create<NestFastifyApplication>(\n    AppModule,\n    new FastifyAdapter(),\n  );\n\n  app.useGlobalPipes(new StandardSchemaValidationPipe());\n\n  app.enableCors({\n    origin: \"http://localhost:3000\",\n  });\n"
+    },
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/apps/api/src/tasks/tasks.controller.ts",
+      "preview": "import {\n  Body,\n  Controller,\n  Delete,\n  Get,\n  HttpCode,\n  HttpStatus,\n  Param,\n  Patch,\n  Post,\n} from \"@nestjs/common\";\nimport { TasksService } from \"./tasks.service\";\nimport {\n  createTaskSchema,\n  CreateTaskDto,\n  taskIdSchema,\n  updateTaskSchema,\n  UpdateTaskDto,\n} from \"./tasks.schemas\";\n"
+    },
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/apps/api/src/tasks/tasks.schemas.ts",
+      "preview": "import { z } from \"zod\";\nimport {\n  TaskPriority,\n  TaskStatus,\n} from \"../generated/prisma/client\";\n\nconst taskTitleSchema = z\n  .string()\n  .trim()\n  .min(1)\n  .max(200);\n\nconst taskDescriptionSchema = z\n  .string()\n  .trim()\n  .max(2000)\n  .nullable();\n\nexport const taskIdSchema = z.uuid();\n"
+    },
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/apps/api/src/tasks/tasks.service.ts",
+      "preview": "import {\n  Injectable,\n  NotFoundException,\n} from \"@nestjs/common\";\nimport { Prisma } from \"../generated/prisma/client\";\nimport { PrismaService } from \"../prisma/prisma.service\";\nimport {\n  CreateTaskDto,\n  UpdateTaskDto,\n} from \"./tasks.schemas\";\n\n@Injectable()\nexport class TasksService {\n  constructor(private readonly prisma: PrismaService) {}\n\n  findAll() {\n    return this.prisma.task.findMany({\n      orderBy: { createdAt: \"desc\" },\n    });\n  }"
+    },
+    {
+      "path": "reference/TaskFlow_Validation_Snapshot/tests/validation-smoke-tests.ps1",
+      "preview": "# Run from any PowerShell terminal while apps/api is running.\n\n$base = \"http://localhost:4000\"\n$projectId = \"<PROJECT-ID-FROM-PHASE-11-SEED>\"\n\n# Valid create\n$validCreate = @{\n  projectId = $projectId\n  title = \"Validate TaskFlow input\"\n  description = \"Created through a Zod-validated endpoint.\"\n} | ConvertTo-Json\n\nInvoke-RestMethod `\n  -Method Post `\n  -Uri \"$base/tasks\" `\n  -ContentType \"application/json\" `\n  -Body $validCreate\n\n# Invalid: blank title\n$blankTitle = @{"
+    }
+  ],
+  "exercises": [
+    "Guided: List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately.",
+    "Practice: Integrate validation at the NestJS boundary before the service receives data.",
+    "Debugging: reproduce and diagnose — Assuming TypeScript validates runtime JSON.",
+    "Independent: deliver Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.",
+    "Explain-back: Can distinguish type checking from runtime validation and Can build create/update/query schemas."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Validate external input at the application boundary before business logic trusts it.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Validate external input at the application boundary before business logic trusts it."
+    },
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Use schemas to produce both runtime checks and reusable TypeScript types where appropriate."
+      ],
+      "answer": 3,
+      "explanation": "Use schemas to produce both runtime checks and reusable TypeScript types where appropriate."
+    },
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Distinguish transport validation from domain/business rules because they fail for different reasons.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Distinguish transport validation from domain/business rules because they fail for different reasons."
+    },
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Return validation errors that help clients correct input without exposing internal implementation details.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Return validation errors that help clients correct input without exposing internal implementation details."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Assuming TypeScript validates runtime JSON.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately."
+      ],
+      "answer": 3,
+      "explanation": "List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicating client and server validation rules without a sharing strategy.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Integrate validation at the NestJS boundary before the service receives data.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Putting database existence checks into pure syntax schemas."
+      ],
+      "answer": 1,
+      "explanation": "Integrate validation at the NestJS boundary before the service receives data."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Create a partial update schema carefully and reason about omitted vs nullable fields.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Accepting arbitrary unknown keys into persistence calls.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Create a partial update schema carefully and reason about omitted vs nullable fields."
+    }
+  ],
+  "lessonCount": 14,
+  "wordCount": 5442
+}

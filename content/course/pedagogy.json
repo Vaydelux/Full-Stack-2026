@@ -1,0 +1,224 @@
+{
+  "0": [
+    "Map every request from browser to frontend, API, database, and back before adding abstractions.",
+    "Keep presentation, business rules, and persistence responsibilities intentionally separated.",
+    "Treat TaskFlow as one continuous system so each phase extends an architecture you already understand.",
+    "Use version locks as a reproducibility contract, not as a reason to ignore underlying concepts."
+  ],
+  "1": [
+    "Verify tools from the terminal instead of assuming an installer succeeded.",
+    "Understand PATH, ports, processes, shells, and working directories because they explain many setup failures.",
+    "Prefer user-level development tooling when administrator privileges are unnecessary.",
+    "Record exact versions and verification commands so another developer can reproduce the environment."
+  ],
+  "2": [
+    "A monorepo should make shared ownership and coordinated changes easier, not merely put folders in one repository.",
+    "Use pnpm workspaces to make package boundaries explicit and dependency installation deterministic.",
+    "Keep shared configuration in dedicated packages instead of duplicating compiler and lint settings.",
+    "Run repository-wide tasks from the root while allowing app-specific commands when debugging."
+  ],
+  "3": [
+    "Use Server Components by default and introduce Client Components only where browser interactivity requires them.",
+    "Treat the App Router file system as application structure, not as a place to hide business rules.",
+    "Keep secrets and privileged data access on the server side of the Next.js boundary.",
+    "Understand caching and rendering behavior before trying to fix stale UI with ad-hoc client state."
+  ],
+  "4": [
+    "Controllers translate HTTP concerns; services own application behavior and orchestration.",
+    "Dependency injection makes dependencies explicit and replaceable instead of hiding them in global imports.",
+    "Use Fastify as the HTTP adapter without leaking adapter-specific details through the entire application.",
+    "Organize NestJS modules around cohesive features rather than one giant application module."
+  ],
+  "5": [
+    "Design APIs around resources, contracts, and HTTP semantics rather than controller method names.",
+    "Use status codes consistently so clients can distinguish validation, authentication, authorization, and missing resources.",
+    "Make request and response contracts explicit enough that frontend and backend can evolve safely.",
+    "Treat idempotency, pagination, errors, and concurrency as API design concerns, not afterthoughts."
+  ],
+  "6": [
+    "Keep the browser dependent on a stable API contract rather than importing backend implementation details.",
+    "Configure CORS narrowly for the origins that should call the API.",
+    "Centralize base URLs and environment-specific configuration instead of hard-coding localhost throughout components.",
+    "Trace failures across browser network tools, API logs, and server responses rather than guessing from UI symptoms."
+  ],
+  "7": [
+    "Model data around entities, relationships, constraints, and access patterns before writing application queries.",
+    "Use transactions when multiple writes must succeed or fail as one unit.",
+    "Add indexes to support real query patterns, not every column indiscriminately.",
+    "Let database constraints defend invariants that must remain true regardless of application code."
+  ],
+  "8": [
+    "Treat Supabase Postgres as PostgreSQL first; managed services do not remove relational design responsibilities.",
+    "Separate connection details, credentials, and environment configuration from source code.",
+    "Understand pooling and connection limits before scaling application instances.",
+    "Use the Supabase dashboard as an operational tool, not as a substitute for migrations and repeatable schema changes."
+  ],
+  "9": [
+    "Use Prisma migrations as the authoritative history of application schema changes.",
+    "Keep generated Prisma Client code derived from the schema instead of hand-editing it.",
+    "Use a shared Prisma service in NestJS so connection lifecycle and access patterns remain controlled.",
+    "Pin Prisma versions deliberately when the course architecture depends on a specific configuration model."
+  ],
+  "10": [
+    "Normalize relationships enough to preserve correctness before optimizing for convenience.",
+    "Choose cardinality intentionally: one-to-one, one-to-many, and many-to-many model different business rules.",
+    "Use unique constraints and foreign keys to encode invariants where the database can enforce them.",
+    "Design TaskFlow entities around actual workflows such as workspaces, members, boards, lists, tasks, comments, and labels."
+  ],
+  "11": [
+    "CRUD endpoints are complete only when data persists and failure cases are handled deliberately.",
+    "Keep database calls behind service methods so controllers remain thin and testable.",
+    "Return the created or updated resource contract consistently after successful mutations.",
+    "Verify persistence independently with API requests and database inspection instead of trusting only the UI."
+  ],
+  "12": [
+    "Validate external input at the application boundary before business logic trusts it.",
+    "Use schemas to produce both runtime checks and reusable TypeScript types where appropriate.",
+    "Distinguish transport validation from domain/business rules because they fail for different reasons.",
+    "Return validation errors that help clients correct input without exposing internal implementation details."
+  ],
+  "13": [
+    "Map known failures to stable HTTP error responses instead of leaking raw exceptions.",
+    "Keep unexpected errors observable to operators while returning safe messages to clients.",
+    "Use consistent error shapes so frontend code does not branch on dozens of unrelated formats.",
+    "Preserve enough context in logs to diagnose an error without sending secrets to the browser."
+  ],
+  "14": [
+    "Business rules belong in services or domain-focused collaborators, not duplicated across controllers and components.",
+    "Keep orchestration separate from low-level persistence details so behavior can be tested clearly.",
+    "Make rule boundaries explicit before adding abstractions such as repositories.",
+    "Prefer small cohesive methods that communicate intent over giant service methods that mix validation, authorization, and I/O."
+  ],
+  "15": [
+    "Filtering, sorting, and pagination must use deterministic query rules so results remain stable.",
+    "Validate user-supplied sort fields instead of injecting arbitrary column names into queries.",
+    "Pagination metadata should match the strategy used by the API so clients can navigate correctly.",
+    "Indexes should follow real filter and sort patterns when performance data shows they are needed."
+  ],
+  "16": [
+    "Authentication establishes who a caller is; authorization decides what that identity may do.",
+    "Passwords, sessions, tokens, and cookies solve different parts of identity management and have different risks.",
+    "Treat credentials and tokens as secrets in transit, storage, logs, and browser code.",
+    "Design authentication flows around expiration, revocation, renewal, and failure states rather than only the happy path."
+  ],
+  "17": [
+    "Let Supabase Auth establish user identity while the application still owns TaskFlow authorization rules.",
+    "Keep service-role credentials off the browser and use public client credentials only for intended client operations.",
+    "Handle session restoration and expiration explicitly so UI state does not silently drift from server identity.",
+    "Verify authentication on the server for protected operations rather than trusting client-visible session state."
+  ],
+  "18": [
+    "NestJS guards should verify identity before protected controllers execute.",
+    "Derive the authenticated user from a verified token, never from a user id supplied by the browser.",
+    "Attach validated identity to the request in one controlled place so downstream code can consume it consistently.",
+    "Return 401 for missing or invalid authentication and reserve 403 for authenticated callers lacking permission."
+  ],
+  "19": [
+    "Enforce ownership and role checks on the server even when the UI hides forbidden actions.",
+    "Model permissions around actions and resources instead of scattering role-name comparisons everywhere.",
+    "Check workspace membership before allowing resource operations tied to that workspace.",
+    "Use least privilege: a role should receive only the capabilities its workflows require."
+  ],
+  "20": [
+    "Build production UI from reusable layout and interaction patterns, not a collection of one-off pages.",
+    "Represent loading, empty, error, success, and permission states explicitly.",
+    "Accessibility and responsive behavior are requirements of the component, not a final polishing step.",
+    "Keep UI composition separate from server-state ownership so components remain understandable."
+  ],
+  "21": [
+    "React Hook Form should own transient form interaction while Zod defines the input contract.",
+    "Validate close to the user for feedback, but repeat trust-boundary validation on the backend.",
+    "Map server validation errors back to fields without losing non-field errors.",
+    "Reset or preserve form state deliberately after successful mutations based on the workflow."
+  ],
+  "22": [
+    "TanStack Query owns asynchronous server state; it is not a replacement for every kind of React state.",
+    "Choose query keys that uniquely describe the data and parameters being cached.",
+    "Invalidate or update the relevant cache after mutations so UI state converges with the server.",
+    "Configure stale time and refetch behavior based on data freshness needs rather than copying defaults blindly."
+  ],
+  "23": [
+    "Put shareable navigation state in the URL, server state in TanStack Query, and local interaction state near the component that owns it.",
+    "Avoid duplicating the same piece of state across URL, React state, and query cache.",
+    "Derive values when possible instead of synchronizing multiple mutable copies.",
+    "Choose state ownership by lifecycle and source of truth, not by whichever library is fashionable."
+  ],
+  "24": [
+    "Introduce a repository only when separating persistence behavior creates a real testing or architecture benefit.",
+    "A repository should express persistence operations in application terms rather than mirror every ORM method.",
+    "Keep Prisma-specific details from leaking through layers if the repository is intended to create a meaningful boundary.",
+    "Do not add repository abstractions to trivial CRUD solely because the pattern exists."
+  ],
+  "25": [
+    "Optimistic updates must define how to snapshot, apply, roll back, and reconcile state.",
+    "Use optimism where failure is uncommon and the user benefit justifies rollback complexity.",
+    "Handle concurrent mutations and stale responses so an older result cannot overwrite newer user intent.",
+    "Always reconcile optimistic client state with authoritative server state."
+  ],
+  "26": [
+    "Realtime is a synchronization mechanism, not the authoritative database.",
+    "Subscribe only to events relevant to the current user and resource scope.",
+    "Design reconnect and duplicate-event behavior so clients can recover after temporary disconnection.",
+    "Reconcile realtime events with cached server state rather than maintaining an unrelated second data model."
+  ],
+  "27": [
+    "Keep file bytes in object storage and metadata/authorization relationships in application data where appropriate.",
+    "Validate file type, size, path, and ownership before trusting an upload workflow.",
+    "Use signed or access-controlled URLs instead of making private files globally public.",
+    "Treat deletion as a coordinated workflow when both storage objects and database metadata must remain consistent."
+  ],
+  "28": [
+    "Use unit tests for focused behavior, integration tests for collaborating infrastructure, and end-to-end tests for critical user flows.",
+    "Test business outcomes and contracts rather than coupling every test to private implementation details.",
+    "Keep tests deterministic by controlling clocks, random values, external services, and database state where necessary.",
+    "A useful test suite catches regressions while remaining fast enough to run continuously in development and CI."
+  ],
+  "29": [
+    "Threat-model trust boundaries before applying random security checklists.",
+    "Validate and authorize every sensitive server operation even if the frontend already restricts the UI.",
+    "Keep secrets out of source control, client bundles, logs, and error responses.",
+    "Use layered defenses for common web risks such as injection, broken access control, unsafe uploads, and misconfiguration."
+  ],
+  "30": [
+    "Logs should answer what happened, where, and for which request without exposing sensitive data.",
+    "Use request or correlation identifiers to connect events across application boundaries.",
+    "Metrics reveal system trends while traces and structured logs help explain individual failures.",
+    "Alert on user-impacting symptoms and actionable conditions rather than every noisy internal event."
+  ],
+  "31": [
+    "Measure before optimizing so work targets real bottlenecks instead of intuition.",
+    "Reduce unnecessary network requests, database queries, rendering work, and payload size before reaching for exotic caching.",
+    "Use indexes and query plans when database latency is the bottleneck.",
+    "Performance work must preserve correctness, observability, and maintainability."
+  ],
+  "32": [
+    "A Dockerfile should produce a repeatable image from declared inputs rather than depend on a developer machine.",
+    "Use multi-stage builds to keep runtime images smaller and separate build-time tools from production dependencies.",
+    "Do not bake secrets into images; inject runtime configuration through the deployment environment.",
+    "Health checks and graceful shutdown help orchestrators know when a container is ready and when it should be replaced."
+  ],
+  "33": [
+    "CI verifies changes on pull requests; release workflows should operate from trusted code and immutable commit identities.",
+    "Use frozen lockfile installs so CI fails when dependency manifests and the lockfile disagree.",
+    "Give GitHub Actions tokens the minimum permissions each job requires.",
+    "Build once and promote the same artifact instead of rebuilding different binaries for each environment."
+  ],
+  "34": [
+    "Production deployment is a system of frontend, API, database, DNS, secrets, migrations, and observability rather than one deploy button.",
+    "Apply database migrations in a controlled step before code depends on the new schema.",
+    "Use environment-specific configuration while keeping the same tested application artifact where possible.",
+    "Plan smoke tests and rollback before release so recovery is part of deployment design."
+  ],
+  "35": [
+    "Refactoring should improve boundaries and clarity while preserving externally observable behavior.",
+    "Use tests and architecture checks as safety nets before moving responsibilities across modules.",
+    "Remove abstractions that no longer earn their complexity instead of only adding new layers.",
+    "Document significant architectural decisions so future maintainers understand the trade-offs that shaped the system."
+  ],
+  "36": [
+    "Enterprise scaling starts by identifying new business boundaries, compliance needs, load, and organizational ownership.",
+    "Keep the modular monolith viable until scale or team boundaries justify distributing the system.",
+    "Add queues, caches, services, and orchestration only for concrete bottlenecks or ownership needs.",
+    "Design replaceable infrastructure interfaces so managed services can evolve without rewriting core business rules."
+  ]
+}

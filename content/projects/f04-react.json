@@ -1,0 +1,39 @@
+{
+  "number": 5,
+  "track": "f04-react",
+  "slug": "f04-react",
+  "title": "Build TaskFlow Lite in React",
+  "goal": "Rebuild TaskFlow Lite in React while keeping state ownership, derived values, effects, and component boundaries easy to explain.",
+  "deliverables": [
+    "TaskList",
+    "TaskItem",
+    "CreateTaskForm",
+    "TaskFilters",
+    "localStorage hook",
+    "Accessible interactions"
+  ],
+  "steps": [
+    "Start with one component and static data.",
+    "Split presentation into TaskList and TaskItem using props.",
+    "Add `useState` for the authoritative task list and form input.",
+    "Use functional state updates for changes that depend on previous state.",
+    "Keep filtered/searched tasks derived instead of storing a second list.",
+    "Extract the create form as a controlled component.",
+    "Add a custom hook for localStorage synchronization with cleanup/error handling where needed.",
+    "Inspect re-renders with React DevTools and remove one unnecessary state/effect.",
+    "Rebuild one feature without looking at the reference."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

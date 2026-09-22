@@ -1,0 +1,990 @@
+{
+  "number": 2,
+  "slug": "phase-02",
+  "title": "Monorepo, pnpm Workspaces & Repository Foundation",
+  "volume": 1,
+  "readme": "FULL-STACK DEVELOPER 2026\nVOLUME 01 - ENGINEERING FOUNDATION\nPHASE 02 - MONOREPO, PNPM WORKSPACES AND REPOSITORY FOUNDATION\n\nContents\n--------\n00_Phase_02_Guide.pdf\n01_Monorepo_Mental_Model.pdf\n02_Create_the_TaskFlow_Root_Repository.pdf\n03_pnpm_Workspaces_and_Dependency_Boundaries.pdf\n04_Root_Scripts_and_Workspace_Commands.pdf\n05_Git_Repository_Hygiene.pdf\n06_Professional_Monorepo_Workflow_and_Troubleshooting.pdf\n07_Hands_On_Lab_Exercises_and_Phase_Exit.pdf\n08_Workspace_Command_Reference_and_Practical_Patterns.pdf\n09_Repository_Design_Decisions_and_Anti_Patterns.pdf\n10_Phase_02_Complete_Book.pdf\nreference/TaskFlow_Root_Snapshot/\n\nCourse locks used in this phase\n-------------------------------\nNode.js: 24.21.0\npnpm: 12.4.2\nPrisma: 7.9.1 (future database phase hard lock; not installed here)\n\nOfficial references\n-------------------\npnpm Workspace: https://pnpm.io/workspaces\npnpm Settings: https://pnpm.io/settings\nGit gitignore: https://git-scm.com/docs/gitignore\nGit gitattributes: https://git-scm.com/docs/gitattributes\nfnm: https://github.com/Schniz/fnm\n\nTeaching rule\n-------------\nPhase 02 intentionally does not install Next.js, NestJS, Prisma, Turborepo, or speculative shared packages. It creates the smallest professional repository foundation that Phase 03 can build on.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "monorepo-mental-model",
+      "title": "Monorepo Mental Model",
+      "summary": "",
+      "body": "Phase 02\n\nThe Monorepo Mental Model\nRepository, workspace, package, application, dependency graph, and\nwhy TaskFlow uses one repository without becoming one giant process.\n\nBook 1 - Concepts\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nThe Monorepo Mental Model\nBefore we create files, we need precise language. Most monorepo confusion comes from using repository,\nworkspace, project, application and package as if they mean the same thing. They do not.\n\nOne repository, multiple projects\nA monorepo is one version-controlled repository that contains multiple related projects. pnpm calls the\npackage-management layer a workspace. Git knows about files and commits; pnpm knows which package.json files\nbelong to one dependency graph.\n\nRepository vs               The .git directory makes taskflow a Git repository. pnpm-workspace.yaml makes\nworkspace                   the same folder a pnpm workspace root. One folder can be both, but the\nresponsibilities are different.\n\nRepository and workspace are overlapping concepts\n\nGit repository        same root        pnpm workspace            declares      Workspace packages\n\ncontains     contains\n\napps/web                     apps/api\n\nFigure 1 - Git owns history; pnpm owns the multi-package dependency workspace\n\nFour words you must separate\nTerm                         Meaning in this course\n\nRepository                   The entire taskflow folder tracked by Git.\n\nWorkspace                    The pnpm-managed set of packages declared by pnpm-workspace.yaml.\n\nApplication                  A deployable product such as apps/web or apps/api.\n\nPackage                      A directory with its own package.json that participates in the workspace. An app is also a\npackage from pnpm's perspective.\n\nWhy one repository for TaskFlow?\nThe frontend and backend are separate applications, but they evolve together. A single repository lets one commit\nrepresent a coherent system change: an API contract update, the matching frontend change, and any shared\nvalidation change can be reviewed together.\n•\nOne version-control history for related full-stack changes.\n•\nOne workspace lockfile for consistent dependency resolution.\n•\nOne place for repository-wide scripts and policy.\n•\nEasy local linking when a real shared package appears later.\n•\nA clear boundary between deployable apps and reusable packages.\n\nWhy not one giant application?\nA monorepo does not mean one runtime process. Next.js and NestJS will remain independent applications with\ndifferent ports, build outputs, environment variables and deployment targets. They share a repository, not a process.\n\nRepository unity does not erase runtime boundaries\n\ntaskflow repository\n\ncontains                         contains\n\napps/web - Next.js                                                      apps/api - NestJS\n\nbuild/deploy                                                          build/deploy\n\nfrontend deployment                                                      API deployment\n\nFigure 2 - One Git history can contain multiple independently deployable applications\n\nThe root is a control plane\nThe root package.json should coordinate the workspace, not become a dumping ground for application\ndependencies. React belongs to the web package. NestJS belongs to the API package. A formatter or\nrepository-wide build orchestrator may eventually belong at the root because it acts across packages.\n\nA useful ownership question\nWhich package imports this dependency at runtime or build time? If the answer is apps/web, install it there. If\nthe answer is apps/api, install it there. If the tool genuinely coordinates the entire repository, the root may own it.\n\napps/ versus packages/\nDirectory                 Responsibility                                  Examples later\n\napps/                     Deployable or runnable applications             web, api, worker\n\npackages/                 Reusable code/config used by more than one      validators, shared types only when earned\nworkspace package\n\nThe dependency graph is the architecture you can compile\nOnce packages depend on one another, the workspace becomes a graph. Healthy graphs point toward reusable\nfoundations rather than creating cycles.\n\nGOOD\n\napps/web      ----> packages/validators <----           apps/api\n\nBAD\n\napps/web      ----> packages/shared ----> apps/api ----> apps/web\n\nCycle warning                     pnpm can detect cyclic workspace dependencies. A cycle usually means\nresponsibilities are mixed. Do not hide the warning; inspect which package\nshould stop depending on which other package.\n\nVolume 01 - Engineering Foundation\n\nOne lockfile, strict declarations\npnpm workspaces use a shared lockfile by default. That gives the repository one exact dependency-resolution\nsnapshot while still keeping each package honest: a package should only access dependencies it declares in its own\npackage.json.\n\nThis matters because a monorepo should make dependency boundaries more visible, not less visible.\n\nWhen a monorepo is the wrong tool\n•\nProjects have unrelated release cycles, ownership and security boundaries.\n•\nTeams cannot share repository access for compliance reasons.\n•\nThe repository becomes a dumping ground for unrelated experiments.\n•\nTooling complexity exceeds the coordination benefit.\n\nTaskFlow is a good fit because the web and API are parts of one product and will share contracts, versions and\nlearning checkpoints.\n\nMental-model checkpoint\n•\nGit repository != pnpm workspace, even when they share the same root folder.\n•\nA workspace package has its own package.json.\n•\nAn application is a package with a deployable runtime responsibility.\n•\nThe root coordinates; it should not absorb every dependency.\n•\nShared packages are introduced by reuse pressure, not by folder aesthetics.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 769,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Monorepo Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Monorepo Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Monorepo Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Installing app-only dependencies at workspace root",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Monorepo Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Monorepo Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "create-the-taskflow-root-repository",
+      "title": "Create the TaskFlow Root Repository",
+      "summary": "",
+      "body": "Phase 02\n\nCreate the TaskFlow Root\nRepository\nA clean PowerShell build of the Git repository, pnpm workspace root,\nversion pins, lockfile, and structural directories.\n\nBook 2 - Hands-on foundation\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nCreate the TaskFlow Root Repository\nNow we build the repository from nothing. The lesson is intentionally small: create the root, make it a Git repository,\nestablish package-manager metadata, and verify each file before frameworks enter the picture.\n\nStep 1 - Choose the parent directory\nRun repository-creation commands from the directory that should contain taskflow, not from inside another project.\nThis avoids accidental nested repositories and confusing workspace roots.\n\nGet-Location\nGet-ChildItem -Force\n\nExample parent location:\n\nC:\\Users\\<you>\\Desktop\\Projects\n\nStep 2 - Create and enter the repository folder\nNew-Item -ItemType Directory -Name taskflow\nSet-Location .\\taskflow\nGet-Location\n\nExpected: the current path ends in taskflow. Do not continue until that is true.\n\nStep 3 - Initialize Git\ngit init\ngit status\n\nAt this point Git knows the folder is a repository, but there are no committed files yet. The hidden .git directory\ncontains repository metadata; never edit it manually during normal work.\n\nStep 4 - Create the minimal root package.json\nUse the editor and create package.json at the repository root:\n\n{\n\"name\": \"taskflow\",\n\"version\": \"0.0.0\",\n\"private\": true,\n\"packageManager\": \"pnpm@12.4.2\",\n\"engines\": {\n\"node\": \">=24.21.0 <25\"\n},\n\"scripts\": {\n\"workspace:list\": \"pnpm list -r --depth -1\"\n}\n}\n\nWhy private: true?          The root package exists to coordinate the repository. It is not a package we\nintend to publish to a registry, so marking it private protects against accidental\npublication.\n\nStep 5 - Pin Node for the repository\nCreate a file named .node-version containing exactly:\n\n24.21.0\n\nfnm supports .node-version files. With automatic switching configured in Phase 01, entering the repository can select\nthe course Node version without relying on memory.\n\nStep 6 - Create pnpm-workspace.yaml\npackages:\n- \"apps/*\"\n- \"packages/*\"\n\npnpm requires pnpm-workspace.yaml at the workspace root. These patterns mean: any immediate child folder under\napps/ or packages/ that contains a package.json can participate as a workspace package.\n\nWorkspace globs describe where packages may live\n\npnpm-workspace.yaml\n\nglob                               glob\n\napps/*                                                                 packages/*\n\nfuture match                                                              future match\n\napps/web                                                           packages/validators\n\nFigure 1 - The workspace file declares locations; it does not create packages by itself\n\nStep 7 - Create the structural directories\nNew-Item -ItemType Directory -Path .\\apps -Force\nNew-Item -ItemType Directory -Path .\\packages -Force\nGet-ChildItem -Force\n\nGit and empty                     Git tracks files, not empty directories. If apps/ and packages/ are still empty at\ndirectories                       commit time, they will not appear in a clone. That is fine. Phase 03 and later will\nput real package files inside them. Do not create meaningless .gitkeep files just\nto make the tree look complete.\n\nStep 8 - Install the workspace\npnpm install\n\nBecause the workspace has no framework dependencies yet, the install should be small. Its important result is the\nworkspace lockfile: pnpm-lock.yaml. Commit that lockfile. It records exact dependency resolution for reproducible\ninstalls.\n\nStep 9 - Verify the root metadata\nnode --version\npnpm --version\npnpm run workspace:list\ngit status\n\nAt this point workspace:list may show only the root project because no app package exists yet. That is expected. A\nworkspace declaration is not the same as a populated workspace.\n\nExpected repository on disk\n\nVolume 01 - Engineering Foundation\n\nCheckpoint before Git hygiene files\ntaskflow/\n|-- .git/\n|-- .node-version\n|-- apps/\n|-- packages/\n|-- package.json\n|-- pnpm-lock.yaml\n`-- pnpm-workspace.yaml\n\nFigure 2 - The repository is now both a Git repository and a pnpm workspace\n\nVerify JSON and YAML problems early\nA missing comma in package.json or incorrect indentation in YAML can make later framework generators appear\nbroken. When a tool fails before it starts meaningful work, inspect these root configuration files first.\n\nSmallest useful                 Do not reinstall Node or pnpm because package.json has invalid JSON. Fix the\ncorrection                      layer that produced the failure: configuration syntax.\n\nCheckpoint\n•\nGet-Location points to taskflow.\n•\ngit status works and reports this repository.\n•\nnode --version and pnpm --version match the course baseline.\n•\npnpm-workspace.yaml exists at the same level as package.json.\n•\npnpm install succeeds and creates pnpm-lock.yaml.\n•\nNo Next.js, NestJS, Prisma, Turbo, or shared package has been installed yet.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 691,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Create the TaskFlow Root Repository in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Create the TaskFlow Root Repository matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Create the TaskFlow Root Repository” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating tsconfig settings in every package",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Create the TaskFlow Root Repository” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Create the TaskFlow Root Repository solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "pnpm-workspaces-and-dependency-boundaries",
+      "title": "pnpm Workspaces and Dependency Boundaries",
+      "summary": "",
+      "body": "Phase 02\n\npnpm Workspaces &\nDependency Boundaries\nWorkspace membership, the shared lockfile, strict dependencies, local\npackage linking, and where dependencies belong.\n\nBook 3 - Workspace architecture\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\npnpm Workspaces and Dependency Boundaries\nThe root now exists. Before we add frameworks, we need to understand how pnpm decides what belongs to the\nworkspace and where dependencies should be installed.\n\nThe workspace file is a membership rule\npnpm-workspace.yaml sits at the root and defines package locations. The patterns apps/* and packages/* are\nintentionally shallow: they match immediate package folders such as apps/web or packages/validators without\nrecursively pulling in arbitrary nested folders.\n\nWorkspace membership requires a package\nA directory does not become a workspace package merely because it matches a glob. In practice it needs a\npackage.json. This distinction explains why an empty apps/ directory does not appear in pnpm recursive listings.\n\nThe shared lockfile\npnpm uses a single pnpm-lock.yaml at the workspace root by default. That makes dependency resolution reviewable\nin one place and avoids one lockfile per application. The packages still declare their own dependencies; the lockfile\nsimply records the resolved graph for the workspace.\n\nOne workspace lockfile, separate dependency declarations\n\npnpm-lock.yaml\n\nresolution           resolution          resolution\n\ncontent-addressed files                   packages/validators\napps/web package.json                       apps/api   package.json\npackage.json\n\npnpm store\n\nFigure 1 - The lockfile is shared; dependency ownership remains package-specific\n\nRoot dependency or package dependency?\nDependency type                       Where it belongs                                Example\n\nFrontend runtime/build                apps/web                                        react, next\ndependency\n\nBackend runtime/build                 apps/api                                        @nestjs/core, fastify\ndependency\n\nDatabase dependency used by           apps/api initially                              prisma, @prisma/client, pg\nAPI\n\nShared library dependency             the package that imports it                     zod inside validators, if that package\nexists\n\nRepository-wide developer tool        root only when genuinely                        possible formatter/orchestrator later\ncross-workspace\n\nThe -w flag is an explicit root decision\npnpm protects workspace roots from accidental dependency installation. If you intentionally add a root dependency,\nuse the workspace-root flag so the decision is visible:\n\npnpm add -w -D <tool>\n\nDo not respond to an ERR_PNPM_ADDING_TO_ROOT warning by blindly adding -w. First ask whether the\ndependency actually belongs to the root.\n\nPackage-specific installs later\nOnce apps/web exists, a dependency can be targeted without changing directories:\n\npnpm --filter <package-name> add <dependency>\n\nFiltering becomes powerful in larger workspaces, but directory-local installation is also fine when it is clearer. The\ngoal is correct ownership, not clever commands.\n\nThe workspace: protocol\nWhen one workspace package genuinely depends on another, pnpm supports the workspace: protocol. It\nguarantees the dependency resolves to a local workspace package instead of silently falling back to a registry\npackage.\n\n{\n\"dependencies\": {\n\"@taskflow/validators\": \"workspace:*\"\n}\n}\n\nNot yet                           We do not create @taskflow/validators in Phase 02. This is a mental model for\nlater. The package will be introduced only when both web and API have real\nvalidation reuse.\n\nStrict dependencies are a feature\npnpm is intentionally strict about package access. A package should not rely on a dependency simply because\nanother workspace package installed it. This prevents hidden dependencies that work on one machine and fail when\nisolated.\n\nWhy we are not adding Turborepo yet\nTask orchestration tools become useful when several packages have real dev, build, lint and test scripts. Right now\nthere are no applications to orchestrate. pnpm already gives us workspaces, recursive execution and filters, so\nintroducing another tool would add vocabulary without solving a present problem.\n\nFuture, not forbidden             Turborepo may become useful later for task graphs, caching and coordinated\nbuilds. The teaching rule is not \"never use Turbo\"; it is \"earn the abstraction\nwhen the repository has enough work to orchestrate.\"\n\nVersion pins operate at different layers\nFile/field                            What it communicates\n\n.node-version                         The exact Node version fnm should select for this repository.\n\nengines.node                          The Node compatibility range expected by the package.\n\npackageManager                        The pnpm version the repository expects.\n\nVolume 01 - Engineering Foundation\n\nFile/field                       What it communicates\n\npnpm-lock.yaml                   The exact resolved dependency graph.\n\nDependency-boundary checkpoint\n•\nYou can decide whether a dependency belongs to the root, web, API, or a future shared package.\n•\nYou understand that one lockfile does not mean one package.json.\n•\nYou know what workspace:* guarantees for local dependencies.\n•\nYou will not create a shared package until at least two consumers need the same responsibility.\n•\nYou know why root-install warnings should trigger reasoning rather than automatic flags.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 725,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain pnpm Workspaces and Dependency Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "pnpm Workspaces and Dependency Boundaries matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “pnpm Workspaces and Dependency Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using relative imports across app boundaries instead of package contracts",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “pnpm Workspaces and Dependency Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does pnpm Workspaces and Dependency Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "root-scripts-and-workspace-commands",
+      "title": "Root Scripts and Workspace Commands",
+      "summary": "",
+      "body": "Phase 02\n\nRoot Scripts & Workspace\nCommands\nRecursive execution, filters, command scope, and why the repository root\ncoordinates work without becoming another application.\n\nBook 4 - Workspace operations\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nRoot Scripts and Workspace Commands\nThe repository root is now a control plane. This book teaches the commands you will use to inspect and eventually\norchestrate packages, while keeping Phase 02 intentionally small.\n\nStart with one script that has a job\nOur root package.json contains only one repository-level script:\n\n\"scripts\": {\n\"workspace:list\": \"pnpm list -r --depth -1\"\n}\n\nThat script answers a real question: which packages does pnpm currently see in the workspace? It is useful now and\nremains useful later.\n\nRecursive execution\nThe -r or --recursive flag runs a command across workspace packages. Once web and API exist, recursive\ncommands let the root coordinate common scripts without changing directories repeatedly.\n\npnpm -r --if-present run lint\npnpm -r --if-present run typecheck\npnpm -r --if-present run test\n\nWhy --if-present?\nDifferent packages may not define every script at the same time while the course is evolving. --if-present lets a\nrepository-level command skip packages that do not define the requested script instead of failing immediately. Later,\nwhen consistency matters, we may remove that leniency for specific checks.\n\nFiltering\nFilters target part of the workspace. After applications exist, you can run a command for a named package or\ndependency graph instead of the entire repository.\n\npnpm --filter <package-name> run dev\n\nDo not memorize complicated filter syntax yet. Learn the idea: recursion means many packages; filtering means a\nselected subset.\n\nThree ways to reach workspace scripts\n\nroot command\n\nmany              subset           alternative\n\n-r / recursive                             --filter                        run inside package\n\nruns                    runs              runs\n\nweb                                     api                                shared\n\nFigure 1 - Choose the clearest command for the scope of work\n\nDo not create future scripts before the packages exist\nIt is tempting to add dev, build, lint, test and typecheck scripts now because we know we will eventually need them.\nResist that urge. A root script should coordinate real package scripts. Phase 03 and 04 will create the applications,\nthen the root can acquire orchestration scripts that we can actually run and verify.\n\nWhat the root package.json should look like now\n{\n\"name\": \"taskflow\",\n\"version\": \"0.0.0\",\n\"private\": true,\n\"packageManager\": \"pnpm@12.4.2\",\n\"engines\": {\n\"node\": \">=24.21.0 <25\"\n},\n\"scripts\": {\n\"workspace:list\": \"pnpm list -r --depth -1\"\n}\n}\n\nFuture shape - not yet added\n{\n\"scripts\": {\n\"dev\": \"pnpm -r --parallel --if-present run dev\",\n\"build\": \"pnpm -r --if-present run build\",\n\"lint\": \"pnpm -r --if-present run lint\",\n\"typecheck\": \"pnpm -r --if-present run typecheck\",\n\"test\": \"pnpm -r --if-present run test\"\n}\n}\n\nThis preview explains the destination. It is not an instruction to modify the Phase 02 root. We will add scripts only\nwhen there are packages behind them.\n\nCommand scope is part of debugging\nQuestion                                 Command\n\nWhere am I?                              Get-Location\n\nWhat files exist, including dotfiles?    Get-ChildItem -Force\n\nWhat packages does pnpm see?             pnpm run workspace:list\n\nWhich pnpm executable is running?        Get-Command pnpm\n\nWhich Node executable is running?        Get-Command node\n\nWhat changed in Git?                     git status\n\nCheckpoint\n•\nYou understand root scripts as orchestration, not application logic.\n•\nYou know the difference between recursive and filtered execution.\n•\nYou can explain why the root currently has only workspace:list.\n•\nYou can identify the working directory before running a command.\n•\nYou know that adding more tooling is not progress unless it solves an observed problem.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 563,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Root Scripts and Workspace Commands in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Root Scripts and Workspace Commands matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Root Scripts and Workspace Commands” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Committing build output, environment files, or node_modules",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Root Scripts and Workspace Commands” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Root Scripts and Workspace Commands solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "git-repository-hygiene",
+      "title": "Git Repository Hygiene",
+      "summary": "",
+      "body": "Phase 02\n\nGit Repository Hygiene\nIgnore rules, line-ending normalization, README discipline, lockfile\npolicy, staged-diff review, and the first clean repository commit.\n\nBook 5 - Repository hygiene\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nGit Repository Hygiene\nA professional repository is defined as much by what it refuses to track as by what it commits. This book establishes\nignore rules, line-ending policy, documentation, the lockfile decision, and the first clean commit.\n\nCreate .gitignore\nUse a repository-level .gitignore for files that every contributor should keep out of version control.\n\n# Dependencies\nnode_modules/\n.pnpm-store/\n\n# Framework/build output\n.next/\ndist/\ncoverage/\n\n# Logs\n*.log\n\n# Environment secrets\n.env\n.env.*\n!.env.example\n\n# OS noise\n.DS_Store\nThumbs.db\n\nImportant Git rule\nAdding a path to .gitignore does not untrack a file that was already committed. Ignore rules affect intentionally\nuntracked files. If a secret was committed, removing it from the working tree is not enough; treat it as exposed and\nrotate the secret.\n\nCreate .gitattributes\nWindows and Linux use different conventional line endings. Git can normalize text in the repository so diffs do not\nbecome dominated by CRLF/LF noise.\n\n* text=auto\n\n*.sh text eol=lf\n*.bat text eol=crlf\n*.cmd text eol=crlf\n\n*.png binary\n*.jpg binary\n*.jpeg binary\n*.gif binary\n*.pdf binary\n\nGit documentation recommends text normalization and allows file-specific eol rules. We use a small policy: text is\nnormalized automatically, Unix shell scripts stay LF, Windows batch scripts check out as CRLF, and obvious binary\nformats are marked binary.\n\nGit hygiene acts at different points in the file lifecycle\n\nWorking tree                 git add        Staging area          git commit      Commit history\n\nfilters untracked                                                                     normalizes text\n\n.gitignore                                                                           .gitattributes\n\nFigure 1 - Ignore rules and attributes solve different problems\n\nCreate README.md\n# TaskFlow\n\nTaskFlow is the production-style project used by the\n\n## Course baseline\n\n- Node.js 24.21.0\n- pnpm 12.4.2\n- Windows-first development workflow\n\n## Workspace\n\n- apps/     deployable applications\n- packages/ reusable packages introduced only when needed\n\n## Current phase\n\nPhase 02 - Monorepo, pnpm Workspaces and Repository Foundation\n\nThe README does not need to predict every future module. It records the repository purpose, baseline and current\nstructure. It will evolve as the product evolves.\n\nCommit the lockfile\npnpm-lock.yaml belongs in version control for this application repository. package.json expresses dependency intent;\nthe lockfile records the exact resolved graph. Together they make installs reviewable and reproducible.\n\nInspect before staging\ngit status\ngit diff\n\nBefore git add, read the change set. This habit becomes more valuable as generated framework files appear in later\nphases.\n\nStage intentionally and inspect again\ngit add .\ngit status\ngit diff --staged\n\nVolume 01 - Engineering Foundation\n\nThe staged diff is the exact content about to become history. If node_modules, a secret, or a generated build folder\nappears here, stop and correct the repository policy before committing.\n\nFirst repository checkpoint commit\ngit commit -m \"chore: initialize taskflow workspace\"\n\nThe commit message describes the outcome rather than the commands used. A future reader should understand\nwhy this point in history exists.\n\nExpected committed files\n.gitattributes\n.gitignore\n.node-version\nREADME.md\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\n\nWhere are apps/ and             They are empty, so Git may not show them. That is correct. Phase 03 and\npackages/?                      Phase 04 will create real packages inside apps/.\n\nSecret-management preview\nThere is no .env file in Phase 02, but our ignore policy is already ready for later phases. We allow .env.example\nbecause it documents variable names without containing credentials. This is preventive engineering: establish the\nsafe default before secrets arrive.\n\nCheckpoint\n•\ngit status is clean after the checkpoint commit.\n•\nnode_modules and build outputs are ignored.\n•\n.env and .env.* are ignored, but .env.example can be committed.\n•\n.gitattributes normalizes text and marks binary formats.\n•\npnpm-lock.yaml is committed.\n•\nNo empty-directory placeholder files were added only for appearance.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 624,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Explain Git Repository Hygiene in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this repository concept.",
+          "Diagnose one representative repository failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Git Repository Hygiene matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "service intent",
+          "repository contract",
+          "adapter",
+          "Prisma/Postgres",
+          "domain result"
+        ],
+        "steps": [
+          "Restate the goal of “Git Repository Hygiene” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: service intent → repository contract → adapter → Prisma/Postgres → domain result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Expose business-shaped persistence operations",
+          "code": "export interface TaskRepository {\n  findById(id: string): Promise<Task | null>;\n  listForWorkspace(input: TaskListQuery): Promise<TaskPage>;\n  save(task: Task): Promise<void>;\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Installing app-only dependencies at workspace root",
+          "Change one assumption in the repository example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Git Repository Hygiene” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Git Repository Hygiene solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the repository boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "professional-monorepo-workflow-and-troubleshooting",
+      "title": "Professional Monorepo Workflow and Troubleshooting",
+      "summary": "",
+      "body": "Phase 02\n\nProfessional Monorepo\nWorkflow & Troubleshooting\nA layer-by-layer diagnostic playbook for workspace roots, dependency\nownership, lockfiles, versions, line endings, Git state, and common setup\nfailures.\n\nBook 6 - Debugging and workflow\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nProfessional Monorepo Workflow and\nTroubleshooting\nMost setup failures are not mysterious. They are scope errors: wrong directory, wrong executable, wrong workspace\nroot, malformed configuration, or a file that Git is already tracking. This book gives you a repeatable diagnostic\nsequence.\n\nThe six-question diagnostic loop\nQuestion                             Evidence\n\n1. Where am I?                       Get-Location\n\n2. What files does this directory    Get-ChildItem -Force\ncontain?\n\n3. Which executable is actually      Get-Command node / pnpm / git\nrunning?\n\n4. Which versions are active?        node --version / pnpm --version / git --version\n\n5. Does pnpm see the expected        pnpm run workspace:list\nworkspace?\n\n6. What does Git think changed?      git status / git diff / git diff --staged\n\nProblem - command run from the wrong directory\nSymptom: pnpm cannot find the expected workspace, package.json, or script. Diagnosis:\n\nGet-Location\nGet-ChildItem -Force\n\nCorrection: move to the directory containing the intended package.json or workspace root. Do not reinstall pnpm.\n\nProblem - ERR_PNPM_ADDING_TO_ROOT\nSymptom: pnpm warns that a dependency is being added to the workspace root. This warning is a decision\ncheckpoint, not a failure to suppress.\n•\nIf the dependency belongs to apps/web, install it in or target apps/web.\n•\nIf it belongs to apps/api, install it there.\n•\nIf it truly coordinates the entire repository, use -w deliberately.\n•\nIf you cannot explain the owner, do not install it yet.\n\nProblem - multiple pnpm-lock.yaml files\nSymptom: a lockfile appears inside an application in addition to the workspace root. That often means a package\nwas created or installed outside workspace awareness, or commands were run before the workspace root existed.\n\nDiagnosis: inspect the repository tree and determine which lockfile belongs to the actual workspace. Avoid deleting\nlockfiles blindly; understand how they were created first.\n\nProblem - Node changed after reopening PowerShell\nCheck:\n\nnode --version\nGet-Command node\nGet-Content .\\.node-version\n\nIf fnm automatic switching is configured, entering the repository should align Node with .node-version. If it does not,\ndebug the fnm shell initialization from Phase 01 rather than changing the repository version pin.\n\nProblem - workspace package does not appear\nCheck whether the folder actually contains a package.json and whether its path matches the pnpm-workspace.yaml\nglob. A folder name matching apps/* is not enough by itself.\n\nProblem - endless line-ending changes\nSymptom: Git shows files changed even though their text appears identical. Inspect .gitattributes and local Git\nline-ending settings. Repository attributes should provide a predictable project-level policy. Avoid solving line-ending\nnoise by disabling normalization randomly per developer.\n\nProblem - .env is still tracked after adding it to .gitignore\nGit ignore rules do not stop tracking a file that is already in the index. If the file contained a real credential, rotate the\ncredential. Then remove it from version control history/index using an appropriate remediation workflow. Do not\nassume adding .env to .gitignore makes an exposed secret safe.\n\nProblem - nested .git directory\nIf git status inside a subfolder appears to show a completely different repository, someone may have run git init\ninside the monorepo. Inspect hidden files with:\n\nGet-ChildItem -Force -Recurse -Directory -Filter .git\n\nA normal TaskFlow course repository should have one .git directory at the root. Remove a nested repository only\nafter confirming it is accidental and that no unique history is needed.\n\nDebug the layer that produced the symptom\n\nObserved symptom\n\nwhere/version         json/yaml           git/lockfile\n\nCheck scope                                Check config                               Check state\n\nevidence            evidence            evidence\n\nSmallest correction\n\nFigure 1 - Evidence narrows the problem before you change anything\n\nA professional pre-commit rhythm\ngit status\ngit diff\n# edit or verify\ngit add .\ngit diff --staged\n# only then\ngit commit -m \"...\"\n\nThis rhythm is intentionally repetitive. It makes accidental secrets, generated output and unrelated changes visible\nbefore they become history.\n\nVolume 01 - Engineering Foundation\n\nPhase 02 operational checklist\n•\nI can identify the workspace root without guessing.\n•\nI know which package should own a dependency before installing it.\n•\nI inspect staged changes before committing.\n•\nI can distinguish a pnpm warning from a Git problem or Node-version problem.\n•\nI prefer one small evidence-based correction over deleting node_modules or reinstalling everything.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 699,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Professional Monorepo Workflow and Troubleshooting in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Professional Monorepo Workflow and Troubleshooting” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating tsconfig settings in every package",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Professional Monorepo Workflow and Troubleshooting” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Professional Monorepo Workflow and Troubleshooting solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "hands-on-lab-exercises-and-phase-exit",
+      "title": "Hands On Lab Exercises and Phase Exit",
+      "summary": "",
+      "body": "Phase 02\n\nHands-On Lab, Exercises &\nPhase Exit\nRebuild the workspace independently, diagnose realistic failures, reason\nabout dependency ownership, and prove readiness for Next.js.\n\nBook 7 - Practice and assessment\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nHands-On Lab, Exercises and Phase Exit\nThis book turns Phase 02 from reading into skill. The goal is not to remember a sequence of commands; it is to build\nthe repository from a clean parent folder and explain why every root file exists.\n\nLab - Rebuild the foundation without looking\nCreate a fresh practice folder outside your main course repository. From memory, reproduce the TaskFlow root\nstructure up to the first clean Git commit. Do not copy the reference files until after your attempt.\n\nLab requirements\n•\nCreate a new folder and initialize Git.\n•\nCreate package.json with name, version, private, packageManager, engines and workspace:list.\n•\nCreate .node-version with the exact course Node version.\n•\nCreate pnpm-workspace.yaml with apps/* and packages/*.\n•\nRun pnpm install and explain why pnpm-lock.yaml belongs in Git.\n•\nCreate .gitignore and .gitattributes from memory, then compare with the reference.\n•\nCreate a concise README.\n•\nInspect git diff before staging and git diff --staged before committing.\n•\nCommit with a message that describes the checkpoint.\n\nLevel 1 - Follow\nRun these verification commands in your practice repository and write down what each proves:\n\nGet-Location\nGet-ChildItem -Force\nnode --version\npnpm --version\npnpm run workspace:list\ngit status\n\nLevel 2 - Modify\nChange the README to explain in your own words why apps/ and packages/ are different. Then use Git to inspect\nthe unstaged change, stage only README.md, inspect the staged diff, and unstage it without discarding your edit.\n\nHint: this exercise is about Git state, not about rewriting the entire repository.\n\nLevel 3 - Implement\nWithout changing directories into a future application, write the command you would use to add a dependency\nspecifically to a workspace package named @taskflow/web. Then explain why using -w instead would change\ndependency ownership. Do not actually install a framework in Phase 02.\n\nLevel 4 - Engineer\nA teammate proposes this repository immediately:\n\npackages/\ncommon/\ntypes/\nutils/\ncore/\nshared/\nconfig/\napi-client/\n\nWrite a short design review. Which packages would you reject today, and what concrete reuse pressure would justify\ncreating one later? Your answer should reference responsibilities, not aesthetics.\n\nArchitecture tracing exercise\nFor each item below, identify its owner:\n\nItem                                                      Possible owner\n\nReact                                                     root / apps/web / apps/api\n\n@nestjs/core                                              root / apps/web / apps/api\n\nPrisma CLI in the initial architecture                    root / apps/api / packages/db\n\nA future shared Zod schema used by web and API            apps/web / apps/api / earned shared package\n\nA repository-wide task orchestrator, if later adopted     root / apps/web / apps/api\n\nTroubleshooting scenarios\nScenario A - Root warning\nYou are at taskflow/ and run pnpm add react. pnpm warns about adding a dependency to the workspace root. What\nis the correct thought process?\n\nScenario B - Package missing\napps/web exists but pnpm workspace:list does not show it. What two conditions should you inspect first?\n\nScenario C - Secret tracked\nYou accidentally committed .env before adding the ignore rule. Why is editing .gitignore insufficient? What security\naction may be necessary?\n\nScenario D - Empty folders vanish\nAfter cloning your repository, apps/ and packages/ are missing. Is the clone broken? Explain Git's behavior and why\nwe intentionally avoided placeholder files.\n\nKnowledge check\n•\nWhat makes taskflow a Git repository?\n•\nWhat makes taskflow a pnpm workspace?\n•\nWhy is the root package.json marked private?\n•\nWhy do we pin Node in both .node-version and engines.node?\n•\nWhy should pnpm-lock.yaml be committed?\n•\nWhat does workspace:* guarantee?\n•\nWhy is ERR_PNPM_ADDING_TO_ROOT useful?\n•\nWhat is the difference between .gitignore and .gitattributes?\n•\nWhy are Next.js and NestJS not installed at the root?\n•\nWhy did we avoid Turborepo and shared packages in this phase?\n\nAnswer guide\nRepository: the .git directory created by git init. Workspace: the root pnpm-workspace.yaml plus matching\npackages. private: prevents accidental publication of the coordination package. Version pins: .node-version drives\nfnm selection while engines communicates compatibility. Lockfile: reproducible resolved dependency graph.\nworkspace:* requires local workspace resolution. Root warning: forces explicit dependency ownership. .gitignore:\n\nVolume 01 - Engineering Foundation\n\ncontrols intentionally untracked files; .gitattributes: controls file attributes such as text normalization. Framework\nownership: install where imported. No Turbo/shared packages yet: no current problem requires them.\n\nPhase exit checklist\n•\nI can recreate the repository without copy/pasting every command.\n•\nI can explain every root file in one sentence.\n•\nI can identify whether a dependency belongs to the root, web, API or a future shared package.\n•\nI understand that the monorepo is one repository with multiple independent application runtimes.\n•\nI can inspect Git state before and after staging.\n•\nI can diagnose workspace-root and version-scope problems systematically.\n•\nMy main TaskFlow repository has a clean checkpoint commit.\n\nNext - Phase 03: Next.js Fundamentals\nWe finally have a trustworthy home for the frontend. In Phase 03 we will create apps/web as the first real workspace\npackage and teach Next.js as an application runtime rather than as a generator command. The architecture will\nevolve from a repository with no application runtime to Browser -> Next.js.\n\nThe next architectural change\n\nTaskFlow workspace                 Phase 03 creates             apps/web - Next.js\n\nserves UI to\n\nBrowser\n\nFigure 1 - Phase 03 turns the repository foundation into the first runnable application\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 879,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Hands On Lab Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Hands On Lab Exercises and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Lab Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using relative imports across app boundaries instead of package contracts",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Lab Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Lab Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "workspace-command-reference-and-practical-patterns",
+      "title": "Workspace Command Reference and Practical Patterns",
+      "summary": "",
+      "body": "Phase 02\n\nWorkspace Command\nReference & Practical Patterns\nA compact, intent-driven reference for PowerShell orientation, pnpm\nworkspace scope, dependency installation, recursive scripts, and Git\ninspection.\n\nBook 8 - Command reference\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nWorkspace Command Reference and Practical\nPatterns\nThis reference book keeps the commands you will use most often in one place, but each command is grouped by\nintent rather than presented as a memorization list. The point is to choose the right scope deliberately.\n\nRepository orientation commands\nIntent                       PowerShell command                  What it proves\n\nCurrent directory            Get-Location                        Which folder receives relative paths and local config\nlookup\n\nVisible and hidden items     Get-ChildItem -Force                Whether .git, dotfiles and root files actually exist\n\nResolve Node executable      Get-Command node                    Which node.exe PowerShell will launch\n\nResolve pnpm executable      Get-Command pnpm                    Which pnpm command PowerShell will launch\n\nGit repository state         git status                          Tracked/untracked/staged state in the current\nrepository\n\nWorkspace inspection commands\npnpm run workspace:list\npnpm list -r --depth -1\npnpm root -w\n\nworkspace:list is our repository script. pnpm list -r --depth -1 is the underlying recursive package view. pnpm root\n-w is useful later when diagnosing where the workspace-level node_modules is located.\n\nDependency installation patterns\nSituation                          Pattern                                   Reasoning\n\nInstall in current package         pnpm add                                  Use when your shell is already inside\nthe owning package\n\nInstall in named package           pnpm --filter add                         Useful from the root when ownership is\nalready clear\n\nInstall root dev tool              pnpm add -w -D                            Explicitly states that the workspace root\nowns the tool\n\nLocal workspace dependency         workspace:* in package.json               Guarantees local workspace resolution\ninstead of registry fallback\n\nRecursive script patterns - for later phases\npnpm -r --if-present run lint\npnpm -r --if-present run typecheck\npnpm -r --if-present run test\npnpm -r --parallel --if-present run dev\n\nThese become useful after packages define the corresponding scripts. --parallel makes sense for long-running\ndevelopment servers that should run together; build-like tasks often benefit from dependency-aware ordering\ninstead.\n\nGit inspection patterns\n\ngit status\ngit diff\ngit add <path>\ngit diff --staged\ngit restore --staged <path>\ngit commit -m \"message\"\n\nThe sequence matters more than the individual commands. Inspect -> stage intentionally -> inspect the staged\nsnapshot -> commit. This is the workflow that protects the repository from accidental noise and secrets.\n\nThe command-selection loop\n\nOrient       where/which package   Decide scope        root/filter/local   Run command\n\nnext decision      status/output\n\nVerify result\n\nFigure 1 - A professional workflow starts with scope, not with the command itself\n\nCommands we intentionally postpone\n•\nFramework generators - introduced only when the relevant app phase begins.\n•\nTurbo task graph commands - postponed until there are several real scripts worth orchestrating.\n•\nPrisma commands - database architecture begins in Volume 03, with Prisma 7.9.1 locked.\n•\nDocker and deployment commands - postponed until the application works locally and is testable.\n\nQuick reference checklist\nBefore any workspace command, answer three questions: Where am I? Which package owns this change? How\nwill I verify the result? If you cannot answer those questions, the command is premature.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 495,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Workspace Command Reference and Practical Patterns in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Workspace Command Reference and Practical Patterns matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Workspace Command Reference and Practical Patterns” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Committing build output, environment files, or node_modules",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Workspace Command Reference and Practical Patterns” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Workspace Command Reference and Practical Patterns solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "repository-design-decisions-and-anti-patterns",
+      "title": "Repository Design Decisions and Anti Patterns",
+      "summary": "",
+      "body": "Phase 02\n\nRepository Design Decisions &\nAnti-Patterns\nWhy the TaskFlow root stays boring, which abstractions we rejected, and\nthe evidence that would justify adding them later.\n\nBook 9 - Architecture decisions\n\nCourse baseline: September 17, 2026 - Windows-first - Project-driven - Production-oriented\n\nRepository Design Decisions and Anti-Patterns\nThe strongest repository architecture is usually the one with the fewest unexplained moving parts. This book records\nthe decisions Phase 02 made, the alternatives we rejected, and the signals that would justify changing those\ndecisions later.\n\nDecision 1 - One monorepo for web and API\nChoice                      Why now                                     Revisit when...\n\nOne Git repository          The applications form one product and       access, compliance, ownership or\nchange together                             release boundaries become truly\nindependent\n\npnpm workspace              Built-in multi-package management already   a future orchestrator must solve\nsolves our current problem                  measurable task-graph/caching pain\n\nOne shared lockfile         Consistent resolution and easier review     almost never for this single-product\nworkspace without a concrete reason\n\nDecision 2 - Keep the root boring\nThe root is policy and orchestration. A root package that accumulates React, NestJS, database libraries and\napplication utilities has erased the very ownership boundaries the monorepo was meant to clarify.\n\nSmell                     If you cannot tell whether a dependency is frontend, backend, or repository\ntooling because everything is installed at the root, the package boundaries are\nalready failing.\n\nDecision 3 - Do not create packages before reuse exists\nA folder named shared is not architecture. A shared package earns its existence when it owns one coherent\nresponsibility that at least two consumers need and when keeping duplicate implementations would create real drift\nor risk.\n\nGood future package candidate\nA validators package can become reasonable after web and API both need the same task input schema and we\nintentionally want one authoritative contract.\n\nWeak package candidate\nA utils package that collects unrelated date helpers, string functions, API wrappers and business rules becomes a\ndependency magnet. Prefer colocating helpers with the feature or responsibility they support until a coherent\nreusable package emerges.\n\nAnti-pattern - the prebuilt enterprise tree\npackages/\ncommon/\ncore/\ndomain/\ninfrastructure/\nshared/\nutils/\ntypes/\nconfig/\n\nThe problem is not the names themselves. The problem is creating them before the system contains responsibilities\nthat require those boundaries. Empty architecture makes navigation harder while teaching nothing about why the\nabstraction exists.\n\nAnti-pattern - framework dependencies at root\ntaskflow/package.json\nreact\nnext\n@nestjs/core\nprisma\n@prisma/client\n\nThis makes the root look convenient while hiding which app truly depends on each technology. The correct default is\npackage ownership: frontend libraries in apps/web, backend/database libraries in apps/api initially.\n\nAnti-pattern - multiple nested repositories\nRunning git init inside apps/web or apps/api creates independent histories unless intentionally using submodules or\nanother advanced strategy. That would undermine the course monorepo model. One .git directory at taskflow/ is the\nexpected state.\n\nAnti-pattern - generated files without review\nFramework generators are useful, but generated output is still your codebase. Starting in Phase 03, every generator\nstep must be followed by tree inspection and Git diff review before the generated code is accepted.\n\nHow architecture should evolve\n\nObserved need          problem first   Smallest option         implement/test         Verify benefit\n\nno clear gain           repeated pressure\n\nKeep simple                                    Earn abstraction\n\nFigure 1 - Abstractions are responses to evidence, not decorations chosen in advance\n\nDecision record for future phases\n•\nPhase 03 creates apps/web and lets Next.js own frontend dependencies.\n•\nPhase 04 creates apps/api and lets NestJS/Fastify own backend dependencies.\n•\nPrisma remains inside apps/api when introduced; no packages/db is created by default.\n•\nA shared validators package is considered only when real cross-app schema reuse appears.\n•\nTurborepo is considered only when pnpm orchestration becomes measurably insufficient.\n•\nDeployment remains independent per app even though source history is shared.\n\nEngineering checkpoint\nA clean Phase 02 repository is intentionally unimpressive to look at. That is a strength. Every file at the root has a\nconcrete responsibility, and there is almost nothing to delete. The sophistication will come from working software and\nearned boundaries, not from an elaborate empty tree.\n\nVolume 01 - Engineering Foundation",
+      "wordCount": 662,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Repository Design Decisions and Anti Patterns in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Repository Design Decisions and Anti Patterns” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Installing app-only dependencies at workspace root",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Repository Design Decisions and Anti Patterns” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Repository Design Decisions and Anti Patterns solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nCreate a pnpm monorepo whose boundaries, scripts, shared configuration, and dependency ownership are understandable before feature code grows.",
+      "body": "Guided Build Lab — Phase 02: Monorepo, pnpm Workspaces & Repository Foundation\n\nPurpose\nCreate a pnpm monorepo whose boundaries, scripts, shared configuration, and dependency ownership are understandable before feature code grows.\n\nDeliverable\nTaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nRepository root -> pnpm-workspace.yaml -> apps/* -> packages/* -> workspace dependencies -> root scripts -> Turbo/task graph\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Create the repository root and initialize Git before generating applications.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Declare workspace globs and explain why apps and packages are separate categories.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Create web and API workspaces without copying node_modules between them.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Create a shared TypeScript configuration package and consume it through workspace dependencies.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Add root dev/build/typecheck/test scripts that delegate to workspaces.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Inspect pnpm why/list output so you can explain where a dependency is owned and why.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\npnpm -w install\npnpm --filter web dev\npnpm --filter api start:dev\npnpm -r typecheck\ngit status\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 698,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Duplicating tsconfig settings in every package",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 02: Monorepo, pnpm Workspaces & Repository Foundation\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nRepository root -> pnpm-workspace.yaml -> apps/* -> packages/* -> workspace dependencies -> root scripts -> Turbo/task graph\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Installing app-only dependencies at workspace root\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Duplicating tsconfig settings in every package\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Using relative imports across app boundaries instead of package contracts\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Committing build output, environment files, or node_modules\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 452,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using relative imports across app boundaries instead of package contracts",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 02 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Monorepo, pnpm Workspaces & Repository Foundation\n\nMission\nRebuild the capability of Phase 02 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nCreate a pnpm monorepo whose boundaries, scripts, shared configuration, and dependency ownership are understandable before feature code grows.\n\nRequired artifact\nTaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain workspace protocol dependencies.\n• Can run one app and the whole repository intentionally.\n• Can identify dependency ownership.\n• Can add a shared package without circular dependencies.\n\nIndependent build sequence\n1. Create the repository root and initialize Git before generating applications.\n2. Declare workspace globs and explain why apps and packages are separate categories.\n3. Create web and API workspaces without copying node_modules between them.\n4. Create a shared TypeScript configuration package and consume it through workspace dependencies.\n5. Add root dev/build/typecheck/test scripts that delegate to workspaces.\n6. Inspect pnpm why/list output so you can explain where a dependency is owned and why.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 377,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "monorepo",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this monorepo concept.",
+          "Diagnose one representative monorepo failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "repository root",
+          "workspace package",
+          "dependency graph",
+          "task runner",
+          "artifact"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: repository root → workspace package → dependency graph → task runner → artifact. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Committing build output, environment files, or node_modules",
+          "Change one assumption in the monorepo example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the monorepo boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 02 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 02: Monorepo, pnpm Workspaces & Repository Foundation. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nTaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 206,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "repository",
+        "objectives": [
+          "Create a pnpm monorepo whose boundaries, scripts, shared configuration, and dependency ownership are understandable before feature code grows.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Repository root",
+          "pnpm-workspace.yaml",
+          "apps/*",
+          "packages/*",
+          "workspace dependencies",
+          "root scripts",
+          "Turbo/task graph"
+        ],
+        "steps": [
+          "Create the repository root and initialize Git before generating applications.",
+          "Declare workspace globs and explain why apps and packages are separate categories.",
+          "Create web and API workspaces without copying node_modules between them.",
+          "Create a shared TypeScript configuration package and consume it through workspace dependencies.",
+          "Add root dev/build/typecheck/test scripts that delegate to workspaces.",
+          "Inspect pnpm why/list output so you can explain where a dependency is owned and why.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain workspace protocol dependencies",
+          "Can run one app and the whole repository intentionally",
+          "Can identify dependency ownership",
+          "Can add a shared package without circular dependencies"
+        ],
+        "breakIt": [
+          "Installing app-only dependencies at workspace root",
+          "Duplicating tsconfig settings in every package"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Root_Snapshot/.gitattributes",
+      "preview": "* text=auto\n\n*.sh text eol=lf\n*.bat text eol=crlf\n*.cmd text eol=crlf\n\n*.png binary\n*.jpg binary\n*.jpeg binary\n*.gif binary\n*.pdf binary"
+    },
+    {
+      "path": "reference/TaskFlow_Root_Snapshot/.gitignore",
+      "preview": "# Dependencies\nnode_modules/\n.pnpm-store/\n\n# Framework/build output\n.next/\ndist/\ncoverage/\n\n# Logs\n*.log\n\n# Environment secrets\n.env\n.env.*\n!.env.example\n\n# OS noise\n.DS_Store\nThumbs.db"
+    },
+    {
+      "path": "reference/TaskFlow_Root_Snapshot/.node-version",
+      "preview": "24.21.0"
+    },
+    {
+      "path": "reference/TaskFlow_Root_Snapshot/README.md",
+      "preview": "# TaskFlow\n\nTaskFlow is the production-style project used by the Full-Stack Developer 2026 course.\n\n## Course baseline\n\n- Node.js 24.21.0\n- pnpm 12.4.2\n- Windows-first development workflow\n\n## Workspace\n\n- `apps/` - deployable applications\n- `packages/` - reusable packages introduced only when needed\n\n## Current phase\n\nPhase 02 - Monorepo, pnpm Workspaces and Repository Foundation"
+    },
+    {
+      "path": "reference/TaskFlow_Root_Snapshot/package.json",
+      "preview": "{\n  \"name\": \"taskflow\",\n  \"version\": \"0.0.0\",\n  \"private\": true,\n  \"packageManager\": \"pnpm@12.4.2\",\n  \"engines\": {\n    \"node\": \">=24.21.0 <25\"\n  },\n  \"scripts\": {\n    \"workspace:list\": \"pnpm list -r --depth -1\"\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_Root_Snapshot/pnpm-workspace.yaml",
+      "preview": "packages:\n  - \"apps/*\"\n  - \"packages/*\""
+    }
+  ],
+  "exercises": [
+    "Guided: Create the repository root and initialize Git before generating applications.",
+    "Practice: Create web and API workspaces without copying node_modules between them.",
+    "Debugging: reproduce and diagnose — Installing app-only dependencies at workspace root.",
+    "Independent: deliver TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.",
+    "Explain-back: Can explain workspace protocol dependencies and Can run one app and the whole repository intentionally."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "A monorepo should make shared ownership and coordinated changes easier, not merely put folders in one repository.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "A monorepo should make shared ownership and coordinated changes easier, not merely put folders in one repository."
+    },
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use pnpm workspaces to make package boundaries explicit and dependency installation deterministic.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use pnpm workspaces to make package boundaries explicit and dependency installation deterministic."
+    },
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Keep shared configuration in dedicated packages instead of duplicating compiler and lint settings.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Keep shared configuration in dedicated packages instead of duplicating compiler and lint settings."
+    },
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Run repository-wide tasks from the root while allowing app-specific commands when debugging."
+      ],
+      "answer": 3,
+      "explanation": "Run repository-wide tasks from the root while allowing app-specific commands when debugging."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create the repository root and initialize Git before generating applications.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Installing app-only dependencies at workspace root."
+      ],
+      "answer": 1,
+      "explanation": "Create the repository root and initialize Git before generating applications."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Declare workspace globs and explain why apps and packages are separate categories.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Duplicating tsconfig settings in every package.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Declare workspace globs and explain why apps and packages are separate categories."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using relative imports across app boundaries instead of package contracts.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create web and API workspaces without copying node_modules between them."
+      ],
+      "answer": 3,
+      "explanation": "Create web and API workspaces without copying node_modules between them."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Committing build output, environment files, or node_modules.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a shared TypeScript configuration package and consume it through workspace dependencies.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a shared TypeScript configuration package and consume it through workspace dependencies."
+    }
+  ],
+  "lessonCount": 13,
+  "wordCount": 7840
+}

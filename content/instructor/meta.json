@@ -1,0 +1,142 @@
+{
+  "title": "Full-Stack Developer 2026 — Guided Course",
+  "subtitle": "A casual, step-by-step code-along path from web foundations to production full-stack and enterprise engineering.",
+  "tracks": [
+    {
+      "number": 1,
+      "slug": "f00-runtime",
+      "title": "Web Runtime & Developer Mental Models",
+      "audience": "Foundation",
+      "description": "Understand the machine, process, network, browser, server, and terminal boundaries before frameworks.",
+      "lessonCount": 12
+    },
+    {
+      "number": 2,
+      "slug": "f01-html-css",
+      "title": "HTML, CSS & Accessible UI Foundations",
+      "audience": "Foundation",
+      "description": "Build the first static TaskFlow interface while learning semantics, layout, responsive design, and accessibility.",
+      "lessonCount": 13
+    },
+    {
+      "number": 3,
+      "slug": "f02-javascript",
+      "title": "JavaScript Programming — TaskFlow Lite",
+      "audience": "Foundation",
+      "description": "Learn programming through a steadily growing TaskFlow Lite application instead of disconnected syntax demos.",
+      "lessonCount": 24
+    },
+    {
+      "number": 4,
+      "slug": "f03-typescript",
+      "title": "TypeScript — From JavaScript to Safe Contracts",
+      "audience": "Foundation",
+      "description": "Migrate working JavaScript into explicit, maintainable contracts and understand where compile-time safety ends.",
+      "lessonCount": 15
+    },
+    {
+      "number": 5,
+      "slug": "f04-react",
+      "title": "React — TaskFlow Lite Application",
+      "audience": "Foundation",
+      "description": "Build a complete frontend-only TaskFlow Lite while learning state, forms, effects, composition, and component boundaries.",
+      "lessonCount": 17
+    },
+    {
+      "number": 6,
+      "slug": "p00-next",
+      "title": "Next.js 16 — App Router in Production",
+      "audience": "Phases 03 & 06",
+      "description": "Turn React knowledge into a production web application using explicit server/client boundaries and observable data flow.",
+      "lessonCount": 20
+    },
+    {
+      "number": 7,
+      "slug": "p01-nest",
+      "title": "NestJS 12 + Fastify 5 — Backend Architecture",
+      "audience": "Phases 04–06",
+      "description": "Trace requests through the framework and build backend behavior with explicit ownership and dependency boundaries.",
+      "lessonCount": 16
+    },
+    {
+      "number": 8,
+      "slug": "p02-http",
+      "title": "HTTP & REST Engineering",
+      "audience": "Phases 05–06",
+      "description": "Use browser DevTools and raw requests to understand the protocol your frontend and backend actually speak.",
+      "lessonCount": 16
+    },
+    {
+      "number": 9,
+      "slug": "p03-data",
+      "title": "PostgreSQL + Supabase — Data Engineering",
+      "audience": "Phases 07–10",
+      "description": "Learn SQL and relational behavior directly before asking Prisma to abstract it.",
+      "lessonCount": 18
+    },
+    {
+      "number": 10,
+      "slug": "p04-prisma",
+      "title": "Prisma 7 — ORM, Migrations & Data Modeling",
+      "audience": "Phases 09–11",
+      "description": "Use Prisma without losing sight of the SQL schema, migration risk, and database behavior underneath.",
+      "lessonCount": 15
+    },
+    {
+      "number": 11,
+      "slug": "p05-api",
+      "title": "Professional API & Business Logic",
+      "audience": "Phases 11–15",
+      "description": "Build CRUD, validation, errors, services, filtering, search, sorting, and pagination as one coherent API.",
+      "lessonCount": 18
+    },
+    {
+      "number": 12,
+      "slug": "p06-auth",
+      "title": "Authentication, Authorization & Multi-Tenancy",
+      "audience": "Phases 16–19",
+      "description": "Treat identity and permissions as separate trust decisions and prove access control with adversarial tests.",
+      "lessonCount": 18
+    },
+    {
+      "number": 13,
+      "slug": "p07-frontend-data",
+      "title": "Forms, TanStack Query & State Architecture",
+      "audience": "Phases 20–25",
+      "description": "Build complete UI states and make deliberate decisions about forms, URL state, server state, and optimistic mutations.",
+      "lessonCount": 20
+    },
+    {
+      "number": 14,
+      "slug": "p08-collab",
+      "title": "Realtime, Storage & Collaboration",
+      "audience": "Phases 26–27",
+      "description": "Add collaboration without confusing server truth, cache state, realtime events, and storage authorization.",
+      "lessonCount": 16
+    },
+    {
+      "number": 15,
+      "slug": "p09-quality",
+      "title": "Testing, Security, Observability & Performance",
+      "audience": "Phases 28–31",
+      "description": "Make quality observable through tests, threat-driven labs, production evidence, and measurement-first performance work.",
+      "lessonCount": 28
+    },
+    {
+      "number": 16,
+      "slug": "p10-delivery",
+      "title": "Docker, CI/CD, Vercel & Production Delivery",
+      "audience": "Phases 32–35",
+      "description": "Package, verify, release, deploy, observe, and roll back TaskFlow as a production system.",
+      "lessonCount": 30
+    },
+    {
+      "number": 17,
+      "slug": "p11-enterprise",
+      "title": "Enterprise Systems & Architecture Transfer",
+      "audience": "Phase 36",
+      "description": "Transfer the TaskFlow architecture into procurement, inventory, HRIS, payroll, and other business systems without cargo-culting patterns.",
+      "lessonCount": 20
+    }
+  ]
+}

@@ -1,0 +1,1004 @@
+{
+  "number": 5,
+  "slug": "phase-05",
+  "title": "HTTP, REST & API Engineering",
+  "volume": 2,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 02 - Frontend + Backend Foundations\nPhase 05 - HTTP, REST & API Engineering\n\nThis package contains 10 focused Phase 05 PDFs, one combined complete book, and a reference TaskFlow HTTP API snapshot.\n\nPhase boundaries:\n- Backend remains NestJS 12.0.3 + Fastify v5.\n- Frontend and backend are still not connected.\n- No CORS yet; it appears in Phase 06 when the browser actually calls the API.\n- Todo data is intentionally in memory.\n- No Prisma/PostgreSQL yet.\n- No authentication yet.\n- Manual input checks are educational scaffolding, not the later validation architecture.\n\nPrimary protocol references:\n- RFC 9110 - HTTP Semantics, RFC Editor\n- MDN HTTP Reference / HTTP Request Methods\n- NestJS Controllers documentation\n\nNext: Phase 06 - Next.js <-> NestJS Communication.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "http-mental-model",
+      "title": "HTTP Mental Model",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 HTTP Mental Model VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS HTTP Mental Model Client, server, resource, representation and contract HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell / browser / later Next.js NestJS + Fastify RESPONSE…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                        HTTP Mental Model\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nHTTP Mental Model\nClient, server, resource, representation and contract\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 1 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                                HTTP Mental Model\n\nHTTP is a contract, not a framework feature\nNestJS did not invent GET, status 200 or JSON. Next.js will not invent them either. Both applications participate in an HTTP\ncontract defined independently of either framework. That separation is useful: if you later replace Next.js with a mobile app,\nor NestJS with another backend, the HTTP concepts remain recognizable.\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                                  TaskFlow API\n\nPowerShell / browser / later Next.js                                                   NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nThe roles\nRole                              Meaning in TaskFlow\n\nClient                            A program that initiates a request. In this phase: PowerShell. Later: Next.js/browser.\n\nServer                            The TaskFlow NestJS + Fastify process listening on port 4000.\n\nResource                          The thing addressed by the request, such as the Todo collection or a specific Todo.\n\nRepresentation                    A transferable form of resource state, commonly JSON in our API.\n\nContract                          The agreed method, URL, headers, body shape, status and response shape.\n\nOne request has one primary direction\nThe client decides when to initiate an ordinary HTTP request. The server receives it, processes it, and sends a response. This\nis different from realtime push architectures, which appear much later. Understanding ordinary request/response behavior\nfirst makes later realtime technology easier to justify.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                          HTTP Mental Model\n\nResource identity and request semantics are separate\n\nTodo Collection\n\n/todos\n\nTodo 1                              Todo 2                              Todo 3\n\n/todos/1                            /todos/2                            /todos/3\n\nURLs identify resources. HTTP methods express what the client asks to do with them.\n\nFigure - REST-oriented resource modeling separates resource identity from method semantics.\n\nThe URL identifies what the request targets. The HTTP method contributes what kind of operation the client is requesting.\nThis is why GET /todos/3 and DELETE /todos/3 can target the same resource while expressing different semantics.\n\nMental model\n\nThink: resource + method + representation + outcome. Do not think: \"controller function name somehow became an API.\"\nThe controller is only the server-side implementation of a protocol contract.\n\nHTTP version vs HTTP semantics\nHTTP/1.1, HTTP/2 and HTTP/3 differ in framing, multiplexing and transport behavior. For application development, the\ncourse first focuses on the shared semantics: methods, target URIs, fields/headers, representations and status codes. That\nknowledge transfers across protocol versions.\n\nWhat the server can and cannot infer\n●    A server receives the request the client actually sent, not the request the developer intended to send.\n●    If the path is wrong, routing may fail even if the JSON body is perfect.\n●    If the method is wrong, the correct path may still not match the intended handler.\n●    If JSON is malformed or the content type is incorrect, the server may not obtain the expected representation.\n●    If a request succeeds but the status code is misleading, client code can still behave incorrectly.\n\nREAL-WORLD NOTE\n\nMobile apps, CLI tools, partner integrations and browser frontends can all call the same HTTP API. A strong API contract\nreduces coupling between those clients and the backend implementation.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                                HTTP Mental Model\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 666,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain HTTP Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “HTTP Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using 200 for every outcome",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “HTTP Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does HTTP Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "http-request-response-anatomy",
+      "title": "HTTP Request Response Anatomy",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 HTTP Request and Response Anatomy VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS HTTP Request and Response Anatomy Methods, targets, headers, content, JSON and representations HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell / browser / later…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                        HTTP Request and Response Anatomy\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nHTTP Request and Response Anatomy\nMethods, targets, headers, content, JSON and representations\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 2 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                           HTTP Request and Response Anatomy\n\nAnatomy of an HTTP request\n\nPOST /todos HTTP/1.1\n\nrequest line: method + target + protocol\n\nContent-Type: application/json\nAccept: application/json\nheaders: metadata about the request\n\n{\"title\":\"Learn HTTP\"}\n\nbody: representation sent to the server\n\nFigure - Simplified HTTP request anatomy. HTTP/2 and HTTP/3 encode messages differently on the wire, but the semantic concepts\nremain method, target, headers and content.\n\nMethod\nThe method communicates the request semantics. GET asks for a representation; POST commonly submits content for\nprocessing or creation; PUT requests replacement; PATCH requests a partial modification; DELETE requests removal.\n\nTarget\nThe request target identifies the addressed resource. In TaskFlow, /todos identifies the collection while /todos/3 identifies\none member. Query parameters can refine a request later, such as /todos?completed=true.\n\nHeaders\nHeader                                      Why it matters\n\nContent-Type: application/json              Describes the media type of request content being sent.\n\nAccept: application/json                    Expresses a representation preference for the response.\n\nAuthorization: Bearer ...                   Carries credentials later when authentication is introduced.\n\nCache-Control                               Influences caching behavior when relevant.\n\nBody / content\nA request may carry content. For a Todo creation request, JSON can represent the new data. GET normally retrieves data and\nshould not depend on a request body for ordinary API design.\n\nJSON is a representation format, not HTTP itself\nHTTP can carry many media types. TaskFlow uses JSON because it maps naturally to JavaScript data and is widely\nsupported. The protocol and the representation format remain separate concepts.\nExample JSON representation\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                              HTTP Request and Response Anatomy\n\n{\n\"title\": \"Learn HTTP\",\n\"completed\": false\n}\n\nAnatomy of an HTTP response\n\nHTTP/1.1 201 Created\n\nstatus line: protocol + status code + reason phrase\n\nContent-Type: application/json\nLocation: /todos/3\nresponse headers: metadata and controls\n\n{\"id\":3,\"title\":\"Learn HTTP\",\"completed\":false}\n\nresponse body: selected representation\n\nFigure - Simplified HTTP response anatomy. The status code is part of the contract, not decoration around JSON.\n\nThe status code summarizes the outcome at the protocol level. Headers provide metadata or controls. The response content\ncarries a representation when one is appropriate. A well-designed client uses all three instead of parsing a JSON message\nstring to guess whether the request succeeded.\n\nRepresentation vs database row\nLater, Prisma returns database records, but an API response does not have to expose a database row exactly as stored. A\nrepresentation is part of the API contract. This distinction becomes important when hiding internal fields, combining data or\nversioning an API.\n\nBoundary rule\n\nDo not let the fact that JavaScript objects serialize easily to JSON trick you into thinking every internal object should\nautomatically become a public API response. Public representations are contracts.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 587,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain HTTP Request Response Anatomy in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “HTTP Request Response Anatomy” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Encoding actions into routes when resource semantics are clearer",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “HTTP Request Response Anatomy” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does HTTP Request Response Anatomy solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "http-methods-status-codes-and-idempotency",
+      "title": "HTTP Methods Status Codes and Idempotency",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 HTTP Methods, Status Codes and Idempotency VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS HTTP Methods, Status Codes and Idempotency Choose protocol semantics deliberately instead of by habit HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell /…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                 HTTP Methods, Status Codes and Idempotency\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nHTTP Methods, Status Codes and\nIdempotency\nChoose protocol semantics deliberately instead of by habit\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 3 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                HTTP Methods, Status Codes and Idempotency\n\nMethod semantics matter\n\nGET                           read                                safe + idempotent\n\nPOST                     create/action                         normally not idempotent\n\nPUT                         replace                                  idempotent\n\nPATCH                     partial change                      not guaranteed idempotent\n\nDELETE                        remove                              idempotent semantics\n\nFigure - Common method semantics. Safe and idempotent are protocol properties; they are not synonyms for \"nothing happened\" or\n\"same response\".\n\nRFC 9110 defines GET, HEAD, OPTIONS and TRACE as safe methods. Safe means the client is not requesting a\nstate-changing action. The server may still log the request or perform incidental work. Idempotent means multiple identical\nrequests have the same intended effect on the server as one request. Safe methods, PUT and DELETE are defined as\nidempotent.\n\nSafe is not the same as \"zero side effects\"\nLogging a GET request changes a log file, but that does not make GET unsafe in HTTP semantics because the client did not\nrequest that state change. The distinction is about the requested action.\n\nIdempotent is not the same as \"same response\"\nDELETE /todos/3 might return 204 the first time and 404 the second time. Those responses differ, yet the intended\nresource-removal effect after repeated identical requests is still the same: Todo 3 is absent.\n\nCommon TaskFlow method choices\nOperation                 Method             Route                             Reasoning\n\nList Todos                GET                /todos                            Read collection representation.\n\nRead Todo                 GET                /todos/:id                        Read one identified resource.\n\nCreate Todo               POST               /todos                            Server assigns a new member identity.\n\nReplace Todo              PUT                /todos/:id                        Full replacement semantics; not used in our\nfirst implementation.\n\nModify Todo               PATCH              /todos/:id                        Partial update of selected fields.\n\nDelete Todo               DELETE             /todos/:id                        Request removal of identified resource.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                         HTTP Methods, Status Codes and Idempotency\n\nStatus code classes\n\n1xx                      Information                               request processing / protocol info\n\n2xx                       Success                                  request understood and handled\n\n3xx                      Redirection                           further action or alternate representation\n\n4xx            Client-side request problem                         request cannot be fulfilled as sent\n\n5xx                  Server-side failure                  server failed while handling a valid-looking request\n\nFigure - HTTP status codes are grouped by first digit. Application APIs mostly use 2xx, 4xx and 5xx in ordinary workflows.\n\nStatus codes used in this phase\nCode                  Meaning in TaskFlow                                     Typical use\n\n200 OK                Successful request with a response representation.      GET and PATCH here.\n\n201 Created           A new resource was created.                             POST /todos.\n\n204 No Content        Successful request intentionally returns no             DELETE /todos/:id.\nresponse content.\n\n400 Bad Request       Request cannot be processed as sent.                    Malformed/basic unusable input in examples.\n\n404 Not Found         Target resource is not available.                       Unknown Todo id.\n\n409 Conflict          Request conflicts with current resource/application     Later useful for uniqueness/state conflicts.\nstate.\n\n500 Internal Server   Unexpected server failure.                              Do not intentionally use for client mistakes.\nError\n\nDo not return 200 for everything\n\nA response body such as {\"success\": false} with HTTP 200 forces every client to reinvent outcome detection. Use the protocol\nstatus code accurately, then add structured error content when useful.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 624,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain HTTP Methods Status Codes and Idempotency in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “HTTP Methods Status Codes and Idempotency” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Map outcomes to protocol semantics",
+          "code": "Created resource        -> 201\nSuccessful read          -> 200\nSuccessful delete/no body-> 204\nMalformed input          -> 400\nUnauthenticated          -> 401\nAuthenticated but denied -> 403\nMissing resource         -> 404\nState conflict           -> 409"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning database rows as accidental public contracts",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “HTTP Methods Status Codes and Idempotency” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does HTTP Methods Status Codes and Idempotency solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "rest-resource-and-route-design",
+      "title": "REST Resource and Route Design",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 REST Resource and Route Design VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS REST Resource and Route Design Collections, members, paths, query parameters and predictable contracts HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell / browser /…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                             REST Resource and Route Design\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nREST Resource and Route Design\nCollections, members, paths, query parameters and predictable contracts\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 4 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                 REST Resource and Route Design\n\nDesign APIs around resources\n\nTodo Collection\n\n/todos\n\nTodo 1                              Todo 2                                Todo 3\n\n/todos/1                            /todos/2                              /todos/3\n\nURLs identify resources. HTTP methods express what the client asks to do with them.\n\nFigure - REST-oriented resource modeling separates resource identity from method semantics.\n\nREST is often taught as a rigid list of URL rules. A more useful starting point is resource-oriented thinking: identify the\ndomain concepts the client manipulates, give them stable resource identifiers, and use standard HTTP semantics to interact\nwith them.\n\nPrefer nouns in resource paths\nAvoid action-shaped route                                      Prefer resource-oriented route\n\nGET /getTodos                                                  GET /todos\n\nGET /getTodo?id=3                                              GET /todos/3\n\nPOST /createTodo                                               POST /todos\n\nPOST /completeTodo/3                                           PATCH /todos/3 with { completed: true }\n\nPOST /deleteTodo/3                                             DELETE /todos/3\n\nThis is not because verbs are forbidden in URLs. It is because HTTP already provides method semantics. Resource-oriented\ncontracts tend to be easier to predict and compose. Some domain actions genuinely do not map cleanly to CRUD; later\nsystems may use action endpoints when the domain warrants them.\n\nCollections and members\nTarget                                 Examples of reasonable operations\n\n/todos                                 GET list; POST create\n\n/todos/:id                             GET one; PATCH change; DELETE remove\n\n/projects/:projectId/tasks             Later: nested collection when project context is meaningful\n\nPath parameters vs query parameters\nUse path parameters to identify a resource or hierarchical context. Use query parameters to modify how a representation is\nselected, filtered, sorted or paged.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                  REST Resource and Route Design\n\nResource identity vs query refinement\n\nGET /todos/42\nGET /todos?completed=true\nGET /todos?sort=createdAt&order=desc\n\nDo not leak UI button names into the API\nA frontend button might say Mark complete, but the API contract does not need a /markComplete route. The underlying\nresource change is a Todo update. This keeps the API useful to clients that have completely different interfaces.\n\nREAL-WORLD NOTE\n\nA payroll or procurement API often includes operations that are more than CRUD, such as approve, post or close.\nResource-oriented design is a default mental model, not a command to distort domain workflows. Introduce explicit actions\nwhen the domain operation is genuinely meaningful and cannot be represented clearly as ordinary resource state.\n\nContract checklist before implementing a route\n●    What resource is being targeted?\n●    Which HTTP method best expresses the requested semantics?\n●    Where is resource identity carried: path or query?\n●    Does the request need content? What media type?\n●    What success status should the client expect?\n●    What happens if the resource does not exist?\n●    Is retrying the operation safe or idempotent?\n●    What representation should a successful response expose?\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 580,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain REST Resource and Route Design in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “REST Resource and Route Design” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing authentication failures with authorization failures",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “REST Resource and Route Design” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does REST Resource and Route Design solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "build-the-in-memory-todo-api",
+      "title": "Build the In Memory Todo API",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 Build the In-Memory Todo API VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS Build the In-Memory Todo API Turn HTTP semantics into observable GET, POST, PATCH and DELETE behavior HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                 Build the In-Memory Todo API\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nBuild the In-Memory Todo API\nTurn HTTP semantics into observable GET, POST, PATCH and DELETE behavior\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 5 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                Build the In-Memory Todo API\n\nBuild a temporary in-memory Todo API\nWe now need a concrete protocol surface to exercise. The data deliberately lives in memory so a server restart resets it. That\nlimitation is not a bug in this phase - it isolates HTTP behavior from database persistence. Volume 03 will solve persistence\nproperly.\n\nPowerShell Client\nInvoke-RestMethod\n\nFastify\nreceives HTTP request\n\nTodosController\nmethod + route + HTTP boundary\n\nTodosService\ntemporary in-memory behavior\n\nHTTP Response\nstatus + JSON / no body\n\nFigure - The Phase 05 Todo API is intentionally in-memory. PostgreSQL and Prisma arrive later; this phase isolates HTTP semantics.\n\nStep 1 - Generate the Todo feature\nFrom: taskflow\\apps\\api\n\npnpm exec nest generate module todos\npnpm exec nest generate controller todos --no-spec\npnpm exec nest generate service todos --no-spec\n\nStep 2 - Give the service temporary state\napps/api/src/todos/todos.service.ts - first read operations\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                         Build the In-Memory Todo API\n\nimport { Injectable, NotFoundException } from '@nestjs/common';\n\ninterface Todo {\nid: number;\ntitle: string;\ncompleted: boolean;\n}\n\n@Injectable()\nexport class TodosService {\nprivate nextId = 3;\nprivate readonly todos: Todo[] = [\n{ id: 1, title: 'Learn HTTP', completed: false },\n{ id: 2, title: 'Build the API contract', completed: false },\n];\n\nfindAll() {\nreturn this.todos;\n}\n\nfindOne(id: number) {\nconst todo = this.todos.find((item) => item.id === id);\nif (!todo) throw new NotFoundException('Todo not found');\nreturn todo;\n}\n}\n\nThe service owns temporary application state. The controller should not own an array just because it receives HTTP requests.\nLater, Prisma replaces this in-memory persistence without changing the conceptual controller responsibility.\n\nStep 3 - Add read routes\napps/api/src/todos/todos.controller.ts - read routes\n\n@Controller('todos')\nexport class TodosController {\nconstructor(private readonly todosService: TodosService) {}\n\n@Get()\nfindAll() {\nreturn this.todosService.findAll();\n}\n\n@Get(':id')\nfindOne(@Param('id') id: string) {\nreturn this.todosService.findOne(Number(id));\n}\n}\n\nWe convert the route parameter to a number for this protocol exercise. Formal validation and typed DTO boundaries are\ndeliberately deferred. The book should make that technical debt visible rather than pretend raw input is trustworthy.\n\nStep 4 - Add creation\ntodos.service.ts - temporary creation behavior\n\ncreate(title: string) {\nconst todo = {\nid: this.nextId++,\ntitle,\ncompleted: false,\n};\nthis.todos.push(todo);\nreturn todo;\n}\n\ntodos.controller.ts - POST /todos\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                   Build the In-Memory Todo API\n\n@Post()\ncreate(@Body() body: { title?: string }) {\nif (!body.title?.trim()) {\nthrow new BadRequestException('title is required');\n}\nreturn this.todosService.create(body.title.trim());\n}\n\nNest defaults successful POST handlers to 201 Created. We use only a tiny manual guard here so the protocol example is\nusable; this is not the validation architecture taught later.\n\nStep 5 - Add partial update\ntodos.service.ts - patch behavior\n\nupdate(id: number, changes: { title?: string; completed?: boolean }) {\nconst todo = this.findOne(id);\nif (changes.title !== undefined) todo.title = changes.title;\nif (changes.completed !== undefined) todo.completed = changes.completed;\nreturn todo;\n}\n\ntodos.controller.ts - PATCH /todos/:id\n\n@Patch(':id')\nupdate(\n@Param('id') id: string,\n@Body() body: { title?: string; completed?: boolean },\n) {\nreturn this.todosService.update(Number(id), body);\n}\n\nStep 6 - Add deletion with 204\ntodos.service.ts - removal behavior\n\nremove(id: number) {\nconst todo = this.findOne(id);\nconst index = this.todos.indexOf(todo);\nthis.todos.splice(index, 1);\n}\n\ntodos.controller.ts - DELETE /todos/:id\n\n@Delete(':id')\n@HttpCode(204)\nremove(@Param('id') id: string) {\nthis.todosService.remove(Number(id));\n}\n\nA 204 response intentionally has no content. Returning a JSON success object would conflict with the meaning we are\nteaching. Nest allows explicit status selection through @HttpCode(204).\n\nTemporary limitation\n\nThe array disappears when the server stops. That is useful right now because the learner can focus on request/response\nsemantics. Do not add Prisma early to \"fix\" it. Persistence is a separate architectural problem and gets its own phase.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                       Build the In-Memory Todo API\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 770,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Build the In Memory Todo API in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Build the In Memory Todo API matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Build the In Memory Todo API” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using 200 for every outcome",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Build the In Memory Todo API” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Build the In Memory Todo API solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "powershell-api-testing-and-contracts",
+      "title": "PowerShell API Testing and Contracts",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 PowerShell API Testing and Contracts VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS PowerShell API Testing and Contracts Exercise TaskFlow HTTP directly before any browser integration HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell / browser /…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                          PowerShell API Testing and Contracts\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nPowerShell API Testing and Contracts\nExercise TaskFlow HTTP directly before any browser integration\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 6 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                    PowerShell API Testing and Contracts\n\nTest the API without a frontend\nA backend should be independently testable. If every API test requires clicking through the UI, frontend bugs and API bugs\nbecome tangled. PowerShell gives us a direct client so we can see the raw contract before Phase 06 adds Next.js.\n\nStart the server\nFrom: taskflow\\apps\\api\n\npnpm run start:dev\n\nGET the collection\nPowerShell\n\nInvoke-RestMethod -Method Get -Uri 'http://127.0.0.1:4000/todos'\n\nGET one resource\nPowerShell\n\nInvoke-RestMethod -Method Get -Uri 'http://127.0.0.1:4000/todos/1'\n\nPOST a new Todo\nPowerShell\n\n$body = @{\ntitle = 'Connect Next.js later'\n} | ConvertTo-Json\n\nInvoke-RestMethod `\n-Method Post `\n-Uri 'http://127.0.0.1:4000/todos' `\n-ContentType 'application/json' `\n-Body $body\n\nPowerShell line continuation uses the backtick. Avoid trailing spaces after the backtick because they can break continuation.\nYou can also place the command on one line when troubleshooting.\n\nPATCH an existing Todo\nPowerShell\n\n$body = @{\ncompleted = $true\n} | ConvertTo-Json\n\nInvoke-RestMethod `\n-Method Patch `\n-Uri 'http://127.0.0.1:4000/todos/1' `\n-ContentType 'application/json' `\n-Body $body\n\nDELETE and inspect status\nPowerShell - Invoke-WebRequest is useful when you want response metadata\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                               PowerShell API Testing and Contracts\n\n$response = Invoke-WebRequest `\n-Method Delete `\n-Uri 'http://127.0.0.1:4000/todos/2'\n\n$response.StatusCode\n\nInvoke-RestMethod conveniently deserializes JSON. Invoke-WebRequest exposes more response metadata directly. Choose\nbased on what you are trying to observe.\n\nBuild a contract table while testing\nRequest                                       Expected success                      Expected content\n\nGET /todos                                    200 OK                                Array of Todo representations\n\nGET /todos/1                                  200 OK                                One Todo representation\n\nPOST /todos                                   201 Created                           Created Todo representation\n\nPATCH /todos/1                                200 OK                                Updated Todo representation\n\nDELETE /todos/2                               204 No Content                        No response content\n\nGET /todos/999                                404 Not Found                         Structured Nest error representation\n\nVerification habit\n\nWrite down the expected method, path, status and response shape before you send the request. Then compare expectation to\nobservation. This is much more educational than repeatedly clicking Send until something looks right.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 479,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "testing",
+        "objectives": [
+          "Explain PowerShell API Testing and Contracts in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this testing concept.",
+          "Diagnose one representative testing failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Tests are executable behavioral contracts. Good tests protect meaningful invariants and failure cases, not implementation trivia.",
+        "mentalModel": [
+          "behavior contract",
+          "arrange",
+          "act",
+          "assert",
+          "regression signal"
+        ],
+        "steps": [
+          "Restate the goal of “PowerShell API Testing and Contracts” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: behavior contract → arrange → act → assert → regression signal. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Assert behavior that matters to the user/domain",
+          "code": "it(\"rejects deleting another member's task\", async () => {\n  const response = await asUser(bob).delete(`/tasks/${aliceTask.id}`);\n  expect(response.status).toBe(403);\n  expect(await taskStillExists(aliceTask.id)).toBe(true);\n});"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Encoding actions into routes when resource semantics are clearer",
+          "Change one assumption in the testing example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Test passes alone but fails in suite",
+            "investigation": "Look for shared database state, timers, globals, unordered execution, or missing cleanup before adding retries."
+          },
+          {
+            "symptom": "Mock-heavy test gives false confidence",
+            "investigation": "Move the highest-risk boundary to an integration test with the real adapter/database."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “PowerShell API Testing and Contracts” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does PowerShell API Testing and Contracts solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the testing boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "http-error-semantics-and-debugging",
+      "title": "HTTP Error Semantics and Debugging",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 HTTP Error Semantics and Debugging VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS HTTP Error Semantics and Debugging Diagnose method, route, representation and server failures from observable evidence HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell /…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                         HTTP Error Semantics and Debugging\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nHTTP Error Semantics and Debugging\nDiagnose method, route, representation and server failures from observable evidence\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 7 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                               HTTP Error Semantics and Debugging\n\nTreat error responses as part of the API contract\nCan the TCP request reach port 4000?\nprocess + port\n\nDid a route match?\nmethod + path\n\nWas the request representation usable?\nheaders + JSON shape\n\nDid application logic succeed?\ncontroller / service\n\nWhat status and body came back?\nobserve exact response\n\nFigure - HTTP debugging from the outside in. Preserve the request and response as evidence before editing code.\n\nAn API is not defined only by happy-path JSON. Clients must also know what happens when a route does not exist, a\nresource is absent, the request content is unusable or the server fails unexpectedly.\n\n404 can mean different things operationally\nObservation                                        Likely meaning\n\n404 for GET /todos/999                             Route matched; application says that resource does not exist.\n\n404 for GET /todo/1                                Likely route mismatch: collection path is /todos.\n\n404 for POST /todos/1 when no route exists         Method/path combination does not match a handler.\n\n400 is for a request problem, not every business rejection\nIn this phase, a missing Todo title produces a basic 400 response. Later, formal DTO validation will give consistent\nfield-level errors. A state conflict such as creating a duplicate unique value may be better represented by 409. Status selection\nshould describe the kind of failure, not merely \"something went wrong.\"\n\n5xx means the server failed\nDo not deliberately convert expected client mistakes into 500 responses. A 500-class response tells the client the server could\nnot fulfill the request because of a server-side failure. Production systems should log the internal details without leaking\nsecrets or stack traces into public responses.\n\nInspect what you actually sent\n1      Record the exact method.\n2      Record the exact URL, including port and query string.\n3      Record request headers that affect representation, especially Content-Type.\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                  HTTP Error Semantics and Debugging\n\n4       Record the JSON content exactly as serialized.\n5       Observe the numeric status code.\n6       Observe response headers and body.\n7       Only then decide which application layer to inspect.\n\nA useful debugging contrast\nPowerShell\n\n# Wrong path\nInvoke-RestMethod -Method Get -Uri 'http://127.0.0.1:4000/todo/1'\n\n# Correct path\nInvoke-RestMethod -Method Get -Uri 'http://127.0.0.1:4000/todos/1'\n\nIf the first request returns 404, editing TodosService would be irrational: the route may never have reached the service.\nDebugging improves when you trace from observable protocol evidence inward.\n\nError-driven teaching rule\n\nPreserve the failing request. Form one hypothesis. Change the smallest relevant thing. Repeat the same request. If the symptom\nchanges, you learned something about the layer.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 576,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain HTTP Error Semantics and Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “HTTP Error Semantics and Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning database rows as accidental public contracts",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “HTTP Error Semantics and Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does HTTP Error Semantics and Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "api-design-decisions-and-anti-patterns",
+      "title": "API Design Decisions and Anti Patterns",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 API Design Decisions and Anti-Patterns VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS API Design Decisions and Anti-Patterns Professional contract choices without premature enterprise complexity HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell / browser / later…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                        API Design Decisions and Anti-Patterns\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nAPI Design Decisions and Anti-Patterns\nProfessional contract choices without premature enterprise complexity\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 8 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                         API Design Decisions and Anti-Patterns\n\nAPI design decisions that age well\nDecision                    Prefer                                         Avoid\n\nResource naming             Plural nouns such as /todos                    Verb-heavy routes such as /getTodos\n\nOutcome signaling           Meaningful HTTP status                         Always 200 + success boolean\n\nRepresentation              Stable public shape                            Blindly expose every internal object\n\nDeletion                    DELETE /todos/:id                              POST /deleteTodo\n\nPartial edit                PATCH /todos/:id                               One endpoint per field/button\n\nErrors                      Consistent status + structured body            Random strings and stack traces\n\nTesting                     Independent API client first                   Only test through UI clicks\n\nAnti-pattern: controller as the entire application\nThe controller should not gradually accumulate arrays, database queries, permission rules and business workflows. Phase 05\nkeeps the in-memory array in TodosService so that when persistence changes later, the HTTP boundary remains conceptually\nstable.\n\nAnti-pattern: status code as decoration\nIf a client must inspect { success: false } to discover that a request failed while the HTTP status is 200, intermediaries,\nmonitoring tools and generic client behavior lose useful protocol information. Use HTTP semantics rather than hiding them\ninside JSON.\n\nAnti-pattern: design from screens instead of domain\nresources\nA UI might have buttons named Add, Finish, Archive, Restore and Delete. If every button becomes an endpoint name, the\nAPI becomes tightly coupled to one interface. Start from the resource and its state transitions, then introduce explicit action\nendpoints only when the domain operation itself deserves an action concept.\n\nAnti-pattern: pretending Phase 05 input handling is\nproduction validation\nThe manual title check in POST /todos is intentionally minimal. It does not give reusable schemas, transformation,\nfield-specific validation or consistent DTO behavior. Later phases introduce a real validation boundary. A professional\ncourse should label temporary scaffolding honestly.\n\nAPI contract review checklist\n●     Is the resource name meaningful without seeing the frontend?\n●     Does the method match the intended semantics?\n●     Can a client predict common success and failure statuses?\n●     Is the response shape stable and intentional?\n●     Is resource identity in the correct part of the URL?\n●     Are query parameters used for selection/filter/sort rather than hidden actions?\n●     Is the endpoint independently testable?\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                              API Design Decisions and Anti-Patterns\n\n●    If the UI disappeared tomorrow, would the API still make sense?\n\nArchitecture before abstraction\n\nWe still do not add repository interfaces, shared API packages or OpenAPI generators. The learner first needs a real contract\nworth abstracting. Later phases can introduce tooling when a concrete maintenance problem appears.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 538,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain API Design Decisions and Anti Patterns in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “API Design Decisions and Anti Patterns” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing authentication failures with authorization failures",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “API Design Decisions and Anti Patterns” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does API Design Decisions and Anti Patterns solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "exercises-and-phase-exit",
+      "title": "Exercises and Phase Exit",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05 Exercises and Phase Exit VOLUME 02 - FRONTEND + BACKEND FOUNDATIONS Exercises and Phase Exit Hands-on HTTP labs, debugging drills and the Phase 05 readiness standard HTTP is the contract between independent programs. REQUEST HTTP Client TaskFlow API PowerShell / browser…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                   Exercises and Phase Exit\n\nVOLUME 02 - FRONTEND + BACKEND FOUNDATIONS\n\nExercises and Phase Exit\nHands-on HTTP labs, debugging drills and the Phase 05 readiness standard\n\nHTTP is the contract between independent programs.\n\nREQUEST\nHTTP Client                                                           TaskFlow API\n\nPowerShell / browser / later Next.js                                            NestJS + Fastify\nRESPONSE\n\nmethod + target + headers + optional body\n\nstatus + headers + optional body\n\nFigure - HTTP request/response exchange. Phase 05 studies the protocol before Phase 06 introduces a browser cross-origin call.\n\nBook 9 of Phase 05\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                         Exercises and Phase Exit\n\nHands-on lab - prove that HTTP is no longer magic\nDo the exercises with the TaskFlow API running independently. Do not open the Next.js frontend. Phase 05 is successful\nwhen you can reason from protocol contracts before integration hides details behind fetch helpers.\n\nLevel 1 - Follow\n1      Create the Todos feature module/controller/service.\n2      Implement GET /todos and GET /todos/:id.\n3      Implement POST /todos with 201 behavior.\n4      Implement PATCH /todos/:id.\n5      Implement DELETE /todos/:id with 204.\n6      Exercise every route from PowerShell and record method, URL, status and returned content.\n\nLevel 2 - Modify\nAdd an optional description field to the in-memory Todo representation. Decide which requests should include it and prove\nGET/POST/PATCH behavior with PowerShell. Do not add formal DTO files yet.\n\nLevel 3 - Implement\nAdd GET /todos?completed=true and GET /todos?completed=false. Parse the query string in the controller and delegate\nselection to the service. Explain why completed is a query parameter rather than a new route such as /getCompletedTodos.\n\nLevel 4 - Engineer\nDesign the HTTP contract for an archive Todo capability. Compare at least two approaches: PATCHing an archived field\nversus an explicit action endpoint. State your assumptions and choose one based on domain semantics, not on a memorized\nREST rule.\n\nDebugging drills\nScenario                                      What you should diagnose\n\nGET /todo/1 returns 404                       Compare path to registered resource route before inspecting service logic.\n\nPOST /todos returns 400                       Inspect exact JSON and Content-Type before changing the server.\n\nDELETE returns 204 but PowerShell prints no   Recognize that no response content is expected.\nobject\n\nSecond DELETE returns 404                     Explain why DELETE can still have idempotent semantics despite a different\nresponse.\n\nServer restart removes created Todos          Identify in-memory persistence as the expected phase limitation.\n\nPATCH succeeds but unknown fields are         Identify missing formal validation; do not claim the current boundary is\naccepted                                      production-complete.\n\nOral architecture exam\n●      What is the difference between a resource and a representation?\n●      Why can the same URL be used with GET and DELETE?\n●      What does safe mean in HTTP semantics?\n●      What does idempotent mean?\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 05                                                                           Exercises and Phase Exit\n\n●    Why can two identical DELETE requests return different status codes and still have idempotent semantics?\n●    Why is 201 more informative than 200 for resource creation?\n●    Why should a 204 response not include a JSON body?\n●    Why is /todos?completed=true different from /getCompletedTodos?\n●    Why are we testing the API from PowerShell before using Next.js?\n●    Why does the temporary Todo array intentionally disappear on restart?\n\nPhase 05 exit checklist\n●    [ ] GET, POST, PATCH and DELETE routes work from PowerShell.\n●    [ ] you can identify request method, target, headers and content.\n●    [ ] you can identify response status, headers and content.\n●    [ ] you can explain safe and idempotent accurately.\n●    [ ] you use resource-oriented URLs by default.\n●    [ ] you understand why status codes are part of the contract.\n●    [ ] you can distinguish a route 404 from a missing-resource 404 through context.\n●    [ ] you can explain the temporary in-memory limitation without trying to add Prisma early.\n●    [ ] pnpm run build succeeds after the Todo endpoints are added.\n\nNEXT: PHASE 06 - NEXT.JS <-> NESTJS COMMUNICATION\n\nThe protocol is now understandable. Phase 06 will finally make the Next.js application call the NestJS API, introduce frontend\nAPI configuration, browser network inspection and CORS at the moment cross-origin behavior actually becomes real.\n\nOfficial source notes\nPrimary protocol reference: RFC 9110 - HTTP Semantics (RFC Editor). Supplemental developer reference: MDN HTTP Reference and\nHTTP Request Methods. Nest-specific routing and status behavior reference: NestJS Controllers documentation.\n\nThis phase teaches HTTP semantics independent of a specific transport version. HTTP/2 and HTTP/3 change framing and transport details,\nwhile request methods, target resources, headers, status codes and representation semantics remain the important application-level concepts\nfor this course.",
+      "wordCount": 704,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using 200 for every outcome",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nDesign HTTP APIs using resources, methods, status codes, idempotency, errors, caching semantics, and versionable contracts.",
+      "body": "Guided Build Lab — Phase 05: HTTP, REST & API Engineering\n\nPurpose\nDesign HTTP APIs using resources, methods, status codes, idempotency, errors, caching semantics, and versionable contracts.\n\nDeliverable\nA written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nClient intent -> HTTP method + URI -> headers/body -> server processing -> status + response representation -> client state transition\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Write the task resource shape before writing controller code.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Design collection and item URIs and justify GET/POST/PATCH/DELETE choices.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Repeat safe/idempotent requests and reason about what should or should not change.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Write an error envelope that the frontend can parse consistently.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nUseful verification commands\ncurl -i http://localhost:4000/health\n\nDo not run commands mechanically. Before each command, predict what successful output should prove. If it fails, capture the exact message and identify whether the failure is environment, dependency, compile-time, runtime, network, authorization, or persistence related.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 689,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Encoding actions into routes when resource semantics are clearer",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 05: HTTP, REST & API Engineering\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nClient intent -> HTTP method + URI -> headers/body -> server processing -> status + response representation -> client state transition\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Using 200 for every outcome\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Encoding actions into routes when resource semantics are clearer\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Returning database rows as accidental public contracts\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Confusing authentication failures with authorization failures\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 451,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Returning database rows as accidental public contracts",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 05 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — HTTP, REST & API Engineering\n\nMission\nRebuild the capability of Phase 05 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nDesign HTTP APIs using resources, methods, status codes, idempotency, errors, caching semantics, and versionable contracts.\n\nRequired artifact\nA written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can design a resource-oriented route set.\n• Can choose meaningful status codes.\n• Can explain idempotency.\n• Can reason about API contract evolution.\n\nIndependent build sequence\n1. Write the task resource shape before writing controller code.\n2. Design collection and item URIs and justify GET/POST/PATCH/DELETE choices.\n3. Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.\n4. Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior.\n5. Repeat safe/idempotent requests and reason about what should or should not change.\n6. Write an error envelope that the frontend can parse consistently.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 371,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this http concept.",
+          "Diagnose one representative http failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "HTTP is the contract joining independently deployed systems. Method, URL, headers, body, status, and response semantics must agree on both sides.",
+        "mentalModel": [
+          "client",
+          "method + URL",
+          "headers/body",
+          "server contract",
+          "status + response"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: client → method + URL → headers/body → server contract → status + response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Write the contract before the framework",
+          "code": "POST /tasks HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer <token>\n\n{\"title\":\"Ship TaskFlow\"}\n\nHTTP/1.1 201 Created"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing authentication failures with authorization failures",
+          "Change one assumption in the http example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the http boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 05 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 05: HTTP, REST & API Engineering. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 202,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "http",
+        "objectives": [
+          "Design HTTP APIs using resources, methods, status codes, idempotency, errors, caching semantics, and versionable contracts.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Client intent",
+          "HTTP method + URI",
+          "headers/body",
+          "server processing",
+          "status + response representation",
+          "client state transition"
+        ],
+        "steps": [
+          "Write the task resource shape before writing controller code.",
+          "Design collection and item URIs and justify GET/POST/PATCH/DELETE choices.",
+          "Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.",
+          "Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior.",
+          "Repeat safe/idempotent requests and reason about what should or should not change.",
+          "Write an error envelope that the frontend can parse consistently.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can design a resource-oriented route set",
+          "Can choose meaningful status codes",
+          "Can explain idempotency",
+          "Can reason about API contract evolution"
+        ],
+        "breakIt": [
+          "Using 200 for every outcome",
+          "Encoding actions into routes when resource semantics are clearer"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/package.json",
+      "preview": "{\n  \"name\": \"api\",\n  \"private\": true,\n  \"scripts\": {\n    \"build\": \"nest build\",\n    \"start\": \"nest start\",\n    \"start:dev\": \"nest start --watch\"\n  },\n  \"dependencies\": {\n    \"@nestjs/common\": \"12.0.3\",\n    \"@nestjs/core\": \"12.0.3\",\n    \"@nestjs/platform-fastify\": \"12.0.3\",\n    \"reflect-metadata\": \"^0.2.2\",\n    \"rxjs\": \"^7.8.2\"\n  },\n  \"devDependencies\": {\n    \"@nestjs/cli\": \"12.0.3\",\n    \"@nestjs/schematics\": \"12.0.3\",\n    \"@nestjs/testing\": \"12.0.3\",\n    \"typescript\": \"~6.0.2\""
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/app.module.ts",
+      "preview": "import { Module } from '@nestjs/common';\nimport { HealthModule } from './health/health.module.js';\nimport { TodosModule } from './todos/todos.module.js';\n\n@Module({\n  imports: [HealthModule, TodosModule],\n})\nexport class AppModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/health/health.controller.ts",
+      "preview": "import { Controller, Get } from '@nestjs/common';\nimport { HealthService } from './health.service.js';\n\n@Controller('health')\nexport class HealthController {\n  constructor(private readonly healthService: HealthService) {}\n\n  @Get()\n  getHealth() {\n    return this.healthService.getStatus();\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/health/health.module.ts",
+      "preview": "import { Module } from '@nestjs/common';\nimport { HealthController } from './health.controller.js';\nimport { HealthService } from './health.service.js';\n\n@Module({\n  controllers: [HealthController],\n  providers: [HealthService],\n})\nexport class HealthModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/health/health.service.ts",
+      "preview": "import { Injectable } from '@nestjs/common';\n\n@Injectable()\nexport class HealthService {\n  getStatus() {\n    return {\n      status: 'ok',\n      service: 'taskflow-api',\n    };\n  }\n}"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/main.ts",
+      "preview": "import { NestFactory } from '@nestjs/core';\nimport { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';\nimport { AppModule } from './app.module.js';\n\nasync function bootstrap() {\n  const app = await NestFactory.create<NestFastifyApplication>(\n    AppModule,\n    new FastifyAdapter(),\n  );\n\n  app.enableShutdownHooks();\n  const port = Number(process.env.PORT ?? 4000);\n  await app.listen(port, '127.0.0.1');\n}\n\nvoid bootstrap();"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/todos/todos.controller.ts",
+      "preview": "import {\n  BadRequestException,\n  Body,\n  Controller,\n  Delete,\n  Get,\n  HttpCode,\n  Param,\n  Patch,\n  Post,\n} from '@nestjs/common';\nimport { TodosService } from './todos.service.js';\n\n@Controller('todos')\nexport class TodosController {\n  constructor(private readonly todosService: TodosService) {}\n\n  @Get()\n  findAll() {\n    return this.todosService.findAll();"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/todos/todos.module.ts",
+      "preview": "import { Module } from '@nestjs/common';\nimport { TodosController } from './todos.controller.js';\nimport { TodosService } from './todos.service.js';\n\n@Module({\n  controllers: [TodosController],\n  providers: [TodosService],\n})\nexport class TodosModule {}"
+    },
+    {
+      "path": "reference/TaskFlow_HTTP_API_Snapshot/src/todos/todos.service.ts",
+      "preview": "import { Injectable, NotFoundException } from '@nestjs/common';\n\ninterface Todo {\n  id: number;\n  title: string;\n  completed: boolean;\n}\n\n@Injectable()\nexport class TodosService {\n  private nextId = 3;\n  private readonly todos: Todo[] = [\n    { id: 1, title: 'Learn HTTP', completed: false },\n    { id: 2, title: 'Build the API contract', completed: false },\n  ];\n\n  findAll() {\n    return this.todos;\n  }\n"
+    }
+  ],
+  "exercises": [
+    "Guided: Write the task resource shape before writing controller code.",
+    "Practice: Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.",
+    "Debugging: reproduce and diagnose — Using 200 for every outcome.",
+    "Independent: deliver A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.",
+    "Explain-back: Can design a resource-oriented route set and Can choose meaningful status codes."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Design APIs around resources, contracts, and HTTP semantics rather than controller method names."
+      ],
+      "answer": 3,
+      "explanation": "Design APIs around resources, contracts, and HTTP semantics rather than controller method names."
+    },
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Use status codes consistently so clients can distinguish validation, authentication, authorization, and missing resources.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Use status codes consistently so clients can distinguish validation, authentication, authorization, and missing resources."
+    },
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Make request and response contracts explicit enough that frontend and backend can evolve safely.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Make request and response contracts explicit enough that frontend and backend can evolve safely."
+    },
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Treat idempotency, pagination, errors, and concurrency as API design concerns, not afterthoughts.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Treat idempotency, pagination, errors, and concurrency as API design concerns, not afterthoughts."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using 200 for every outcome.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write the task resource shape before writing controller code.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write the task resource shape before writing controller code."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Design collection and item URIs and justify GET/POST/PATCH/DELETE choices.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Encoding actions into routes when resource semantics are clearer."
+      ],
+      "answer": 1,
+      "explanation": "Design collection and item URIs and justify GET/POST/PATCH/DELETE choices."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Returning database rows as accidental public contracts.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Confusing authentication failures with authorization failures.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior."
+      ],
+      "answer": 3,
+      "explanation": "Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior."
+    }
+  ],
+  "lessonCount": 13,
+  "wordCount": 7237
+}

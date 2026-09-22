@@ -1,0 +1,125 @@
+{
+  "title": "Track Projects",
+  "subtitle": "Seventeen guided projects that turn each learning track into something you can build and verify.",
+  "projects": [
+    {
+      "number": 1,
+      "slug": "f00-runtime",
+      "track": "f00-runtime",
+      "title": "Debug a Local Web App",
+      "goal": "Use the runtime mental models from this track to diagnose a deliberately broken local web application without guessing."
+    },
+    {
+      "number": 2,
+      "slug": "f01-html-css",
+      "track": "f01-html-css",
+      "title": "Build Static TaskFlow",
+      "goal": "Build an accessible, responsive TaskFlow interface before introducing JavaScript or React."
+    },
+    {
+      "number": 3,
+      "slug": "f02-javascript",
+      "track": "f02-javascript",
+      "title": "Build TaskFlow Lite in JavaScript",
+      "goal": "Turn the static page into a working task manager using only browser JavaScript so the language fundamentals are visible."
+    },
+    {
+      "number": 4,
+      "slug": "f03-typescript",
+      "track": "f03-typescript",
+      "title": "Migrate TaskFlow Lite to TypeScript",
+      "goal": "Move the working JavaScript TaskFlow Lite into TypeScript without hiding the runtime boundaries."
+    },
+    {
+      "number": 5,
+      "slug": "f04-react",
+      "track": "f04-react",
+      "title": "Build TaskFlow Lite in React",
+      "goal": "Rebuild TaskFlow Lite in React while keeping state ownership, derived values, effects, and component boundaries easy to explain."
+    },
+    {
+      "number": 6,
+      "slug": "p00-next",
+      "track": "p00-next",
+      "title": "Build the TaskFlow Web Shell",
+      "goal": "Turn the React mental model into a real Next.js App Router application with deliberate server/client boundaries."
+    },
+    {
+      "number": 7,
+      "slug": "p01-nest",
+      "track": "p01-nest",
+      "title": "Build the TaskFlow API Module",
+      "goal": "Create a NestJS/Fastify Tasks module and trace one request through the framework pipeline."
+    },
+    {
+      "number": 8,
+      "slug": "p02-http",
+      "track": "p02-http",
+      "title": "Ship the First Frontend-to-API Vertical Slice",
+      "goal": "Connect the web app to the API and use browser/network evidence to understand the complete HTTP exchange."
+    },
+    {
+      "number": 9,
+      "slug": "p03-data",
+      "track": "p03-data",
+      "title": "Design the TaskFlow PostgreSQL Schema",
+      "goal": "Build and query the relational model directly in PostgreSQL before introducing the ORM."
+    },
+    {
+      "number": 10,
+      "slug": "p04-prisma",
+      "track": "p04-prisma",
+      "title": "Add Prisma without Losing the Database Mental Model",
+      "goal": "Map the known PostgreSQL design into Prisma, inspect generated SQL, and build persistent task operations safely."
+    },
+    {
+      "number": 11,
+      "slug": "p05-api",
+      "track": "p05-api",
+      "title": "Complete the Production Tasks API",
+      "goal": "Build CRUD, validation, error semantics, business rules, filtering, search, stable sorting, and pagination as one coherent API."
+    },
+    {
+      "number": 12,
+      "slug": "p06-auth",
+      "track": "p06-auth",
+      "title": "Secure TaskFlow End to End",
+      "goal": "Add Supabase identity, verify tokens in NestJS, and enforce roles, permissions, ownership, and tenant isolation on the API."
+    },
+    {
+      "number": 13,
+      "slug": "p07-frontend-data",
+      "track": "p07-frontend-data",
+      "title": "Build the Production Task Screen",
+      "goal": "Build a complete task screen using React Hook Form, Zod, TanStack Query, and deliberate state ownership."
+    },
+    {
+      "number": 14,
+      "slug": "p08-collab",
+      "track": "p08-collab",
+      "title": "Build Collaborative Tasks and Attachments",
+      "goal": "Add realtime updates and secure file attachments while keeping the database as the durable source of truth."
+    },
+    {
+      "number": 15,
+      "slug": "p09-quality",
+      "track": "p09-quality",
+      "title": "Build a Production Quality Gate",
+      "goal": "Prove TaskFlow behavior with tests, threat-driven checks, telemetry, and measured performance rather than confidence by inspection."
+    },
+    {
+      "number": 16,
+      "slug": "p10-delivery",
+      "track": "p10-delivery",
+      "title": "Release TaskFlow",
+      "goal": "Package the API, verify it in CI, deploy API + web, and prove the production release with smoke tests and rollback notes."
+    },
+    {
+      "number": 17,
+      "slug": "p11-enterprise",
+      "track": "p11-enterprise",
+      "title": "Model an Enterprise Procurement Workflow",
+      "goal": "Transfer the course architecture into a business workflow with approvals, auditability, background work, and tenant boundaries."
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "number": 2,
+  "slug": "milestone-02",
+  "title": "React TaskFlow Lite",
+  "span": "Foundation F04–F11",
+  "goal": "Rebuild TaskFlow Lite with TypeScript and React while making state ownership explicit.",
+  "deliverables": [
+    "Typed task model",
+    "Component composition",
+    "Controlled form",
+    "Filter and derived counts",
+    "Local persistence"
+  ],
+  "constraints": [
+    "No duplicated derived state.",
+    "Every list item uses stable identity.",
+    "Effects are reserved for external synchronization."
+  ],
+  "steps": [
+    "Write acceptance criteria and a boundary diagram before implementation.",
+    "Create a clean checkpoint/branch and inventory the existing files, routes, database objects, and configuration you are allowed to change.",
+    "Build one vertical slice that reaches an observable result end-to-end before broadening the feature.",
+    "Add the remaining required behavior incrementally. After each coherent change, run the narrowest verification and inspect the output.",
+    "Exercise at least two non-happy paths: malformed/missing input, authorization failure, network/database failure, race condition, or configuration error as applicable.",
+    "Run the full milestone quality gate and record results.",
+    "Perform a closed-reference rebuild or architecture walkthrough. Document trade-offs and one deliberate non-goal."
+  ],
+  "evidence": [
+    "Repository/file-tree diff",
+    "commands and exit status",
+    "browser/API/database evidence",
+    "one controlled failure + diagnosis",
+    "tests/quality-gate result",
+    "short architecture decision note"
+  ],
+  "rubric": [
+    {
+      "name": "Correctness",
+      "description": "Required behavior works and failure paths are deliberate."
+    },
+    {
+      "name": "Architecture",
+      "description": "Responsibilities and dependency direction match the course model."
+    },
+    {
+      "name": "Evidence",
+      "description": "Claims are backed by repeatable commands, requests, tests, or stored data."
+    },
+    {
+      "name": "Debugging",
+      "description": "At least one failure is reproduced, isolated, fixed, and reverified."
+    },
+    {
+      "name": "Independence",
+      "description": "The final feature can be explained or partly rebuilt without copying the reference."
+    }
+  ]
+}

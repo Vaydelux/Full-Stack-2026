@@ -1,0 +1,993 @@
+{
+  "number": 8,
+  "slug": "phase-08",
+  "title": "Supabase PostgreSQL",
+  "volume": 3,
+  "readme": "FULL_STACK_DEVELOPER_2026_COMPLETE\nVolume 03 - Database Engineering\nPhase 08 - Supabase PostgreSQL\n\nPurpose\n-------\nTurn the PostgreSQL fundamentals from Phase 07 into a real managed database environment before Prisma is introduced.\n\nBooks\n-----\n00_Phase_08_Guide.pdf\n01_Supabase_Mental_Model.pdf\n02_Create_and_Inspect_the_Supabase_Project.pdf\n03_Connections_Pooling_and_SSL.pdf\n04_Secrets_and_Environment_Boundaries.pdf\n05_Windows_psql_Workflow.pdf\n06_SQL_Editor_and_Practice_Lab.pdf\n07_Inspecting_the_Real_Database.pdf\n08_Troubleshooting_and_Database_Safety.pdf\n09_Exercises_and_Phase_Exit.pdf\n10_Phase_08_Complete_Book.pdf\n\nReference files\n---------------\nreference/TaskFlow_Supabase_Setup/.env.example\nreference/TaskFlow_Supabase_Setup/README.txt\nreference/SQL_Lab/00_practice_schema.sql\nreference/SQL_Lab/01_seed_and_query.sql\nreference/SQL_Lab/02_transaction_practice.sql\nreference/SQL_Lab/03_inspect.sql\nreference/SQL_Lab/04_cleanup.sql\n\nSecurity\n--------\nNo real database password or live connection string is included in this package.\nCopy connection details from your own Supabase project's Connect dialog.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "supabase-mental-model",
+      "title": "Supabase Mental Model",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Supabase Mental Model VOLUME 03 - DATABASE ENGINEERING Supabase Mental Model A managed platform built around a real PostgreSQL database Supabase does not replace PostgreSQL. It gives us PostgreSQL plus managed platform services around it. Figure 1 - Supabase platform boundary…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                                Supabase Mental Model\n\nVOLUME 03 - DATABASE ENGINEERING\n\nSupabase Mental Model\nA managed platform built around a real PostgreSQL database\n\nSupabase does not replace PostgreSQL. It gives us PostgreSQL plus managed\nplatform services around it.\n\nFigure 1 - Supabase platform boundary\n\nSupabase Project\n\nPostgreSQL                 Auth                  Storage\n\nRealtime / APIs\n\nEvery Supabase project includes a full PostgreSQL database. Other platform services are layered around it.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                               Supabase Mental Model\n\nBook 1 of Phase 08\n\nStart with the correct sentence\nCORE MENTAL MODEL\n\nSupabase hosts and manages a PostgreSQL database for TaskFlow. PostgreSQL remains the\ndatabase engine.\n\nThis distinction matters because the SQL, constraints, indexes, transactions and relational concepts from\nPhase 07 remain valid. We are not learning a proprietary database language.\n\nManaged does not mean magical\nSupabase manages                                                  You still own\n• database infrastructure                                         • schema design\n• project dashboard                                               • queries and migrations\n• connection endpoints                                            • credentials\n• backups/features by plan                                        • application authorization\n• pooling infrastructure                                          • performance decisions\n• platform integration                                            • safe deployment practices\n\nThree ways developers often touch the database\n\nFigure 2 - Database access paths\n\nDashboard SQL Editor             →         PostgreSQL\n\npsql / DB tool       →       Connection endpoint             →        PostgreSQL\n\nNestJS later        →        Prisma later         →        PostgreSQL\n\nThe same database can be reached through different tools. The tool does not change what the database is.\n\nDashboard mental map\nArea                    Why we care in Phase 08\n\nSQL Editor              Run and save SQL against the project database.\n\nTable Editor            Visual inspection of tables and rows; useful for verification, not a substitute for understanding SQL.\n\nConnect                 Copy the exact direct or pooler connection string.\n\nDatabase settings       Database password, SSL/certificate and connection-related settings.\n\nVolume 03 - Database Engineering                                                                                Book 1 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 Supabase Mental Model\n\nPortability lesson\nBecause the persistence layer is PostgreSQL, much of our schema and SQL knowledge transfers to\nanother PostgreSQL provider. Supabase-specific services can add value later, but the database\nfundamentals are not locked to a unique query language.\n\nDO NOT JUMP AHEAD\n\nThe Supabase dashboard may show Auth, Storage, Realtime and Data API features. We will\nintentionally ignore most of them now. Seeing a feature is not the same as needing it.\n\nCheck your understanding\n1. If Supabase disappeared from the architecture diagram, what technology would still define our tables\nand SQL? PostgreSQL.\n2. Does the Table Editor make constraints unnecessary? No.\n3. Will Prisma become the database in Phase 09? No; it will become a typed database-access layer.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                  Book 1 of Phase 08",
+      "wordCount": 476,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Supabase Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Supabase Mental Model matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Supabase Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Committing database credentials",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Supabase Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Supabase Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "create-and-inspect-the-supabase-project",
+      "title": "Create and Inspect the Supabase Project",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Create and Inspect the Supabase Project VOLUME 03 - DATABASE ENGINEERING Create and Inspect the Supabase Project From an empty cloud project to a verified PostgreSQL database The first professional habit is verification: do not assume the project is ready because…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 Create and Inspect the Supabase Project\n\nVOLUME 03 - DATABASE ENGINEERING\n\nCreate and Inspect the Supabase\nProject\nFrom an empty cloud project to a verified PostgreSQL database\n\nThe first professional habit is verification: do not assume the project is ready\nbecause the dashboard loaded.\n\nFigure 1 - Project creation outcome\n\nSupabase account            →       TaskFlow project          →           PostgreSQL database\n\nA project is a platform boundary containing the database and related managed services.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                  Create and Inspect the Supabase Project\n\nBook 2 of Phase 08\n\nBefore creating anything\nChoose a clear project name, use a region appropriate for your development/deployment plan, and\ngenerate a strong database password. Never paste a real password into screenshots, notes, source files or\ncourse submissions.\n\nCREDENTIAL RULE\n\nYour database password is infrastructure access. Treat it more like a server credential than a normal\napplication setting.\n\nStep-by-step project creation\n1. Sign in to Supabase and create or choose an organization.\n2. Create a new project named for the learning system, for example taskflow-dev .\n3. Select the region intentionally rather than accepting one without noticing.\n4. Create/store the database password in a password manager.\n5. Wait until project provisioning completes before testing database operations.\n\nWhy use a development-oriented name?\nLater the course will teach environment separation. Names such as taskflow-dev , taskflow-staging\nand taskflow-prod make accidental cross-environment changes easier to notice.\n\nOrient yourself in the dashboard\n\nFigure 2 - Dashboard areas used in Phase 08\n\nSQL Editor                                                    Table Editor\nRun queries and schema scripts.                               Inspect rows and table structure visually.\n\nConnect                                                       Database settings\nCopy exact host/user/port strings.                            Connection and SSL information.\n\nUse the dashboard as an operational interface; keep the database mental model underneath it.\n\nFirst verification query\nOpen SQL Editor and run:\n\nVolume 03 - Database Engineering                                                                                   Book 2 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 Create and Inspect the Supabase Project\n\nselect\ncurrent_database() as database_name,\ncurrent_user as database_user,\nnow() as server_time,\nversion() as postgres_version;\n\nThis query does not modify anything. It proves that SQL is executing against the project database and tells\nyou which PostgreSQL server version your specific project currently runs.\n\nWHY QUERY THE VERSION?\n\nDo not assume the hosted database's major version merely because Phase 07 referenced\nPostgreSQL 18 documentation. Hosted platforms can provision different supported major versions.\nAsk the server.\n\nExpected result\nYou should receive one row containing the database name, the connected role, the current server\ntimestamp and a PostgreSQL version string.\n\nHow to verify visually\n• SQL Editor returns a result rather than an error.\n• Table Editor loads successfully.\n• The Connect dialog offers connection methods.\n• No secrets have been copied into the repository.\n\nDo not create the final schema yet\nPhase 08 uses temporary practice tables. Phase 10 is where TaskFlow's production relational model is\ndesigned deliberately.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                                  Book 2 of Phase 08",
+      "wordCount": 538,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Create and Inspect the Supabase Project in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Create and Inspect the Supabase Project matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Create and Inspect the Supabase Project” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using the wrong connection mode for serverless/concurrent workloads",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Create and Inspect the Supabase Project” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Create and Inspect the Supabase Project solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "connections-pooling-and-ssl",
+      "title": "Connections Pooling and SSL",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Connections, Pooling and SSL VOLUME 03 - DATABASE ENGINEERING Connections, Pooling and SSL Choose a connection mode instead of copying whichever URL appears first A connection string is infrastructure configuration. Its host, username and port encode how your client reaches PostgreSQL.…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                   Connections, Pooling and SSL\n\nVOLUME 03 - DATABASE ENGINEERING\n\nConnections, Pooling and SSL\nChoose a connection mode instead of copying whichever URL appears\nfirst\n\nA connection string is infrastructure configuration. Its host, username and port\nencode how your client reaches PostgreSQL.\n\nFigure 1 - Connection modes\n\nPersistent backend        →          Direct :5432\n\nIPv4 dev / persistent     →           Session pooler :5432\n\nServerless / edge     →       Transaction pooler :6543\n\nSupabase documents different connection modes for different runtime behavior.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                Connections, Pooling and SSL\n\nBook 3 of Phase 08\n\nWhy there are multiple URLs\nPostgreSQL has a finite connection budget. Connection poolers sit between clients and the database so\nmany application clients can share database connections more efficiently.\n\nThree important modes\nMode                  Typical host/port             Use when                                Important property\n\nDirect                db.<ref>.supabase.co:5432     Persistent backend and IPv6-            Direct PostgreSQL\ncapable environments (or IPv4           session\nadd-on)\n\nShared session        pooler host :5432             Persistent client when direct IPv6 is   Session semantics\npooler                                              unavailable; common local-              retained\ndevelopment choice\n\nShared                pooler host :6543             Serverless/edge functions with          Transaction pooling;\ntransaction                                         short-lived connections                 session features are\npooler                                                                                      limited\n\nFor this course right now\nRECOMMENDED LEARNING CONNECTION\n\nFor local Windows development, copy the Session pooler URL from Supabase's Connect dialog\nwhen direct IPv6 connectivity is uncertain. If your environment can reach the direct endpoint reliably,\ndirect connection is also valid for a persistent backend.\n\nNever manufacture the pooler hostname\nSupabase explicitly warns that the shared pooler host can include a cluster index that cannot be inferred\nsafely from region alone. Copy it from Connect.\n\nConnection-string anatomy\npostgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE?sslmode=require\n\nVolume 03 - Database Engineering                                                                      Book 3 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                                       Connections, Pooling and SSL\n\nPart                        Meaning\n\nUSERNAME                    Database role. Shared pooler usernames include the project reference.\n\nPASSWORD                    Database password; percent-encode reserved URL characters.\n\nHOST                        Direct database endpoint or pooler endpoint.\n\nPORT                        5432 or 6543 depending on mode.\n\nDATABASE                    Usually postgres for initial course work.\n\nsslmode                     Controls transport encryption behavior.\n\nPassword encoding\nIf a password contains reserved URI characters such as & , # , ? or a space, encode them before\nembedding the password inside a URL. Otherwise the parser can mistake password characters for URL\nsyntax.\n\nSSL\nFor application connections, set SSL to at least require . Supabase also documents stronger server\nverification with verify-full plus the project CA certificate.\n\nSECURITY NUANCE\n\nsslmode=require encrypts the connection, but it does not perform full CA/hostname verification.\nverify-full is stronger when configured with the appropriate certificate.\n\nTransaction-pooler limitations\nTransaction mode does not preserve session state across transactions and does not support prepared\nstatements in the same way persistent sessions do. That is why the course will not casually use port 6543\nfor a long-running NestJS API.\n\nDecision exercise\nScenario                                                                  Likely mode\n\nLocal NestJS API on an IPv4-only network                                  Session pooler\n\nLong-running VM with IPv6                                                 Direct\n\nShort-lived serverless functions                                          Transaction pooler, configured for its limitations\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                                                 Book 3 of Phase 08",
+      "wordCount": 557,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Connections Pooling and SSL in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Connections Pooling and SSL matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Connections Pooling and SSL” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating dashboard clicks as schema migration history",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Connections Pooling and SSL” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Connections Pooling and SSL solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "secrets-and-environment-boundaries",
+      "title": "Secrets and Environment Boundaries",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Secrets and Environment Boundaries VOLUME 03 - DATABASE ENGINEERING Secrets and Environment Boundaries Keep infrastructure credentials out of source control A database URL is not \"just config\" when it contains a password. Its storage location is part of your security design.…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                             Secrets and Environment Boundaries\n\nVOLUME 03 - DATABASE ENGINEERING\n\nSecrets and Environment\nBoundaries\nKeep infrastructure credentials out of source control\n\nA database URL is not \"just config\" when it contains a password. Its storage location\nis part of your security design.\n\nFigure 1 - Secret boundary\n\nPassword manager              →       .env on developer machine              →   NestJS / CLI process          →\n\nSupabase Postgres\n\nThe secret should reach the process that needs it without becoming source code.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                   Secrets and Environment Boundaries\n\nBook 4 of Phase 08\n\nThe rule\nNEVER COMMIT\n\nDo not commit a real DATABASE_URL , database password, service-role key, access token or\ndownloaded private credential into Git.\n\nWhere Phase 08 stores connection information\nWe will prepare the API directory for a future database URL without using Prisma yet.\n\n# apps/api/.env\nDATABASE_URL=\"postgresql://...real value...\"\n\nThen document the variable without the secret:\n\n# apps/api/.env.example\nDATABASE_URL=\n\nGit ignore policy\n# root or API .gitignore\n.env\n.env.*\n!.env.example\n\nVERIFY, DO NOT ASSUME\n\nFrom the repository root, run git check-ignore -v apps/api/.env . You want evidence that Git\nignores the file.\n\nPowerShell temporary environment variable\nFor a one-session test, you can set a process environment variable:\n\n$env:DATABASE_URL = \"postgresql://...\"\n\n# verify only that a value exists; do not echo it in screenshots\nif ($env:DATABASE_URL) { \"DATABASE_URL is set\" }\n\nThis value disappears when that PowerShell process exits. That makes it useful for temporary testing.\n\nVolume 03 - Database Engineering                                                                Book 4 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                           Secrets and Environment Boundaries\n\nWhy not put the URL in Next.js?\n\nFigure 2 - Trusted server boundary\n\nBrowser                X       Database password\n\nNestJS server              →          Database credentials\n\nDirect database credentials belong in trusted server/tool environments, never the browser bundle.\n\nOur architecture routes browser requests through NestJS. The browser should not receive a privileged\nPostgreSQL connection string. Supabase's Data API has a different browser security model built around\npublic/publishable keys and RLS, but that is not the architecture we are teaching in this phase.\n\nSecret leakage response\n1. Assume a committed secret has been exposed even if the repository is private.\n2. Rotate/reset the credential.\n3. Remove it from current files.\n4. Determine whether Git history or CI logs contain it.\n5. Do not rely on deleting the latest commit as the only response.\n\nEnvironment separation preview\ndevelopment -> taskflow-dev database\nstaging     -> taskflow-staging database\nproduction -> taskflow-prod database\n\nThe same code can run against different infrastructure by changing environment configuration rather than\nediting source files.\n\nCheckpoint\n[ ] apps/api/.env contains the private URL.\n[ ] apps/api/.env.example documents the name only.\n[ ] Git ignores the real file.\n[ ] No browser-exposed variable contains the database password.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                                        Book 4 of Phase 08",
+      "wordCount": 516,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "security",
+        "objectives": [
+          "Explain Secrets and Environment Boundaries in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this security concept.",
+          "Diagnose one representative security failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Security work starts with trust boundaries and abuse cases. A feature is incomplete until unauthorized and malformed paths are deliberately exercised.",
+        "mentalModel": [
+          "asset",
+          "trust boundary",
+          "attacker input",
+          "control",
+          "verified denial/allow"
+        ],
+        "steps": [
+          "Restate the goal of “Secrets and Environment Boundaries” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: asset → trust boundary → attacker input → control → verified denial/allow. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Write an abuse case before the fix",
+          "code": "Threat: authenticated User B changes the URL to User A's task id.\nExpected control: API loads the resource scope and denies the action.\nEvidence: 403 response + unchanged database row + security-safe log."
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Pointing preview environments at production data",
+          "Change one assumption in the security example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Secrets and Environment Boundaries” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Secrets and Environment Boundaries solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the security boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "windows-psql-workflow",
+      "title": "Windows psql Workflow",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Windows psql Workflow VOLUME 03 - DATABASE ENGINEERING Connect from Windows with psql Use the native PostgreSQL client to prove connectivity before adding an ORM When a raw PostgreSQL client works, we have isolated the database connection from framework complexity. Figure…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                             Windows psql Workflow\n\nVOLUME 03 - DATABASE ENGINEERING\n\nConnect from Windows with psql\nUse the native PostgreSQL client to prove connectivity before adding an\nORM\n\nWhen a raw PostgreSQL client works, we have isolated the database connection from\nframework complexity.\n\nFigure 1 - Connection test isolates the database layer\n\nPowerShell            →             psql                →        Supabase endpoint   →\n\nPostgreSQL\n\nThis is a direct database-client test; Next.js, NestJS and Prisma are not involved.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                               Windows psql Workflow\n\nBook 5 of Phase 08\n\nWhy psql matters\npsql is PostgreSQL's command-line client. It lets us prove that host, port, role, password and SSL\nsettings work before introducing Prisma.\n\nVerify the client\nIn ordinary PowerShell:\n\npsql --version\n\nIf Windows cannot find it, Phase 07's PostgreSQL tooling setup or PATH must be corrected before\nproceeding.\n\nRecommended connection style\nCopy the exact Session pooler values from Supabase. For a secure interactive connection, a parameter-\nstyle command avoids some URI encoding confusion:\n\npsql \"sslmode=require host=<POOLER-HOST> port=5432 dbname=postgres user=postgres.<PROJECT-\nREF>\"\n\npsql will prompt for the password if it is not supplied through another secure mechanism.\n\nWHY PROMPT FOR THE PASSWORD?\n\nIt keeps the password out of the command line and reduces the chance that it is captured in shell\nhistory, screenshots or process inspection.\n\nStronger certificate verification\nSupabase documents verify-full using the project's downloaded root certificate:\n\npsql \"sslmode=verify-full sslrootcert=C:\\path\\to\\prod-supabase.cer host=<POOLER-HOST>\nport=5432 dbname=postgres user=postgres.<PROJECT-REF>\"\n\nFirst interactive commands\nselect current_database(), current_user;\nselect version();\nselect now();\n\\conninfo\n\\dt\n\\q\n\nVolume 03 - Database Engineering                                                               Book 5 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                      Windows psql Workflow\n\nCommand                                        Meaning\n\n\\conninfo                                     Shows information about the current connection.\n\n\\dt                                           Lists visible tables.\n\n\\d table_name                                 Describes a table.\n\n\\q                                            Exits psql.\n\nRun a SQL file from PowerShell\npsql \"<connection options>\" -v ON_ERROR_STOP=1 -f \".\n\\reference\\SQL_Lab\\00_practice_schema.sql\"\n\nON_ERROR_STOP=1 is valuable for scripts: psql exits with an error status instead of continuing silently after a\nSQL failure.\n\nConnection checkpoint\n[ ] psql --version works.\n[ ] SSL connection succeeds.\n[ ] current_database() returns postgres or your selected database.\n[ ] current_user matches the role expected for your connection method.\n[ ] \\conninfo confirms the target.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                      Book 5 of Phase 08",
+      "wordCount": 438,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "ci",
+        "objectives": [
+          "Explain Windows psql Workflow in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ci concept.",
+          "Diagnose one representative ci failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "CI turns repository rules into automated gates. A useful pipeline must be understandable, reproducible locally, secure, and able to fail for the right reasons.",
+        "mentalModel": [
+          "git event",
+          "runner",
+          "install",
+          "quality gates",
+          "artifact/deploy decision"
+        ],
+        "steps": [
+          "Restate the goal of “Windows psql Workflow” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: git event → runner → install → quality gates → artifact/deploy decision. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "yaml",
+          "caption": "Build the quality gate one step at a time",
+          "code": "name: CI\non: [pull_request]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Committing database credentials",
+          "Change one assumption in the ci example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Works locally, fails in CI",
+            "investigation": "Compare Node/pnpm versions, lockfile state, environment variables, OS assumptions, and generated artifacts."
+          },
+          {
+            "symptom": "Workflow has excessive privileges",
+            "investigation": "Set least-privilege permissions at workflow/job level and isolate untrusted pull-request code from secrets."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Windows psql Workflow” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Windows psql Workflow solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ci boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "sql-editor-and-practice-lab",
+      "title": "SQL Editor and Practice Lab",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 SQL Editor and Practice Lab VOLUME 03 - DATABASE ENGINEERING SQL Editor and the Phase 07 Practice Lab Move the relational model from paper into a real database The purpose of this lab is not to build TaskFlow production tables. It…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                   SQL Editor and Practice Lab\n\nVOLUME 03 - DATABASE ENGINEERING\n\nSQL Editor and the Phase 07\nPractice Lab\nMove the relational model from paper into a real database\n\nThe purpose of this lab is not to build TaskFlow production tables. It is to prove that\nrelational rules survive outside the textbook.\n\nFigure 1 - Lab loop\n\nWrite SQL       →              Run            →         Inspect\n\n→          Change            →            Re-run\n\nDatabase learning becomes durable when every concept is observed in a real server.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                       SQL Editor and Practice Lab\n\nBook 6 of Phase 08\n\nTwo equivalent learning paths\nSQL Editor                                          psql\nConvenient in the dashboard, visually shows         Exercises real client/server connectivity and is\nresult sets, and avoids local connection            closer to automated migration/tooling workflows.\ntroubleshooting while learning SQL.\n\nUse both. The SQL should remain PostgreSQL SQL in either tool.\n\nPractice schema\ncreate table practice_projects (\nid bigint generated always as identity primary key,\nname text not null unique,\ncreated_at timestamptz not null default now()\n);\n\ncreate table practice_tasks (\nid bigint generated always as identity primary key,\nproject_id bigint not null references practice_projects(id),\ntitle text not null,\ncompleted boolean not null default false,\npriority smallint not null default 2 check (priority between 1 and 3),\ndue_at timestamptz,\ncreated_at timestamptz not null default now()\n);\n\nWhat to inspect after creation\n• Table names appear in Table Editor and \\dt .\n• Primary keys exist.\n• project_id has a foreign key.\n• priority has a check constraint.\n• timestamps have defaults.\n\nVolume 03 - Database Engineering                                                            Book 6 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                          SQL Editor and Practice Lab\n\nSeed and query\ninsert into practice_projects (name)\nvalues ('Course'), ('Personal');\n\ninsert into practice_tasks (project_id, title, priority)\nselect id, 'Connect to Supabase', 1\nfrom practice_projects\nwhere name = 'Course';\n\nselect p.name as project, t.title, t.priority, t.completed\nfrom practice_projects p\njoin practice_tasks t on t.project_id = p.id\norder by t.priority, t.id;\n\nObserve constraint behavior\nTry invalid operations intentionally in the practice tables:\n\n-- should fail: priority outside allowed range\ninsert into practice_tasks (project_id, title, priority)\nvalues (1, 'Invalid priority', 9);\n\n-- should fail if project 999999 does not exist\ninsert into practice_tasks (project_id, title)\nvalues (999999, 'Orphan task');\n\nTHE LESSON\n\nApplication validation improves user experience, but database constraints protect durable state even\nwhen data arrives through another tool or buggy code path.\n\nTransaction exercise\nbegin;\n\nupdate practice_tasks\nset completed = true\nwhere title = 'Connect to Supabase';\n\nselect title, completed from practice_tasks;\n\nrollback;\n\nselect title, completed from practice_tasks;\n\nThe second query should show the original value because the transaction was rolled back.\n\nVolume 03 - Database Engineering                                                               Book 6 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 SQL Editor and Practice Lab\n\nClean up\ndrop table if exists practice_tasks;\ndrop table if exists practice_projects;\n\nPRACTICE BOUNDARY\n\nDo not evolve these temporary tables into the final application model. Phase 10 will design TaskFlow's\nreal schema from requirements.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                      Book 6 of Phase 08",
+      "wordCount": 550,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Explain SQL Editor and Practice Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this sql concept.",
+          "Diagnose one representative sql failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "ORMs do not remove the database. SQL literacy lets you reason about correctness, constraints, query cost, transactions, and the evidence stored in PostgreSQL.",
+        "mentalModel": [
+          "application intent",
+          "SQL statement",
+          "query planner",
+          "table/index",
+          "rows returned"
+        ],
+        "steps": [
+          "Restate the goal of “SQL Editor and Practice Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application intent → SQL statement → query planner → table/index → rows returned. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Query from TaskFlow data directly",
+          "code": "SELECT t.id, t.title, u.name AS assignee\nFROM tasks AS t\nLEFT JOIN users AS u ON u.id = t.assignee_id\nWHERE t.workspace_id = $1\nORDER BY t.created_at DESC, t.id DESC;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using the wrong connection mode for serverless/concurrent workloads",
+          "Change one assumption in the sql example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Query is correct but slow",
+            "investigation": "Capture EXPLAIN ANALYZE, row counts, filters, sort keys, and indexes before adding an index."
+          },
+          {
+            "symptom": "Unexpected duplicate/missing rows",
+            "investigation": "Inspect join cardinality and constraints; do not hide a modeling bug with DISTINCT until you understand it."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “SQL Editor and Practice Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does SQL Editor and Practice Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the sql boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "inspecting-the-real-database",
+      "title": "Inspecting the Real Database",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Inspect the Real Database VOLUME 03 - DATABASE ENGINEERING Inspect the Real Database Learn to verify what actually exists rather than trusting application assumptions A professional developer distinguishes \"my code says the table exists\" from \"the database confirms the table exists.\"…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 Inspect the Real Database\n\nVOLUME 03 - DATABASE ENGINEERING\n\nInspect the Real Database\nLearn to verify what actually exists rather than trusting application\nassumptions\n\nA professional developer distinguishes \"my code says the table exists\" from \"the\ndatabase confirms the table exists.\"\n\nFigure 1 - Verification layers\n\nSchema expectation             →        Database catalog     →   Actual rows\n\nVerify structure and data at the database layer before blaming higher layers.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                     Inspect the Real Database\n\nBook 7 of Phase 08\n\nInspection is part of development\nWhen persistence bugs appear later, you need to know whether the problem is in the API, ORM, migration,\nconnection, schema or data. Database inspection narrows the search.\n\nUseful psql inspection commands\n\\conninfo\n\\dn\n\\dt\n\\d practice_projects\n\\d practice_tasks\n\\x auto\n\nUseful SQL inspection queries\nselect current_database(), current_user, current_schema();\n\nselect table_schema, table_name\nfrom information_schema.tables\nwhere table_schema = 'public'\norder by table_name;\n\nselect constraint_name, constraint_type\nfrom information_schema.table_constraints\nwhere table_name = 'practice_tasks'\norder by constraint_type, constraint_name;\n\nCatalog thinking\ninformation_schema exposes standardized metadata views. PostgreSQL also has its own pg_catalog\nsystem catalogs. You do not need to memorize the catalogs now; you need to understand that the\ndatabase can describe itself.\n\nTable Editor versus SQL inspection\nTool                Strength                               Risk if overused\n\nTable Editor        Fast visual confirmation               Can hide the SQL/constraint mental model\n\nSQL Editor          Explicit repeatable query logic        Manual dashboard history is not a migration system\n\npsql                Scriptable, close to raw PostgreSQL    CLI requires deliberate connection handling\n\nQuery plans preview\nPhase 07 introduced indexes. You can ask PostgreSQL how it plans a query:\n\nVolume 03 - Database Engineering                                                                          Book 7 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 Inspect the Real Database\n\nexplain\nselect *\nfrom practice_tasks\nwhere project_id = 1;\n\nDo not optimize because a plan contains a sequential scan on a tiny practice table. Optimization starts from\nreal workload and measurements.\n\nKnow your server\nshow server_version;\nshow timezone;\nshow search_path;\n\nThis prevents assumptions about hosted server configuration from becoming invisible bugs.\n\nVerification checklist\n[ ] You can identify which database and role you are using.\n[ ] You can list tables without the dashboard.\n[ ] You can inspect a table's columns and constraints.\n[ ] You can prove whether expected rows exist.\n[ ] You can distinguish schema absence from application-fetch failure.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                    Book 7 of Phase 08",
+      "wordCount": 442,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Inspecting the Real Database in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Inspecting the Real Database matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Inspecting the Real Database” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating dashboard clicks as schema migration history",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Inspecting the Real Database” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Inspecting the Real Database solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "troubleshooting-and-database-safety",
+      "title": "Troubleshooting and Database Safety",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Troubleshooting and Database Safety VOLUME 03 - DATABASE ENGINEERING Connection Troubleshooting and Database Safety Debug from the connection outward Do not rewrite application code when the error is really a host, port, password, SSL or network problem. Figure 1 - Connection…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                  Troubleshooting and Database Safety\n\nVOLUME 03 - DATABASE ENGINEERING\n\nConnection Troubleshooting and\nDatabase Safety\nDebug from the connection outward\n\nDo not rewrite application code when the error is really a host, port, password, SSL\nor network problem.\n\nFigure 1 - Connection debugging order\n\nMode         →              Host/port       →          DNS/IP\n\n→            TLS              →          Credentials    →\n\nSQL\n\nDebug from infrastructure facts toward application behavior.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                              Troubleshooting and Database Safety\n\nBook 8 of Phase 08\n\nError-driven troubleshooting\nSymptom                            Likely layer                   First checks\n\nPassword authentication failed     Credentials                    Correct password? Correct pooled username?\nPassword URL encoded?\n\nHost cannot be resolved            DNS / copied endpoint          Did you copy the exact host from Connect?\n\nConnection timed out               Network / IP mode /            Direct endpoint may require IPv6; try session pooler\nfirewall                       for IPv4.\n\nConnection refused                 Host/port/mode                 5432 vs 6543? Wrong endpoint?\n\nSSL/certificate error              TLS configuration              sslmode setting, certificate path, hostname\nverification.\n\nPrepared statement/session         Pooling mode                   Are you accidentally on transaction pooler 6543?\nbehavior breaks\n\nrelation does not exist            Schema/search path/            Correct database? schema? Was SQL actually\nmigration                      applied?\n\nDirect connection and IPv6\nSupabase's direct connection is IPv6 by default unless the project has the IPv4 add-on. If your local ISP or\nruntime is IPv4-only, a direct host can fail even when the credentials are correct. The shared session pooler\nis the usual IPv4-friendly alternative.\n\nDo not confuse CORS with database connectivity\nCORS is a browser HTTP security mechanism. psql connects using the PostgreSQL protocol. If psql\ncannot reach Supabase, changing NestJS CORS settings cannot fix it.\n\nDo not use a browser-exposed database password\nIf a connection works only after putting the database URL into NEXT_PUBLIC_... , the solution is worse\nthan the problem. That would expose a privileged credential to browser JavaScript.\n\nSafety when using SQL Editor\n• Read destructive statements before running them.\n• Use transactions for risky multi-step changes when appropriate.\n• Do not casually run production SQL copied from an AI or forum.\n• Prefer repeatable migration files once Prisma enters the course.\n• Keep development and production projects visually distinct.\n\nVolume 03 - Database Engineering                                                                           Book 8 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                 Troubleshooting and Database Safety\n\nRLS and the public schema - preview only\nSupabase can expose tables through its Data APIs. Browser/client-library access has a different security\nmodel involving grants and Row Level Security. Our TaskFlow architecture uses NestJS as the business/\nAPI boundary, so we will not design RLS policies in this phase. We will revisit database exposure and\nauthorization in the security/authentication volumes.\n\nIMPORTANT\n\nDo not interpret \"we are not using RLS yet\" as \"RLS does not matter.\" It means the course is\nseparating concerns so authentication and authorization are taught with enough context.\n\nSmallest-correction rule\nIf the username is wrong, fix the username. If the host is wrong, copy the correct host. Do not reinstall\nNode, recreate NestJS or reset the database when the evidence points to a connection parameter.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                              Book 8 of Phase 08",
+      "wordCount": 560,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Troubleshooting and Database Safety in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Troubleshooting and Database Safety matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Troubleshooting and Database Safety” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Pointing preview environments at production data",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Troubleshooting and Database Safety” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Troubleshooting and Database Safety solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "exercises-and-phase-exit",
+      "title": "Exercises and Phase Exit",
+      "summary": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08 Exercises and Phase Exit VOLUME 03 - DATABASE ENGINEERING Exercises and Phase Exit Prove that the database is understood before adding Prisma The next phase should feel like an abstraction over concepts you already control, not a rescue from concepts you…",
+      "body": "FULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                              Exercises and Phase Exit\n\nVOLUME 03 - DATABASE ENGINEERING\n\nExercises and Phase Exit\nProve that the database is understood before adding Prisma\n\nThe next phase should feel like an abstraction over concepts you already control, not\na rescue from concepts you skipped.\n\nFigure 1 - Phase exit path\n\nConnect        →            Create         →        Query\n\n→       Inspect           →          Clean up    →\n\nExplain\n\nA phase is complete when you can perform and explain the workflow.\n\nVolume 03 - Database Engineering\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                            Exercises and Phase Exit\n\nBook 9 of Phase 08\n\nLevel 1 - Follow\n1. Create or open the TaskFlow development Supabase project.\n2. Run the server-information query in SQL Editor.\n3. Copy the Session pooler settings without exposing the password.\n4. Connect with psql .\n5. Create the temporary practice tables.\n6. Insert and query sample rows.\n7. Drop the temporary tables.\n\nLevel 2 - Modify\n1. Add an optional notes text column to practice_tasks .\n2. Add a new project and two tasks.\n3. Write a query that lists unfinished tasks ordered by priority.\n4. Use a transaction to change two rows, inspect them, then roll back.\n\nLevel 3 - Implement\nWithout copying the lesson SQL, create a temporary table called practice_tags and a join table\nrepresenting a many-to-many relationship between practice tasks and tags. Add sensible keys and\nconstraints, seed data, then write a join that returns task title + tag name.\n\nLevel 4 - Engineer\nDesign a short connection strategy note for three future deployments:\n\n• local NestJS development on IPv4-only home internet\n• a persistent container/VM with IPv6 connectivity\n• a serverless worker that opens many short-lived connections\n\nFor each, choose direct/session/transaction mode and explain the tradeoff. Do not choose by memorized\nport number alone.\n\nDebugging scenarios\nScenario A - Authentication failure\npsql reports password authentication failure. List the evidence you would check before resetting the\nentire project.\n\nScenario B - Direct host timeout\nThe credentials are correct but the direct endpoint times out from home internet. What network capability\nmight be missing, and which connection mode would you test next?\n\nVolume 03 - Database Engineering                                                              Book 9 of Phase 08\n\nFULL_STACK_DEVELOPER_2026_COMPLETE - Phase 08                                                                  Exercises and Phase Exit\n\nScenario C - Table visible in dashboard but API later says relation does not exist\nList database/schema/connection assumptions that should be verified before editing the ORM model.\n\nArchitecture oral exam\n1. Is Supabase the ORM? Explain.\n2. Why can direct and session-pooler URLs both use port 5432 but have different hosts/usernames?\n3. Why is port 6543 not automatically \"better\"?\n4. Why should the browser never receive our PostgreSQL password?\n5. What does sslmode=require protect, and what does it not fully verify?\n6. What does psql prove before Prisma is installed?\n7. Why do we query the actual server version instead of assuming it?\n\nPhase 08 checkpoint\n[ ] Supabase development project exists.\n[ ] You can explain Supabase vs PostgreSQL.\n[ ] You can choose a connection mode deliberately.\n[ ] Database credentials are outside Git.\n[ ] psql connects over SSL.\n[ ] You ran Phase 07 relational SQL against the real database.\n[ ] You inspected tables and constraints.\n[ ] You intentionally cleaned up practice objects.\n[ ] You can diagnose common connection failures by layer.\n[ ] You can explain what Prisma will add next.\n\nWhat comes next\n\nFigure 2 - Phase 09 architectural evolution\n\nNestJS               →          Prisma 7.9.1              →      Supabase PostgreSQL\n\nPhase 09 introduces a typed ORM and migration workflow only after the database and connection are independently verified.\n\nIn Phase 09 we install the hard-locked Prisma 7.9.1 toolchain, initialize it in apps/api , understand\nschema.prisma versus prisma.config.ts , configure the PostgreSQL adapter, generate the client, and\ncreate the first migration workflow.\n\nOfficial references used for this phase (verified 2026-09-17):\nSupabase Database Overview - https://supabase.com/docs/guides/database/overview\nConnect to your database - https://supabase.com/docs/guides/database/connecting-to-postgres\nConnecting with psql - https://supabase.com/docs/guides/database/psql\nTables and data - https://supabase.com/docs/guides/database/tables\nSecuring your data - https://supabase.com/docs/guides/database/secure-data\nPostgreSQL 18 psql - https://www.postgresql.org/docs/18/app-psql.html\n\nVolume 03 - Database Engineering                                                                                    Book 9 of Phase 08",
+      "wordCount": 669,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Exercises and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Exercises and Phase Exit matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Exercises and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Committing database credentials",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Exercises and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Exercises and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nOperate Supabase as managed PostgreSQL with deliberate project, connection, pooling, dashboard, and environment boundaries.",
+      "body": "Guided Build Lab — Phase 08: Supabase PostgreSQL\n\nPurpose\nOperate Supabase as managed PostgreSQL with deliberate project, connection, pooling, dashboard, and environment boundaries.\n\nDeliverable\nA Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\nApplication -> connection string/pooler -> Supabase Postgres -> database objects -> dashboard/observability\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Create the project and record which values are public identifiers versus secrets.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Inspect the database with SQL editor and an external client so the dashboard is not the only access path.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Compare direct and pooled connection strings and document when each is appropriate.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Place connection information in environment files excluded from Git.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Test connectivity from the API environment and diagnose a deliberately incorrect host/port/password.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Document how local, staging, and production projects will remain separate.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 634,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Using the wrong connection mode for serverless/concurrent workloads",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 08: Supabase PostgreSQL\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\nApplication -> connection string/pooler -> Supabase Postgres -> database objects -> dashboard/observability\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Committing database credentials\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Using the wrong connection mode for serverless/concurrent workloads\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Treating dashboard clicks as schema migration history\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — Pointing preview environments at production data\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 442,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Debugging Workshop matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating dashboard clicks as schema migration history",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 08 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Supabase PostgreSQL\n\nMission\nRebuild the capability of Phase 08 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nOperate Supabase as managed PostgreSQL with deliberate project, connection, pooling, dashboard, and environment boundaries.\n\nRequired artifact\nA Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain direct vs pooled connections.\n• Can identify public vs secret Supabase values.\n• Can diagnose connectivity.\n• Can keep environments isolated.\n\nIndependent build sequence\n1. Create the project and record which values are public identifiers versus secrets.\n2. Inspect the database with SQL editor and an external client so the dashboard is not the only access path.\n3. Compare direct and pooled connection strings and document when each is appropriate.\n4. Place connection information in environment files excluded from Git.\n5. Test connectivity from the API environment and diagnose a deliberately incorrect host/port/password.\n6. Document how local, staging, and production projects will remain separate.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 366,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "supabase",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this supabase concept.",
+          "Diagnose one representative supabase failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Phase Synthesis & Independent Challenge matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "application",
+          "connection configuration",
+          "Supabase Postgres",
+          "database evidence"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: application → connection configuration → Supabase Postgres → database evidence. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Pointing preview environments at production data",
+          "Change one assumption in the supabase example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the supabase boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 08 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 08: Supabase PostgreSQL. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nA Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 200,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "sql",
+        "objectives": [
+          "Operate Supabase as managed PostgreSQL with deliberate project, connection, pooling, dashboard, and environment boundaries.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "Application",
+          "connection string/pooler",
+          "Supabase Postgres",
+          "database objects",
+          "dashboard/observability"
+        ],
+        "steps": [
+          "Create the project and record which values are public identifiers versus secrets.",
+          "Inspect the database with SQL editor and an external client so the dashboard is not the only access path.",
+          "Compare direct and pooled connection strings and document when each is appropriate.",
+          "Place connection information in environment files excluded from Git.",
+          "Test connectivity from the API environment and diagnose a deliberately incorrect host/port/password.",
+          "Document how local, staging, and production projects will remain separate.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain direct vs pooled connections",
+          "Can identify public vs secret Supabase values",
+          "Can diagnose connectivity",
+          "Can keep environments isolated"
+        ],
+        "breakIt": [
+          "Committing database credentials",
+          "Using the wrong connection mode for serverless/concurrent workloads"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/SQL_Lab/00_practice_schema.sql",
+      "preview": "create table practice_projects (\n  id bigint generated always as identity primary key,\n  name text not null unique,\n  created_at timestamptz not null default now()\n);\n\ncreate table practice_tasks (\n  id bigint generated always as identity primary key,\n  project_id bigint not null references practice_projects(id),\n  title text not null,\n  completed boolean not null default false,\n  priority smallint not null default 2 check (priority between 1 and 3),\n  due_at timestamptz,\n  created_at timestamptz not null default now()\n);"
+    },
+    {
+      "path": "reference/SQL_Lab/01_seed_and_query.sql",
+      "preview": "insert into practice_projects (name) values ('Course'), ('Personal');\n\ninsert into practice_tasks (project_id, title, priority)\nselect id, 'Connect to Supabase', 1\nfrom practice_projects\nwhere name = 'Course';\n\ninsert into practice_tasks (project_id, title, priority)\nselect id, 'Review PostgreSQL constraints', 2\nfrom practice_projects\nwhere name = 'Course';\n\nselect p.name as project, t.title, t.priority, t.completed\nfrom practice_projects p\njoin practice_tasks t on t.project_id = p.id\norder by t.priority, t.id;"
+    },
+    {
+      "path": "reference/SQL_Lab/02_transaction_practice.sql",
+      "preview": "begin;\n\nupdate practice_tasks\nset completed = true\nwhere title = 'Connect to Supabase';\n\nselect title, completed from practice_tasks;\n\nrollback;\n\nselect title, completed from practice_tasks;"
+    },
+    {
+      "path": "reference/SQL_Lab/03_inspect.sql",
+      "preview": "select current_database(), current_user, current_schema();\nselect version();\nshow timezone;\nshow search_path;\n\nselect table_schema, table_name\nfrom information_schema.tables\nwhere table_schema = 'public'\norder by table_name;\n\nselect constraint_name, constraint_type\nfrom information_schema.table_constraints\nwhere table_name = 'practice_tasks'\norder by constraint_type, constraint_name;"
+    },
+    {
+      "path": "reference/SQL_Lab/04_cleanup.sql",
+      "preview": "drop table if exists practice_tasks;\ndrop table if exists practice_projects;"
+    },
+    {
+      "path": "reference/SQL_Lab/README.txt",
+      "preview": "Phase 08 SQL Lab\n\nRun in order against the TaskFlow development Supabase project only:\n  00_practice_schema.sql\n  01_seed_and_query.sql\n  02_transaction_practice.sql\n  03_inspect.sql\n  04_cleanup.sql\n\nThese are temporary learning tables. They are NOT the production TaskFlow schema."
+    },
+    {
+      "path": "reference/TaskFlow_Supabase_Setup/.env.example",
+      "preview": "DATABASE_URL="
+    },
+    {
+      "path": "reference/TaskFlow_Supabase_Setup/README.txt",
+      "preview": "TaskFlow - Phase 08 Supabase setup reference\n\nThis folder intentionally contains NO real credentials.\n\nExpected private local file (not included):\n  apps/api/.env\n\nDocumented variable:\n  DATABASE_URL\n\nUse the exact connection string copied from the Supabase Connect dialog.\nFor local persistent development on IPv4-only networks, the Session pooler is a practical choice.\nUse SSL. Do not expose the connection string to browser code."
+    }
+  ],
+  "exercises": [
+    "Guided: Create the project and record which values are public identifiers versus secrets.",
+    "Practice: Compare direct and pooled connection strings and document when each is appropriate.",
+    "Debugging: reproduce and diagnose — Committing database credentials.",
+    "Independent: deliver A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.",
+    "Explain-back: Can explain direct vs pooled connections and Can identify public vs secret Supabase values."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Treat Supabase Postgres as PostgreSQL first; managed services do not remove relational design responsibilities.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Treat Supabase Postgres as PostgreSQL first; managed services do not remove relational design responsibilities."
+    },
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Separate connection details, credentials, and environment configuration from source code."
+      ],
+      "answer": 3,
+      "explanation": "Separate connection details, credentials, and environment configuration from source code."
+    },
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Understand pooling and connection limits before scaling application instances.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Understand pooling and connection limits before scaling application instances."
+    },
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use the Supabase dashboard as an operational tool, not as a substitute for migrations and repeatable schema changes.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use the Supabase dashboard as an operational tool, not as a substitute for migrations and repeatable schema changes."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Committing database credentials.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create the project and record which values are public identifiers versus secrets."
+      ],
+      "answer": 3,
+      "explanation": "Create the project and record which values are public identifiers versus secrets."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using the wrong connection mode for serverless/concurrent workloads.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inspect the database with SQL editor and an external client so the dashboard is not the only access path.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Inspect the database with SQL editor and an external client so the dashboard is not the only access path."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Compare direct and pooled connection strings and document when each is appropriate.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating dashboard clicks as schema migration history."
+      ],
+      "answer": 1,
+      "explanation": "Compare direct and pooled connection strings and document when each is appropriate."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Place connection information in environment files excluded from Git.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Pointing preview environments at production data.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Place connection information in environment files excluded from Git."
+    }
+  ],
+  "lessonCount": 13,
+  "wordCount": 6388
+}

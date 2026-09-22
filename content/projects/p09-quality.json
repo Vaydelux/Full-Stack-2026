@@ -1,0 +1,43 @@
+{
+  "number": 15,
+  "track": "p09-quality",
+  "slug": "p09-quality",
+  "title": "Build a Production Quality Gate",
+  "goal": "Prove TaskFlow behavior with tests, threat-driven checks, telemetry, and measured performance rather than confidence by inspection.",
+  "deliverables": [
+    "unit/integration/E2E tests",
+    "authorization tests",
+    "threat model",
+    "structured logs",
+    "correlation id",
+    "incident drill",
+    "query performance",
+    "basic load test",
+    "quality gate"
+  ],
+  "steps": [
+    "Write a risk map for the feature areas most expensive to break.",
+    "Add unit tests only where pure behavior benefits from them.",
+    "Add database and HTTP integration tests for persistence and request boundaries.",
+    "Add E2E coverage for one critical browser flow.",
+    "Write negative authorization tests for ownership and tenant isolation.",
+    "Create a small threat model and reproduce one broken-access-control case.",
+    "Add structured request logging and a correlation id.",
+    "Run a simulated 500 incident and trace one request from browser to database evidence.",
+    "Measure one slow query, inspect `EXPLAIN ANALYZE`, improve it, and measure again.",
+    "Create one repeatable command/CI gate that runs typecheck, tests, build, and security-critical regression checks."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}

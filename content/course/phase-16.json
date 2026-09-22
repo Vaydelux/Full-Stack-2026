@@ -1,0 +1,1126 @@
+{
+  "number": 16,
+  "slug": "phase-16",
+  "title": "Authentication Fundamentals",
+  "volume": 5,
+  "readme": "FULL-STACK DEVELOPER 2026\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nThis phase is intentionally provider-agnostic. It teaches identity, AuthN/AuthZ, credentials, sessions, cookies, JWT verification, access/refresh tokens, browser security, lifecycle, API guards, and threat-modeling before Supabase Auth implementation in Phase 17.\n\nPrimary standards/guidance baseline:\n- RFC 7519 - JSON Web Token\n- RFC 8725 - JWT Best Current Practices\n- RFC 6750 - Bearer Token Usage\n- RFC 9700 - OAuth 2.0 Security Best Current Practice (2025)\n- OWASP Authentication / Session Management / Password Storage guidance\n- MDN cookie security guidance\n\nCourse stack locks remain unchanged.\n\nStart with 00_Phase_16_Guide.pdf or 12_Phase_16_Complete_Book.pdf.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "identity-authentication-and-authorization",
+      "title": "Identity Authentication and Authorization",
+      "summary": "Identity, Authentication & Authorization Separate who the caller is from what the caller may do Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Claimed identity v Authenticator verification v Authenticated subject v Authorization decision Phase 16 builds the security mental…",
+      "body": "Identity, Authentication & Authorization\nSeparate who the caller is from what the caller may do\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nClaimed identity\n\nv\n\nAuthenticator verification\n\nv\n\nAuthenticated subject\n\nv\n\nAuthorization decision\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nIdentity is not the same thing as authentication\nA useful security model starts by naming different concepts precisely. \"User\", \"login\", \"JWT\", and \"permission\" are not\ninterchangeable terms.\n\nConcept                   Meaning                                           Example\n\nDigital identity          A subject represented inside a system             User record / auth subject\n\nIdentifier                A value used to refer to that identity            email, username, user ID\n\nCredential /              Evidence used to authenticate                     password, passkey, OTP, security key\nauthenticator\n\nAuthentication (AuthN)    Verify the claimed identity                       sign in successfully\n\nSession                   Continuity across requests after authentication   session cookie or token set\n\nAuthorization (AuthZ)     Decide what the identity may do                   may edit this Task?\n\nFigure 1 - From claimed identity to allowed action\n\nCaller claims an identity\n\nv\n\nAuthenticator is verified\n\nv\n\nSystem establishes authenticated session\n\nv\n\nAPI derives trusted subject\n\nv\n\nAuthorization checks resource/action\n\nv\n\nBusiness operation executes\n\nAuthentication establishes who; authorization decides what that authenticated subject may do.\n\nIdentification alone is not proof\nTyping an email address tells the system which account you claim to be. It does not prove you own that account.\nLikewise, sending userId=123 from a browser does not prove you are User 123.\n\n# Wrong trust model\nGET /tasks?userId=123\n\n# Browser says who it wants to be.\n# The API has no authentication proof.\n\nThe trust-boundary rule\nAnything the browser can freely choose is untrusted input. Identity becomes trusted only after the backend verifies an\nauthenticator or a token issued by an identity system it trusts.\n\nCore invariant\n\nNever derive authorization from a user ID, email, role, or permission value merely because the browser sent it.\n\nAuthentication vs authorization failure\nSituation                                                        Typical meaning\n\nNo valid authentication                                          401 Unauthorized (historical HTTP name; semantically\nunauthenticated)\n\nAuthenticated but forbidden                                      403 Forbidden\n\nAuthenticated and allowed                                        Proceed to service/business rules",
+      "wordCount": 336,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authorization",
+        "objectives": [
+          "Explain Identity Authentication and Authorization in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authorization concept.",
+          "Diagnose one representative authorization failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authorization decides what an authenticated identity may do to a specific resource. UI hiding is never a substitute for server-side enforcement.",
+        "mentalModel": [
+          "trusted identity",
+          "requested action",
+          "resource scope",
+          "policy decision",
+          "allow/deny"
+        ],
+        "steps": [
+          "Restate the goal of “Identity Authentication and Authorization” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: trusted identity → requested action → resource scope → policy decision → allow/deny. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Role and resource scope are separate questions",
+          "code": "const canEdit =\n  user.role === \"ADMIN\" ||\n  (user.role === \"MEMBER\" && task.ownerId === user.id);\n\nif (!canEdit) throw new ForbiddenException();"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating base64 JWT content as proof of authenticity",
+          "Change one assumption in the authorization example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "User sees 403 unexpectedly",
+            "investigation": "Trace verified identity, role, resource owner/workspace, and policy inputs separately."
+          },
+          {
+            "symptom": "UI hides action but API allows it",
+            "investigation": "Add server-side resource authorization; UI visibility is only experience, never enforcement."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Identity Authentication and Authorization” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Identity Authentication and Authorization solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authorization boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "slug": "passwords-mfa-and-modern-authenticators",
+      "title": "Passwords MFA and Modern Authenticators",
+      "summary": "Passwords, MFA & Modern Authenticators Understand credential security without building a password system from scratch Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Password / passkey / factor v Identity provider verifies v Authentication result Phase 16 builds the security…",
+      "body": "Passwords, MFA & Modern\nAuthenticators\nUnderstand credential security without building a password system from scratch\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nPassword / passkey / factor\n\nv\n\nIdentity provider verifies\n\nv\n\nAuthentication result\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nPasswords are authenticators, not database values to store\ndirectly\nA password is evidence the user knows a secret. A secure identity system never needs the original password after\nenrollment. It stores a slow password hash designed to resist offline guessing if the credential database is stolen.\n\nFigure 1 - Password verification concept\n\nUser enters password\n\nv\n\nPassword hashing function + salt\n\nv\n\nCompare against stored verifier\n\nv\n\nMatch?\n\nv\n\nAuthentication succeeds or fails\n\nThe original password should not be recoverable from the stored verifier.\n\nWhy SHA-256 alone is not password storage\nGeneral-purpose hashes are intentionally fast. Password storage needs a deliberately expensive password hashing\nfunction so each attacker guess costs meaningful CPU/memory. OWASP currently recommends Argon2id first, with\nalternatives such as scrypt, bcrypt, or PBKDF2 in appropriate environments.\n\nTerm                          Purpose\n\nSalt                          Unique per-password value that defeats precomputed tables\n\nPassword hash                 Slow verifier derived from password + salt\n\nPepper                        Optional server-side secret kept separately from the password database\n\nWork factor                   Cost configuration that makes guessing more expensive\n\nTaskFlow decision\n\nWe will use Supabase Auth instead of writing password hashing, reset flows, email verification, breach defenses, and\ncredential lifecycle ourselves. Understanding these concepts tells you why delegating identity is a security architecture choice,\nnot laziness.\n\nMFA and stronger authenticators\nMulti-factor authentication combines independent categories of evidence. Passkeys/WebAuthn use public-key\ncryptography and are phishing-resistant compared with reusable shared secrets. TaskFlow does not implement\npasskeys in Phase 16, but a 2026 full-stack developer should recognize that passwords are only one authenticator\noption.\n\nAuthenticator                           Strength / trade-off\n\nPassword                                Widely supported; phishable; requires safe storage and recovery\n\nTOTP app                                Adds possession factor; codes can still be phished\n\nAuthenticator                         Strength / trade-off\n\nSMS OTP                               Better than password-only in some contexts, but vulnerable to SIM/telephony attacks\n\nWebAuthn / passkey                    Public-key, origin-bound, phishing-resistant; modern preferred direction\n\nNever log credentials\n• Do not log plaintext passwords.\n\n• Do not log password reset tokens.\n\n• Do not log MFA secrets or recovery codes.\n\n• Do not send credentials in URL query strings.\n\n• Use TLS/HTTPS for authentication traffic.",
+      "wordCount": 379,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Passwords MFA and Modern Authenticators in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Passwords MFA and Modern Authenticators” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing long-lived secrets in localStorage by default",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Passwords MFA and Modern Authenticators” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Passwords MFA and Modern Authenticators solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "slug": "sessions-cookies-and-browser-storage",
+      "title": "Sessions Cookies and Browser Storage",
+      "summary": "Sessions, Cookies & Browser Storage Understand authenticated continuity and the security consequences of storage choices Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Successful authentication v Session continuity v Cookie / browser boundary v Later authenticated requests Phase 16 builds…",
+      "body": "Sessions, Cookies & Browser Storage\nUnderstand authenticated continuity and the security consequences of storage choices\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nSuccessful authentication\n\nv\n\nSession continuity\n\nv\n\nCookie / browser boundary\n\nv\n\nLater authenticated requests\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nHTTP is stateless; authenticated applications need continuity\nAfter login, the server needs a way to associate later HTTP requests with the authenticated subject. A session\nprovides that continuity. The session can be represented by an opaque identifier stored server-side, by tokens, or by a\nprovider-specific combination.\n\nFigure 1 - Stateful session concept\n\nCredentials verified\n\nv\n\nServer creates session record\n\nv\n\nBrowser receives opaque session ID cookie\n\nv\n\nNext request sends cookie automatically\n\nv\n\nServer looks up session\n\nv\n\nTrusted user context reconstructed\n\nThe browser holds an identifier; the authoritative session state remains server-side.\n\nCookie security attributes\nAttribute                          What it protects / controls\n\nSecure                             Browser sends cookie only over secure HTTPS connections\n\nHttpOnly                           JavaScript cannot read the cookie through document.cookie\n\nSameSite                           Controls whether cookie is sent in cross-site contexts\n\nPath / Domain                      Restricts where the cookie is sent; use the narrowest practical scope\n\nMax-Age / Expires                  Controls cookie lifetime\n\nSet-Cookie: __Host-taskflow_session=<opaque-id>;\nPath=/;\nSecure;\nHttpOnly;\nSameSite=Lax\n\nIllustrative, not yet implementation\n\nPhase 17 will use Supabase Auth and its current SSR/browser integration guidance. Do not copy this cookie as a custom\nauthentication system.\n\nBrowser storage is a security decision\nlocalStorage and sessionStorage are readable by JavaScript executing in the origin. OWASP currently advises not\nstoring authentication tokens, session identifiers, JWTs, or refresh tokens there when a safer HttpOnly cookie or\nbackend-for-frontend/session pattern is available. XSS can read JavaScript-accessible storage.\n\nStorage                      Automatically sent?    JavaScript readable?   Important risk\n\nHttpOnly cookie              Yes, by cookie rules   No                     CSRF must be considered\n\nNon-HttpOnly cookie          Yes                    Yes                    XSS can read it; CSRF also relevant\n\nlocalStorage                 No                     Yes                    XSS can exfiltrate credential/token\n\nsessionStorage               No                     Yes                    XSS can exfiltrate credential/token\n\nServer memory/session        No browser access      No                     Requires server-side session management\nstore\n\nCookie security is not one checkbox\nHttpOnly helps keep JavaScript from reading a cookie, but it does not stop the browser from sending that cookie\nautomatically. That is why cookie authentication still requires intentional SameSite and CSRF design. Security\nproperties trade off against each other; storage choice must match application architecture.",
+      "wordCount": 387,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Sessions Cookies and Browser Storage in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Sessions Cookies and Browser Storage” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing hidden UI with authorization",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Sessions Cookies and Browser Storage” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Sessions Cookies and Browser Storage solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "slug": "jwt-structure-claims-and-verification",
+      "title": "JWT Structure Claims and Verification",
+      "summary": "JWT Structure, Claims & Verification Decode for inspection, verify for trust, and validate the claims your API requires Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone JWT received v Signature + algorithm verification v Issuer/audience/time checks v Trusted subject claims…",
+      "body": "JWT Structure, Claims & Verification\nDecode for inspection, verify for trust, and validate the claims your API requires\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nJWT received\n\nv\n\nSignature + algorithm verification\n\nv\n\nIssuer/audience/time checks\n\nv\n\nTrusted subject claims\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nA JWT is a claims container, not magic authentication\nJSON Web Token (JWT) is a compact representation of claims. In common signed form it contains three\ndot-separated base64url segments: header, payload, signature. The payload is typically readable. Signing protects\nintegrity/authenticity when properly verified; it does not automatically encrypt the claims.\n\nxxxxx.yyyyy.zzzzz\n|     |     |\nheader payload signature\n\nRegistered claims you should recognize\nClaim                   Meaning                      Why API cares\n\niss                     Issuer                       Was this token issued by the identity system we trust?\n\nsub                     Subject                      Which authenticated identity does the token represent?\n\naud                     Audience                     Was this token intended for this API/resource server?\n\nexp                     Expiration                   Is the token still within its acceptance lifetime?\n\nnbf                     Not before                   Is the token valid yet?\n\niat                     Issued at                    When was it minted? Useful context, not proof alone\n\njti                     JWT ID                       Unique token identifier in some token lifecycle designs\n\nFigure 1 - Correct JWT verification\n\nReceive JWT\n\nv\n\nParse header/claims\n\nv\n\nAccept only expected algorithms\n\nv\n\nVerify signature with trusted key\n\nv\n\nValidate issuer\n\nv\n\nValidate audience where required\n\nv\n\nValidate exp / nbf policy\n\nv\n\nOnly then trust subject/claims\n\nDecoding is inspection. Verification plus claim validation is authentication evidence.\n\nThe dangerous shortcut\n\n// WRONG mental model\nconst payload = decodeJwt(token);\nconst userId = payload.sub; // trusted? NO.\n\n// Decoding only proves the token contained text.\n// It does not prove who created it or whether it was modified.\n\nJWT payloads are not secret\n\nDo not put passwords, database credentials, API secrets, or data that must remain confidential into an ordinary signed JWT\npayload.\n\nVerification policy is application-specific\nRFC 7519 defines claims; JWT Best Current Practice requires applications to verify the claims and algorithms\nrelevant to their use. TaskFlow will later validate tokens against the expected Supabase Auth issuer/key material and\nAPI policy instead of accepting arbitrary JWTs.",
+      "wordCount": 353,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain JWT Structure Claims and Verification in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “JWT Structure Claims and Verification” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "No plan for expired/revoked sessions",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “JWT Structure Claims and Verification” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does JWT Structure Claims and Verification solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "slug": "access-refresh-tokens-and-bearer-risk",
+      "title": "Access Refresh Tokens and Bearer Risk",
+      "summary": "Access Tokens, Refresh Tokens & Bearer Risk Understand short-lived API credentials, refresh lifecycles, and replay risk Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Authentication v Access token v Protected API v Expiry v Refresh flow Phase 16 builds the…",
+      "body": "Access Tokens, Refresh Tokens & Bearer\nRisk\nUnderstand short-lived API credentials, refresh lifecycles, and replay risk\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nAuthentication\n\nv\n\nAccess token\n\nv\n\nProtected API\n\nv\n\nExpiry\n\nv\n\nRefresh flow\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nAccess tokens and refresh tokens have different jobs\nAn access token is presented to a protected resource such as the TaskFlow API. A refresh token is presented to the\nauthorization/authentication system to obtain a new access token. Refresh tokens usually live longer and therefore\ndeserve stronger protection.\n\nFigure 1 - Token lifecycle\n\nUser authenticates\n\nv\n\nAuthorization server issues access + maybe refresh token\n\nv\n\nClient calls API with access token\n\nv\n\nAccess token expires\n\nv\n\nClient presents refresh token to auth server\n\nv\n\nNew access token issued\n\nThe refresh token should not be sent to every protected API request.\n\nToken                        Used with                                Typical lifetime idea    Primary risk\n\nAccess token                 Resource/API server                      Shorter                  Stolen token can call API until\nexpiry/revocation constraints\n\nRefresh token                Auth/token endpoint                      Longer                   Stolen token can mint new access\ntokens\n\nBearer means possession is enough\nRFC 6750 defines bearer-token usage. A bearer token works for whoever possesses it unless additional\nsender-constraining mechanisms are used. Therefore an access token must be handled like a credential, not like a\nharmless identifier.\n\nGET /tasks HTTP/1.1\nHost: api.example.com\nAuthorization: Bearer <access-token>\n\nNever put bearer tokens in URLs\n\nURLs leak into browser history, logs, analytics, referrer data, screenshots, and monitoring systems. Use the Authorization\nheader for protected API requests.\n\nShort lifetime limits damage\nIf an access token leaks, a shorter expiry reduces the attack window. OAuth 2.0 Security Best Current Practice also\nrecommends restricting token privileges and audience as much as practical.\n\nRefresh token rotation\n\nModern OAuth security guidance requires public clients that receive refresh tokens to use sender-constrained refresh\ntokens or refresh-token rotation. With rotation, each refresh produces a new refresh token and invalidates the prior\none, enabling replay detection.\n\nFigure 2 - Refresh rotation concept\n\nRefresh token R1\n\nv\n\nUse R1 once\n\nv\n\nAuth server returns access token + R2\n\nv\n\nR1 becomes invalid\n\nv\n\nReplay of R1 signals compromise\n\nThe exact behavior belongs to the identity provider; application code should not invent its own rotation scheme casually.",
+      "wordCount": 384,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Access Refresh Tokens and Bearer Risk in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Access Refresh Tokens and Bearer Risk” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating base64 JWT content as proof of authenticity",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Access Refresh Tokens and Bearer Risk” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Access Refresh Tokens and Bearer Risk solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 6,
+      "slug": "login-logout-expiry-and-revocation",
+      "title": "Login Logout Expiry and Revocation",
+      "summary": "Login, Logout, Expiry & Revocation Treat authentication as a complete lifecycle instead of a login screen Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Unauthenticated v Authenticated session v Expiry/refresh v Logout/revocation Phase 16 builds the security mental model before…",
+      "body": "Login, Logout, Expiry & Revocation\nTreat authentication as a complete lifecycle instead of a login screen\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nUnauthenticated\n\nv\n\nAuthenticated session\n\nv\n\nExpiry/refresh\n\nv\n\nLogout/revocation\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nAuthentication is a lifecycle, not a login button\nA production system must reason about login, continuation, expiry, refresh, logout, password change, compromised\nsessions, and sensitive-operation re-authentication. \"Logged in\" is not a permanent boolean.\n\nFigure 1 - Authentication lifecycle\n\nUnauthenticated\n\nv\n\nAuthenticate\n\nv\n\nSession established\n\nv\n\nAuthenticated requests\n\nv\n\nAccess token/session expiry\n\nv\n\nRefresh or re-authenticate\n\nv\n\nLogout / revoke / security event\n\nv\n\nUnauthenticated again\n\nEvery transition has security and UX consequences.\n\nLogout has two dimensions\nLayer                              What logout may need to do\n\nClient                             Remove/expire local session material and authenticated UI state\n\nIdentity provider                  Invalidate or revoke refresh/session state where supported\n\nAPI                                Reject expired/revoked/invalid tokens according to provider and local policy\n\nWhy deleting UI state is not enough\nIf a refresh token or server session is still valid, merely redirecting to /login does not terminate the security session. A\ncomplete logout flow follows the identity provider session model.\n\nSecurity events can invalidate sessions\n• Password change.\n\n• Explicit sign-out from all devices.\n\n• Account disabled or deleted.\n\n• Refresh-token replay detected.\n\n• Administrator or user revocation.\n\n• Risk-based security event.\n\nRe-authentication for sensitive operations\nApplications may require recent authentication before changing a password, adding a payout account, viewing\nrecovery codes, or performing other high-risk actions. Authentication strength and freshness can be part of\nauthorization policy.\n\nPhase boundary\n\nPhase 16 learns lifecycle semantics. Phase 17 will follow Supabase Auth current session/logout APIs rather than inventing our\nown token store.",
+      "wordCount": 285,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Login Logout Expiry and Revocation in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Login Logout Expiry and Revocation” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing long-lived secrets in localStorage by default",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Login Logout Expiry and Revocation” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Login Logout Expiry and Revocation solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 7,
+      "slug": "xss-csrf-cors-and-https",
+      "title": "XSS CSRF CORS and HTTPS",
+      "summary": "XSS, CSRF, CORS & HTTPS Separate browser threats and match mitigations to the correct security problem Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Browser storage/cookies v Cross-site/browser threat v Correct security control Phase 16 builds the security mental model…",
+      "body": "XSS, CSRF, CORS & HTTPS\nSeparate browser threats and match mitigations to the correct security problem\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nBrowser storage/cookies\n\nv\n\nCross-site/browser threat\n\nv\n\nCorrect security control\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nXSS, CSRF, and CORS are different problems\nAuthentication bugs often come from mixing browser security concepts. These mechanisms overlap in consequences\nbut solve different threats.\n\nConcept                         Question\n\nXSS                             Can attacker-controlled JavaScript execute in our origin?\n\nCSRF                            Can another site cause the browser to send an authenticated request the user did not intend?\n\nCORS                            May browser JavaScript read/call a cross-origin resource under the server CORS policy?\n\nHTTPS/TLS                       Can network attackers read/modify traffic in transit?\n\nAuthentication                  Who is the caller?\n\nAuthorization                   May that caller perform this action?\n\nCookie authentication and CSRF\nBrowsers automatically attach eligible cookies. That convenience creates CSRF risk: another site may be able to\ntrigger a request while the victim browser includes its authenticated cookie. SameSite is an important mitigation, but\napplications may also need CSRF tokens or origin checks depending on architecture and request patterns.\n\nFigure 1 - CSRF shape\n\nVictim is authenticated to TaskFlow\n\nv\n\nVictim visits attacker site\n\nv\n\nAttacker page triggers TaskFlow request\n\nv\n\nBrowser may attach TaskFlow cookie\n\nv\n\nTaskFlow must distinguish intended vs cross-site request\n\nCookie authentication requires cross-site request reasoning.\n\nJavaScript-readable tokens and XSS\nIf an access or refresh token is stored where application JavaScript can read it, injected JavaScript can potentially\nexfiltrate it. HttpOnly cookies reduce direct token theft through JavaScript, but they do not magically solve all XSS\nimpact because malicious scripts can still issue actions as the user while running in the origin.\n\nCORS is not authentication\nCORS is a browser-enforced cross-origin access policy. It does not prove who a request came from. Non-browser\nclients do not rely on browser CORS enforcement. An API with permissive CORS still needs authentication and\nauthorization; an API with strict CORS is not automatically secure.\n\nHTTPS is mandatory for credentials\n\nBearer tokens, cookies, passwords, and authentication codes must be protected in transit. Secure cookie semantics also\ndepend on HTTPS in production.",
+      "wordCount": 361,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "cors",
+        "objectives": [
+          "Explain XSS CSRF CORS and HTTPS in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this cors concept.",
+          "Diagnose one representative cors failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "XSS CSRF CORS and HTTPS matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “XSS CSRF CORS and HTTPS” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "http",
+          "caption": "Inspect the browser preflight contract",
+          "code": "OPTIONS /tasks HTTP/1.1\nOrigin: http://localhost:3000\nAccess-Control-Request-Method: POST\nAccess-Control-Request-Headers: authorization,content-type\n\nHTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:3000"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing hidden UI with authorization",
+          "Change one assumption in the cors example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “XSS CSRF CORS and HTTPS” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does XSS CSRF CORS and HTTPS solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the cors boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 8,
+      "slug": "taskflow-target-authentication-architecture",
+      "title": "TaskFlow Target Authentication Architecture",
+      "summary": "TaskFlow Target Authentication Architecture Define exactly how Supabase Auth, Next.js, NestJS, and business authorization will divide responsibilities Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Supabase Auth v Next.js session v NestJS guard v Trusted user v Business rules Phase…",
+      "body": "TaskFlow Target Authentication\nArchitecture\nDefine exactly how Supabase Auth, Next.js, NestJS, and business authorization will divide\nresponsibilities\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nSupabase Auth\n\nv\n\nNext.js session\n\nv\n\nNestJS guard\n\nv\n\nTrusted user\n\nv\n\nBusiness rules\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nTaskFlow target architecture before implementation\nWe now have enough vocabulary to describe the security architecture Phase 17 will implement. Supabase Auth will\nestablish identity. Next.js will manage the web session boundary. NestJS will trust only tokens it verifies according to\nthe expected issuer/key/claims. Business services will receive a trusted user identity, not an arbitrary userId from the\nrequest body.\n\nFigure 1 - Planned TaskFlow authentication flow\n\nUser authenticates with Supabase Auth\n\nv\n\nSupabase establishes session / issues access token\n\nv\n\nNext.js receives authenticated session context\n\nv\n\nRequest to NestJS carries access token\n\nv\n\nNestJS Auth Guard verifies token\n\nv\n\nGuard attaches trusted identity\n\nv\n\nService applies ownership/authorization rules\n\nPhase 17 implements the provider integration; Phase 18 implements the API guard in detail.\n\nIdentity should enter the service as trusted context\n// Future direction - conceptual only\n\ncreateTask(authenticatedUser, dto)\n\n// NOT:\ncreateTask(dtoWithUserIdChosenByBrowser)\n\nSeparate identity provider ID from domain records\nAn authentication provider subject identifies an authenticated principal. Your application may also maintain a domain\nUser/Profile record for business data. The relationship must be explicit; do not assume every auth claim should be\ncopied directly into every business table.\n\nLayer                            Responsibility\n\nSupabase Auth                    Credential verification, identity/session/token lifecycle\n\nNext.js                          Web session handling and authenticated UI boundary\n\nNestJS guard                     Verify access token and derive trusted identity\n\nController                       Receive authenticated request context + validated DTO\n\nService                          Ownership, membership, permission, and business rules\n\nPostgreSQL                       Persistent data integrity and relations\n\nDo not duplicate auth logic\n\nThe browser, Next.js, NestJS, and Supabase each have different responsibilities. Do not implement four separate\npassword/login systems.",
+      "wordCount": 320,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "architecture",
+        "objectives": [
+          "Explain TaskFlow Target Authentication Architecture in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this architecture concept.",
+          "Diagnose one representative architecture failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "TaskFlow Target Authentication Architecture matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "User intent",
+          "UI boundary",
+          "API contract",
+          "business rule",
+          "persistence",
+          "observable result"
+        ],
+        "steps": [
+          "Restate the goal of “TaskFlow Target Authentication Architecture” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: User intent → UI boundary → API contract → business rule → persistence → observable result. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Boundary trace",
+          "code": "Input -> owner -> transformation -> observable output -> failure evidence"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "No plan for expired/revoked sessions",
+          "Change one assumption in the architecture example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “TaskFlow Target Authentication Architecture” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does TaskFlow Target Authentication Architecture solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the architecture boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 9,
+      "slug": "nestjs-guard-and-protected-api-mental-model",
+      "title": "NestJS Guard and Protected API Mental Model",
+      "summary": "NestJS Guard & Protected API Mental Model Understand the future token-verification boundary before implementing it Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Protected request v Auth guard v Verified identity v Controller/service Phase 16 builds the security mental model…",
+      "body": "NestJS Guard & Protected API Mental\nModel\nUnderstand the future token-verification boundary before implementing it\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nProtected request\n\nv\n\nAuth guard\n\nv\n\nVerified identity\n\nv\n\nController/service\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nThe NestJS guard is a verification boundary\nPhase 18 will implement the guard, but the mental model belongs here. The guard runs before protected controller\nlogic and either establishes a trusted authenticated subject or rejects the request.\n\nFigure 1 - Protected API request\n\nHTTP request\n\nv\n\nExtract Authorization bearer token\n\nv\n\nVerify signature / expected token policy\n\nv\n\nValidate required claims\n\nv\n\nBuild authenticated-user context\n\nv\n\nContinue to controller\n\nv\n\nService enforces authorization\n\nA decoded token does not reach business logic until verification succeeds.\n\nTypical API outcomes\nCondition                                                                   Result\n\nNo token on protected route                                                 401\n\nMalformed/invalid signature token                                           401\n\nExpired token                                                               401\n\nWrong issuer/audience for API policy                                        401\n\nValid user, lacks resource permission                                       403\n\nValid user, allowed                                                         Controller/service continue\n\nDo not confuse authentication with role checks\nThe authentication guard should establish who the caller is. Authorization logic can then evaluate workspace\nmembership, ownership, role, or permissions. Keeping these concerns separable makes policy easier to reason about\nand test.\n\nRequest\n-> AuthGuard: who are you?\n-> Authorization/Service: may you do this?\n-> Business rule: is this operation valid?\n-> Prisma/PostgreSQL\n\nRoute protection strategy\n\nIn real applications you must choose whether routes are protected by default with explicit public exceptions, or public\nby default with explicit guards. Security-sensitive systems generally benefit from fail-closed thinking: it should be\nharder to accidentally expose a new route.\n\nNever log the Authorization header\n\nLog request IDs and authentication outcomes, not raw access tokens.",
+      "wordCount": 286,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "nest",
+        "objectives": [
+          "Explain NestJS Guard and Protected API Mental Model in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this nest concept.",
+          "Diagnose one representative nest failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "NestJS structure becomes valuable when the request pipeline and responsibility of controllers, services, guards, pipes, and providers are explicit rather than magical.",
+        "mentalModel": [
+          "HTTP request",
+          "Fastify adapter",
+          "Nest pipeline",
+          "controller",
+          "service",
+          "response"
+        ],
+        "steps": [
+          "Restate the goal of “NestJS Guard and Protected API Mental Model” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: HTTP request → Fastify adapter → Nest pipeline → controller → service → response. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Controller delegates; service owns application behavior",
+          "code": "@Controller(\"tasks\")\nexport class TasksController {\n  constructor(private readonly tasks: TasksService) {}\n\n  @Get()\n  findAll() {\n    return this.tasks.findAll();\n  }\n}"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating base64 JWT content as proof of authenticity",
+          "Change one assumption in the nest example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Nest cannot resolve dependencies",
+            "investigation": "Read the constructor index in the error, then check provider registration, module imports, and exports in that order."
+          },
+          {
+            "symptom": "Endpoint not reached",
+            "investigation": "Confirm method/path, controller registration, global prefix, and guard/pipe behavior using request logs."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “NestJS Guard and Protected API Mental Model” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does NestJS Guard and Protected API Mental Model solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the nest boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 10,
+      "slug": "threat-modeling-observability-and-debugging",
+      "title": "Threat Modeling Observability and Debugging",
+      "summary": "Threat Modeling, Observability & Debugging Trace credentials and failures without leaking secrets or weakening security Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Credential lifecycle v Failure evidence v Safe logs v Root-cause fix Phase 16 builds the security mental…",
+      "body": "Threat Modeling, Observability &\nDebugging\nTrace credentials and failures without leaking secrets or weakening security\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nCredential lifecycle\n\nv\n\nFailure evidence\n\nv\n\nSafe logs\n\nv\n\nRoot-cause fix\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nThreat-model authentication by following the credential\nWhen debugging or designing auth, trace where credentials and identity assertions move. Ask where they can be\nread, replayed, logged, copied, expired, or incorrectly trusted.\n\nFigure 1 - Credential exposure review\n\nAuthenticator / login\n\nv\n\nSession or tokens issued\n\nv\n\nBrowser storage boundary\n\nv\n\nNetwork transmission\n\nv\n\nNestJS verification\n\nv\n\nLogs / telemetry\n\nv\n\nLogout / revocation\n\nEvery arrow is a possible leak, replay, or trust bug.\n\nCommon failure matrix\nSymptom                                                 Likely layer to inspect\n\nLogin fails before API call                             Identity provider / credentials / redirect flow\n\nBrowser has session but NestJS returns 401              Token forwarding or API token verification\n\n401 only after some time                                Access token expiry / refresh lifecycle\n\nValid user gets 403                                     Authorization / membership / permission logic\n\nWorks in PowerShell but browser fails before request    Browser/CORS/session forwarding issue\n\nWorks locally, fails in HTTPS production                Cookie domain/Secure/SameSite/origin configuration\n\nUsers appear as wrong account                           Subject mapping/session contamination - severe security bug\n\nAuthentication logs should be useful but non-secret\n• requestId / correlation ID\n\n• route / method\n\n• authentication success/failure category\n\n• verified subject identifier only where appropriate for audit policy\n\n• issuer/audience mismatch category\n\n• token expiration category\n\n• provider error code\n\n• never raw password, bearer token, refresh token, cookie, or reset token\n\nRate limiting and abuse\nAuthentication endpoints are attractive targets for password guessing, credential stuffing, OTP abuse, and account\nenumeration. Production identity architecture needs rate limiting, monitoring, lockout/risk controls, and neutral error\nmessages where appropriate. A managed identity provider helps, but application-specific endpoints still need abuse\nreasoning.\n\nDebug from evidence\n\nDo not fix a 401 by disabling signature checks, accepting any issuer, lengthening tokens indefinitely, or turning protected\nroutes public. Identify which verification step failed.",
+      "wordCount": 326,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Threat Modeling Observability and Debugging in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Threat Modeling Observability and Debugging” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing long-lived secrets in localStorage by default",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Threat Modeling Observability and Debugging” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Threat Modeling Observability and Debugging solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "slug": "hands-on-reasoning-lab-and-phase-exit",
+      "title": "Hands On Reasoning Lab and Phase Exit",
+      "summary": "Hands-On Reasoning Lab & Phase Exit Prove that the authentication model is understood before Supabase Auth implementation Phase 16 - Authentication Fundamentals Volume 05 - Authentication & Security Architecture milestone Classify v Threat model v Draw trust boundaries v Explain v Proceed to Phase 17…",
+      "body": "Hands-On Reasoning Lab & Phase Exit\nProve that the authentication model is understood before Supabase Auth implementation\n\nPhase 16 - Authentication Fundamentals\nVolume 05 - Authentication & Security\n\nArchitecture milestone\n\nClassify\n\nv\n\nThreat model\n\nv\n\nDraw trust boundaries\n\nv\n\nExplain\n\nv\n\nProceed to Phase 17\n\nPhase 16 builds the security mental model before any Supabase Auth integration code is introduced.\n\nHands-on reasoning lab\nPhase 16 is intentionally concept-heavy. The lab tests whether you can reason about authentication architecture\nbefore a provider SDK hides the mechanics.\n\nLab A - Classify the concept\nScenario                                                                                Concept\n\nUser types email                                                                        Identification / claimed identity\n\nPassword verified                                                                       Authentication\n\nBrowser receives authenticated continuity state                                         Session\n\nNestJS verifies access token                                                            Authentication evidence verification\n\nUser may update only Tasks in their Workspace                                           Authorization\n\nTask cannot transition directly DONE -> TODO                                            Business rule, not auth\n\nLab B - Find the security mistake\n• Frontend sends userId in POST /tasks and service trusts it as owner.\n\n• JWT payload is base64-decoded and sub is trusted without signature verification.\n\n• Refresh token is placed in a URL query parameter.\n\n• Authorization header is written to request logs.\n\n• JWT is stored in localStorage without discussing XSS risk.\n\n• Cookie auth is enabled with SameSite=None but CSRF is never considered.\n\n• CORS allowlist is treated as proof that the request is authenticated.\n\n• Logout only hides the dashboard but leaves a valid provider session alive.\n\nLab C - Draw the future TaskFlow flow\nOn paper, draw: User -> Supabase Auth -> session/access token -> Next.js -> Authorization header -> NestJS guard\n-> trusted subject -> TasksService -> membership/ownership check -> Prisma. Label every point where trust\nchanges.\n\nExercise levels\nLevel                       Challenge\n\n1 - Follow                  Explain AuthN vs AuthZ, access vs refresh token, and HttpOnly vs JavaScript-readable storage.\n\n2 - Modify                  Design a logout lifecycle for a shared-office computer where the user expects sign-out to terminate future token\nrefresh.\n\n3 - Implement (design)      Write pseudocode for a NestJS guard that returns 401 for missing, expired, wrong-issuer, or invalid-signature\ntokens without implementing cryptography yourself.\n\n4 - Engineer                Threat-model authentication for an HRIS payroll approval screen. Identify authenticator strength, session\nstorage, re-authentication, authorization, audit logging, token exposure, logout/revocation, and recovery risks.\n\nArchitecture oral exam\n• Why does a browser-supplied userId not prove identity?\n\n• Why is decoding a JWT different from verifying it?\n\n• What does aud protect against?\n\n• Why should access tokens usually be short-lived?\n\n• Why is a refresh token more sensitive than an access token?\n\n• Why can HttpOnly cookies reduce token theft but still require CSRF thinking?\n\n• Why is CORS not an authentication mechanism?\n\n• What is the difference between 401 and 403 in TaskFlow reasoning?\n\n• What should never appear in authentication logs?\n\n• What responsibility will Supabase Auth own versus NestJS?\n\nPhase exit checklist\n• You can explain identity, authenticator, authentication, session, token, and authorization separately.\n\n• You understand why TaskFlow will not implement password hashing itself.\n\n• You can explain cookie attributes Secure, HttpOnly, and SameSite.\n\n• You can explain why localStorage/sessionStorage token use creates XSS exposure.\n\n• You can identify JWT iss, sub, aud, exp, nbf, iat, and jti.\n\n• You know that decoding a JWT does not verify it.\n\n• You understand access vs refresh tokens and refresh rotation conceptually.\n\n• You understand XSS, CSRF, CORS, and HTTPS as different concerns.\n\n• You can draw the planned Supabase Auth -> Next.js -> NestJS guard flow.\n\n• You are ready to integrate Supabase Auth without treating it as magic.\n\nFigure 1 - Phase 16 exit architecture\n\nCredentials/authenticator\n\nv\n\nSupabase Auth (next phase implementation)\n\nv\n\nAuthenticated session + access token\n\nv\n\nNext.js session boundary\n\nv\n\nNestJS token verification (Phase 18)\n\nv\n\nTrusted identity\n\nv\n\nAuthorization + business logic\n\nPhase 16 ends when the learner can explain every arrow before writing provider-specific code.",
+      "wordCount": 590,
+      "expandedTeaching": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Hands On Reasoning Lab and Phase Exit in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Hands On Reasoning Lab and Phase Exit” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Confusing hidden UI with authorization",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Hands On Reasoning Lab and Phase Exit” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Hands On Reasoning Lab and Phase Exit solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "slug": "guided-build-lab",
+      "title": "Guided Build Lab",
+      "summary": "Purpose\nUnderstand identity primitives before using a vendor: credentials, password hashing, sessions, JWTs, cookies, CSRF, expiration, renewal, and revocation.",
+      "body": "Guided Build Lab — Phase 16: Authentication Fundamentals\n\nPurpose\nUnderstand identity primitives before using a vendor: credentials, password hashing, sessions, JWTs, cookies, CSRF, expiration, renewal, and revocation.\n\nDeliverable\nAuthentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.\n\nBefore you touch the code\nOpen the previous phase checkpoint, run the repository's verification commands, and make sure Git is clean. A guided lab is useful only when you know which change introduced a failure. Write down the current browser/API/database behavior you expect before modifying anything.\n\nArchitecture trace\ncredential/sign-in -> identity provider -> session/token -> browser storage/cookie -> API verification -> authenticated identity\n\nRead this flow left to right, then right to left. For each arrow, say what data crosses the boundary, which side trusts the other, and what evidence would prove that this boundary works. This habit prevents framework APIs from becoming disconnected memorization.\n\nStep 1 — Draw password login without writing code and mark where plain-text password may exist temporarily.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 2 — Compare opaque sessions and JWT access tokens by state, revocation, and verification model.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 3 — Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 4 — Trace token expiration and refresh as a state machine rather than a happy-path callback.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 5 — Separate authentication (who) from authorization (may do what) with concrete TaskFlow examples.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nStep 6 — Write abuse cases: stolen token, CSRF, XSS, replay, brute force, user ID spoofing.\nDo the smallest version of this step first. After the change, stop and verify it before continuing. Use terminal output, HTTP responses, browser DevTools, tests, or database inspection depending on the boundary. If the result differs from your prediction, do not add more code; explain the mismatch and fix the earliest failing assumption.\n\nCheckpoint\nWhen the lab works, inspect git diff. Remove accidental debugging output and unrelated edits. Run type checking/tests/build commands relevant to this phase. Commit the checkpoint with a message that describes the capability added, not merely the files changed.\n\nExplain-back\nWithout looking at the lesson, explain why each layer in the architecture trace exists, what this phase added to TaskFlow, and what would break if the new responsibility were moved to the wrong layer. If you cannot explain the boundary, repeat the trace before moving on.",
+      "wordCount": 649,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "ui",
+        "objectives": [
+          "Explain Guided Build Lab in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this ui concept.",
+          "Diagnose one representative ui failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Guided Build Lab matters because it changes a real boundary in TaskFlow. The goal is to understand the inputs, owner, observable output, and failure modes before adding more abstraction.",
+        "mentalModel": [
+          "route data",
+          "UI state",
+          "component tree",
+          "interaction",
+          "accessible feedback"
+        ],
+        "steps": [
+          "Restate the goal of “Guided Build Lab” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: route data → UI state → component tree → interaction → accessible feedback. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Model non-happy states intentionally",
+          "code": "if (query.isPending) return <TaskSkeleton />;\nif (query.isError) return <TaskError retry={query.refetch} />;\nif (!query.data.length) return <EmptyTasks />;\nreturn <TaskTable tasks={query.data} />;"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "No plan for expired/revoked sessions",
+          "Change one assumption in the ui example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "Expected result does not appear",
+            "investigation": "Return to the nearest observable boundary: input, network, process log, database, or rendered UI. Compare actual evidence with the predicted path."
+          },
+          {
+            "symptom": "A shortcut appears to fix it",
+            "investigation": "Change one variable at a time and reproduce the original failure after the fix; otherwise you have correlation, not diagnosis."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Guided Build Lab” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Guided Build Lab solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the ui boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 13,
+      "slug": "debugging-workshop",
+      "title": "Debugging Workshop",
+      "summary": "Goal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.",
+      "body": "Debugging Workshop — Phase 16: Authentication Fundamentals\n\nGoal\nLearn to diagnose this phase's failures systematically instead of reinstalling packages, changing random configuration, or copying a fix without understanding it.\n\nThe debugging loop\n1. Reproduce the failure with the smallest reliable action.\n2. Capture the exact symptom: command, status code, stack trace, network request, database state, or UI state.\n3. Locate the earliest boundary where actual behavior diverges from expected behavior.\n4. Form one hypothesis.\n5. Change one variable.\n6. Re-run the same reproduction.\n7. Keep the fix only if the evidence supports the hypothesis.\n\nBoundary walk\ncredential/sign-in -> identity provider -> session/token -> browser storage/cookie -> API verification -> authenticated identity\n\nStart at the visible symptom and walk backward. Do not debug the database when the browser never sent the request. Do not debug React state when the API is returning a deterministic 403. The boundary walk tells you which evidence to collect next.\n\nFailure drill 1 — Treating base64 JWT content as proof of authenticity\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 2 — Storing long-lived secrets in localStorage by default\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 3 — Confusing hidden UI with authorization\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nFailure drill 4 — No plan for expired/revoked sessions\nCreate or imagine this failure in a safe development environment. Write the expected symptom first. Then list the two or three observations that would distinguish this failure from neighboring causes. Repair it with the smallest change and verify the original reproduction no longer fails.\n\nDo not hide the evidence\nAvoid immediately clearing caches, deleting lockfiles, resetting the database, disabling security checks, or reinstalling everything. Those actions may erase the evidence that teaches you what was wrong. Use them only after you can explain why they are relevant.\n\nDebugging exit ticket\nPick one failure from this workshop and write a short incident note: symptom, scope, root cause, fix, verification, and prevention. This is the same communication pattern used in professional bug reports and production incident follow-ups.",
+      "wordCount": 446,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Debugging Workshop in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Debugging Workshop” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Treating base64 JWT content as proof of authenticity",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Debugging Workshop” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Debugging Workshop solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 14,
+      "slug": "independent-challenge",
+      "title": "Phase Synthesis & Independent Challenge",
+      "summary": "Mission\nRebuild the capability of Phase 16 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?",
+      "body": "Phase Synthesis & Independent Challenge — Authentication Fundamentals\n\nMission\nRebuild the capability of Phase 16 without following the exact code line-by-line. The goal is transfer: can you use the ideas when the variable names, UI, or route shape changes?\n\nRequired outcome\nUnderstand identity primitives before using a vendor: credentials, password hashing, sessions, JWTs, cookies, CSRF, expiration, renewal, and revocation.\n\nRequired artifact\nAuthentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.\n\nConstraints\n• Start from the previous phase checkpoint or a fresh branch.\n• Use the course architecture boundaries, but do not copy the reference implementation until after your first attempt.\n• Keep changes scoped to the capability.\n• Preserve validation, authorization, error handling, and observability expectations already earned in earlier phases.\n• Record any design decision where more than one implementation is reasonable.\n\nAcceptance criteria\n• Can explain session vs token.\n• Can identify browser storage risks.\n• Can trace expiration/refresh.\n• Can separate identity from permission.\n\nIndependent build sequence\n1. Draw password login without writing code and mark where plain-text password may exist temporarily.\n2. Compare opaque sessions and JWT access tokens by state, revocation, and verification model.\n3. Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.\n4. Trace token expiration and refresh as a state machine rather than a happy-path callback.\n5. Separate authentication (who) from authorization (may do what) with concrete TaskFlow examples.\n6. Write abuse cases: stolen token, CSRF, XSS, replay, brute force, user ID spoofing.\n\nSelf-review\nCompare your implementation to the reference only after the acceptance criteria pass. Differences are not automatically mistakes. For each difference, ask: does it preserve the same contract, security boundary, correctness, maintainability, and operational behavior? Keep the alternative when you can justify it with evidence.\n\nStretch challenge\nChange one assumption: more users, a second tenant, a slow network, an expired session, a concurrent mutation, a deployment restart, or a failed dependency. Predict whether your design still behaves correctly. If not, document the next architectural improvement rather than adding complexity blindly.\n\nPhase exit\nRun the relevant checks, inspect Git diff, and write a three-sentence summary: what the system can do now, which boundary owns the new responsibility, and which failure you now know how to diagnose. Only then mark the phase complete.",
+      "wordCount": 377,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Explain Phase Synthesis & Independent Challenge in terms of concrete inputs, ownership, outputs, and evidence.",
+          "Implement or reproduce the smallest TaskFlow slice that demonstrates this authentication concept.",
+          "Diagnose one representative authentication failure using observable evidence instead of trial-and-error."
+        ],
+        "why": "Authentication answers who the request represents. Treating decoded or client-supplied identity as trusted is a security boundary failure.",
+        "mentalModel": [
+          "credentials/session",
+          "token",
+          "verification",
+          "trusted identity",
+          "protected operation"
+        ],
+        "steps": [
+          "Restate the goal of “Phase Synthesis & Independent Challenge” as one observable behavior. Write the success signal before touching code.",
+          "Trace the boundary map: credentials/session → token → verification → trusted identity → protected operation. Mark the one boundary this lesson changes.",
+          "Inspect the current repository state and record the exact files, route, table, or runtime involved. Avoid creating an abstraction before you can name the existing owner.",
+          "Implement the smallest vertical slice. Add one coherent change, run the narrowest verification command, and read the output before continuing.",
+          "Connect the slice to TaskFlow’s phase artifact: Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.. Verify behavior from the outside as a user or API client would.",
+          "Create one controlled failure that is safe to reproduce. Predict the symptom first, capture evidence, locate the earliest broken boundary, then fix only that cause.",
+          "Close the reference and rebuild or explain the core change from memory. Record what you would monitor or test before trusting the same change in production."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Verify, then construct trusted identity",
+          "code": "const token = readBearerToken(request);\nconst claims = await verifier.verify(token);\nrequest.user = {\n  id: claims.sub,\n  email: claims.email,\n};"
+        },
+        "verify": [
+          "Run the narrowest relevant command or request and require a clean exit/status.",
+          "Inspect the boundary-specific evidence: terminal output, Network panel, database row/query plan, test report, container health, or deployment logs.",
+          "Repeat the behavior once after the change so a one-off cached or stale result cannot masquerade as success."
+        ],
+        "breakIt": [
+          "Storing long-lived secrets in localStorage by default",
+          "Change one assumption in the authentication example—identity, input, configuration, ordering, connectivity, or state—and predict the exact symptom before running it."
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "401 after login",
+            "investigation": "Inspect whether a token exists, whether it is expired, which issuer/audience signed it, and what the API verifier expects."
+          },
+          {
+            "symptom": "Identity differs from UI",
+            "investigation": "Trust only verified server claims; never repair identity by accepting a client-sent user id."
+          }
+        ],
+        "challenge": "Without copying the final source, create a second small scenario that applies “Phase Synthesis & Independent Challenge” to a different TaskFlow resource or input. Write the acceptance criteria first, implement it, and provide the evidence that each criterion is satisfied.",
+        "review": [
+          "What problem does Phase Synthesis & Independent Challenge solve in TaskFlow, and what would be observably wrong without it?",
+          "Which part of the authentication boundary owns the decision, and which neighboring layer must not own it?",
+          "What evidence proves the happy path instead of merely suggesting it worked?",
+          "Name one realistic failure or abuse case and the first place you would inspect.",
+          "If requirements doubled tomorrow, which part of this design should stay stable and which part is allowed to change?"
+        ]
+      }
+    },
+    {
+      "number": 15,
+      "slug": "mastery-capstone-lab",
+      "title": "Mastery Capstone Lab",
+      "summary": "Integrate Phase 16 without following a transcript.",
+      "body": "Mastery Capstone Lab\n\nThis is the transfer exercise for Phase 16: Authentication Fundamentals. The detailed lessons are now closed-book reference material. Your task is to prove that the phase outcome can be reproduced from requirements, repository evidence, and debugging—not by copying a finished implementation.\n\nTarget artifact\nAuthentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.\n\nAcceptance criteria\n- Write the behavior and constraints before implementation.\n- Identify the owning layer and every boundary crossed.\n- Implement the smallest complete vertical slice.\n- Verify the happy path from outside the implementation.\n- Demonstrate at least one expected failure path.\n- Run the phase-relevant quality checks.\n- Review the diff for accidental duplication, leaked responsibilities, missing validation/authorization, and hidden environment assumptions.\n\nEvidence packet\nSave the command/request used, expected result, actual result, one failure reproduction, the fix, and a short explanation of why the final responsibility belongs where it does. This packet is more valuable than a screenshot of a green page because it demonstrates repeatable engineering reasoning.\n\nStretch\nChange one requirement after the first implementation. Measure which files must change. If a tiny domain change causes unrelated layers to move, use that evidence to discuss coupling before adding another abstraction.",
+      "wordCount": 203,
+      "generatedCompanion": true,
+      "workshop": {
+        "topic": "authentication",
+        "objectives": [
+          "Understand identity primitives before using a vendor: credentials, password hashing, sessions, JWTs, cookies, CSRF, expiration, renewal, and revocation.",
+          "Produce a reproducible evidence packet for success and failure.",
+          "Defend the architecture and identify one improvement without overengineering."
+        ],
+        "why": "A guided lesson proves you can follow. A capstone proves you can transfer the model to a requirement with fewer cues.",
+        "mentalModel": [
+          "credential/sign-in",
+          "identity provider",
+          "session/token",
+          "browser storage/cookie",
+          "API verification",
+          "authenticated identity"
+        ],
+        "steps": [
+          "Draw password login without writing code and mark where plain-text password may exist temporarily.",
+          "Compare opaque sessions and JWT access tokens by state, revocation, and verification model.",
+          "Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.",
+          "Trace token expiration and refresh as a state machine rather than a happy-path callback.",
+          "Separate authentication (who) from authorization (may do what) with concrete TaskFlow examples.",
+          "Write abuse cases: stolen token, CSRF, XSS, replay, brute force, user ID spoofing.",
+          "Run the phase mastery checklist without looking at the provided implementation.",
+          "Perform a short architecture review and document one trade-off you consciously accepted."
+        ],
+        "example": {
+          "language": "txt",
+          "caption": "Capstone evidence packet",
+          "code": "Requirement -> implementation diff -> verification -> controlled failure -> diagnosis -> final proof"
+        },
+        "verify": [
+          "Can explain session vs token",
+          "Can identify browser storage risks",
+          "Can trace expiration/refresh",
+          "Can separate identity from permission"
+        ],
+        "breakIt": [
+          "Treating base64 JWT content as proof of authenticity",
+          "Storing long-lived secrets in localStorage by default"
+        ],
+        "troubleshooting": [
+          {
+            "symptom": "You can only continue by copying the reference",
+            "investigation": "Return to the mental model and acceptance criteria. Rebuild one smaller slice from first principles before reopening the source."
+          },
+          {
+            "symptom": "Everything seems to work but proof is weak",
+            "investigation": "Choose an external observer: HTTP client, browser, database query, test runner, health endpoint, or deployment log, and capture deterministic evidence."
+          }
+        ],
+        "challenge": "Extend the phase artifact with one requirement not used in the guided example while preserving the same ownership rules and verification strategy.",
+        "review": [
+          "What did you build without a transcript?",
+          "Which boundary caused the most reasoning effort?",
+          "Which failure gave the strongest evidence?",
+          "What shortcut did you deliberately avoid?",
+          "What would you automate before repeating this in a team?"
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/TaskFlow_Auth_Fundamentals/auth-mental-model.md",
+      "preview": "# TaskFlow Authentication Mental Model\n\nAuthentication answers: Who is this caller?\nAuthorization answers: What may this authenticated caller do?\n\nTarget direction for later phases:\n\nBrowser\n  -> authentication provider (Supabase Auth in Phase 17)\n  -> authenticated session\n  -> access token\n  -> Next.js\n  -> Authorization: Bearer <access-token>\n  -> NestJS authentication guard\n  -> verified identity\n  -> service/business logic\n  -> authorization/ownership checks\n\nDo not accept userId from the browser as proof of identity.\nDo not put credentials, refresh tokens, session identifiers, or long-lived bearer tokens in URLs."
+    },
+    {
+      "path": "reference/TaskFlow_Auth_Fundamentals/http-examples.txt",
+      "preview": "# Bearer token request\nGET /tasks HTTP/1.1\nHost: api.example.com\nAuthorization: Bearer <access-token>\n\n# Example hardened session cookie shape (illustrative)\nSet-Cookie: __Host-taskflow_session=<opaque-id>; Path=/; Secure; HttpOnly; SameSite=Lax\n\n# Do NOT do this\nGET /tasks?access_token=<token>\nGET /tasks?userId=<browser-supplied-id>\n\n# Do NOT log these\nAuthorization: Bearer ...\nCookie: ...\npassword=...\nrefresh_token=..."
+    },
+    {
+      "path": "reference/TaskFlow_Auth_Fundamentals/jwt-claims-reference.md",
+      "preview": "# JWT Claims Reference\n\nA JWT commonly contains registered claims such as:\n\n- iss - issuer\n- sub - subject\n- aud - intended audience\n- exp - expiration time\n- nbf - not before\n- iat - issued at\n- jti - token identifier\n\nImportant: Base64url decoding is not validation. A resource server must verify the cryptographic signature and enforce the claims required by its security policy. JWT payloads are not automatically confidential. Do not put secrets into ordinary signed JWT claims."
+    },
+    {
+      "path": "reference/TaskFlow_Auth_Fundamentals/phase17-readiness.md",
+      "preview": "# Phase 17 Readiness\n\nBefore Supabase Auth integration, the learner should be able to explain:\n\n1. Identity vs credential vs session.\n2. Authentication vs authorization.\n3. Access token vs refresh token.\n4. Why bearer tokens are credentials.\n5. Why decoding a JWT does not prove authenticity.\n6. What iss, sub, aud, and exp mean.\n7. Why browser token storage is a security decision.\n8. HttpOnly / Secure / SameSite cookie attributes.\n9. XSS vs CSRF at a high level.\n10. Why NestJS must derive identity from a verified token rather than from userId supplied by the caller."
+    },
+    {
+      "path": "reference/TaskFlow_Auth_Fundamentals/security-checklist.md",
+      "preview": "# Authentication Security Checklist\n\n- Keep authentication and authorization conceptually separate.\n- Prefer a mature identity provider over writing password authentication from scratch.\n- Passwords must never be stored in plaintext.\n- Password storage uses a slow password hashing function, not a fast general-purpose hash.\n- Use HTTPS for authentication and authenticated requests.\n- Treat bearer tokens like credentials.\n- Validate JWT signature plus application-required claims such as issuer, audience, and expiration.\n- Never trust a JWT only because it can be decoded.\n- Keep access tokens short-lived.\n- Protect refresh tokens more strongly than access tokens and support rotation/revocation where the provider does.\n- Avoid browser localStorage/sessionStorage for authentication tokens when a safer HttpOnly cookie or BFF/session pattern is available.\n- Cookie-based sessions should use Secure, HttpOnly, and an intentional SameSite policy.\n- Cookie authentication requires CSRF reasoning.\n- JavaScript-readable token storage requires strong XSS reasoning.\n- Do not log passwords, access tokens, refresh tokens, session IDs, authorization headers, or cookies.\n- Logout is a lifecycle operation, not merely hiding the UI.\n- Re-authenticate for sensitive operations when product risk justifies it.\n- Rate-limit authentication endpoints and monitor suspicious behavior."
+    }
+  ],
+  "exercises": [
+    "Guided: Draw password login without writing code and mark where plain-text password may exist temporarily.",
+    "Practice: Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.",
+    "Debugging: reproduce and diagnose — Treating base64 JWT content as proof of authenticity.",
+    "Independent: deliver Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.",
+    "Explain-back: Can explain session vs token and Can identify browser storage risks."
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Authentication establishes who a caller is; authorization decides what that identity may do.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Authentication establishes who a caller is; authorization decides what that identity may do."
+    },
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Passwords, sessions, tokens, and cookies solve different parts of identity management and have different risks."
+      ],
+      "answer": 3,
+      "explanation": "Passwords, sessions, tokens, and cookies solve different parts of identity management and have different risks."
+    },
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Treat credentials and tokens as secrets in transit, storage, logs, and browser code.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Treat credentials and tokens as secrets in transit, storage, logs, and browser code."
+    },
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Design authentication flows around expiration, revocation, renewal, and failure states rather than only the happy path.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Design authentication flows around expiration, revocation, renewal, and failure states rather than only the happy path."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating base64 JWT content as proof of authenticity.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Draw password login without writing code and mark where plain-text password may exist temporarily."
+      ],
+      "answer": 3,
+      "explanation": "Draw password login without writing code and mark where plain-text password may exist temporarily."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Storing long-lived secrets in localStorage by default.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Compare opaque sessions and JWT access tokens by state, revocation, and verification model.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Compare opaque sessions and JWT access tokens by state, revocation, and verification model."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Confusing hidden UI with authorization."
+      ],
+      "answer": 1,
+      "explanation": "Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Trace token expiration and refresh as a state machine rather than a happy-path callback.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: No plan for expired/revoked sessions.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Trace token expiration and refresh as a state machine rather than a happy-path callback."
+    }
+  ],
+  "lessonCount": 15,
+  "wordCount": 5682
+}

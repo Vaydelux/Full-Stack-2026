@@ -1,0 +1,36 @@
+{
+  "number": 1,
+  "track": "f00-runtime",
+  "slug": "f00-runtime",
+  "title": "Debug a Local Web App",
+  "goal": "Use the runtime mental models from this track to diagnose a deliberately broken local web application without guessing.",
+  "deliverables": [
+    "A tiny local web server",
+    "A documented port and URL",
+    "A failure log",
+    "A short boundary diagram"
+  ],
+  "steps": [
+    "Start a tiny server and confirm the exact process and port it uses.",
+    "Open the URL in the browser and write down the request/response you expect.",
+    "Change the configured port without updating the browser URL and capture the failure.",
+    "Use `netstat`, `Get-NetTCPConnection`, or an equivalent tool to identify the listening process.",
+    "Break PATH for one terminal session or invoke a missing command; explain why the shell cannot find it.",
+    "Add one environment variable, read it at runtime, then compare runtime configuration with build-time configuration.",
+    "Write a one-page boundary map: shell \u2192 process \u2192 port \u2192 HTTP \u2192 browser.",
+    "Reset everything and reproduce the healthy path from memory."
+  ],
+  "evidence": [
+    "A clean Git diff or file-tree change",
+    "Commands used and their exit/result",
+    "Browser, HTTP, database, test, container, or CI evidence that proves the behavior",
+    "One deliberate failure, the evidence you used, and the root-cause fix",
+    "A short explanation of why the final responsibility lives in the chosen layer"
+  ],
+  "completion": [
+    "I can demonstrate every deliverable.",
+    "I can reproduce one key part without the walkthrough.",
+    "I can explain one trade-off I deliberately chose.",
+    "I can show one failure that my tests, constraints, or runbook now protects against."
+  ]
+}
