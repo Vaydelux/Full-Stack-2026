@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function Footer(){return <footer className="site-footer"><div className="footer-inner"><div><Link className="brand" href="/">FS<span>26</span></Link><p>Learn by building, verifying, breaking, debugging, and shipping.</p></div><nav aria-label="Footer navigation"><Link href="/instructor">Guided Course</Link><Link href="/setup">Setup</Link><Link href="/search">Search</Link><Link href="/dashboard">Progress</Link><Link href="/themes">Themes</Link></nav></div></footer>}

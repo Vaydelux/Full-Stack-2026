@@ -1,0 +1,2 @@
+import {CourseSearch} from "@/components/search";
+export default function SearchPage(){return <main className="shell narrow-shell"><section className="phase-head"><div className="eyebrow">Local course search</div><h1>Search the course like a working handbook.</h1><p>Find concepts, commands, errors, phase guides, beginner prerequisites, and implementation lessons. Search is local/static—no account or database required.</p></section><section className="section"><CourseSearch/></section></main>}
