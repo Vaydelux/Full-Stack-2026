@@ -1,0 +1,138 @@
+{
+  "number": 3,
+  "slug": "phase-03",
+  "title": "Next.js Fundamentals",
+  "outcome": "Build the Next.js application shell while understanding App Router routing, layouts, Server Components, Client Components, environment boundaries, and rendering behavior.",
+  "artifact": "A navigable TaskFlow web shell with route groups/layouts, server-first composition, selective client interactivity, and verified environment handling.",
+  "flow": [
+    "Route request",
+    "App Router match",
+    "layout/page Server Component",
+    "optional server fetch",
+    "Client Component island",
+    "browser interaction"
+  ],
+  "labSteps": [
+    "Generate the web app in the monorepo and verify the development server from the correct workspace.",
+    "Create nested routes and a shared layout, then predict which layouts persist across navigation.",
+    "Build one component as a Server Component and identify exactly why it can remain server-only.",
+    "Add one Client Component for interaction and explain what 'use client' changes in the dependency graph.",
+    "Add server-only and public environment values and prove which can reach the browser bundle.",
+    "Use browser DevTools and terminal logs to distinguish server rendering from client execution."
+  ],
+  "failureModes": [
+    "Adding 'use client' too high in the tree",
+    "Accessing browser APIs from Server Components",
+    "Leaking secrets through NEXT_PUBLIC variables",
+    "Using effects for work that belongs in server rendering or a data layer"
+  ],
+  "mastery": [
+    "Can choose server vs client intentionally",
+    "Can explain layout/page routing",
+    "Can identify where code executes",
+    "Can debug a hydration or environment-boundary mistake"
+  ],
+  "commands": [
+    "pnpm --filter web dev",
+    "pnpm --filter web build"
+  ],
+  "principles": [
+    "Use Server Components by default and introduce Client Components only where browser interactivity requires them.",
+    "Treat the App Router file system as application structure, not as a place to hide business rules.",
+    "Keep secrets and privileged data access on the server side of the Next.js boundary.",
+    "Understand caching and rendering behavior before trying to fix stale UI with ad-hoc client state."
+  ],
+  "prerequisites": [
+    "Phase 02 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use Server Components by default and introduce Client Components only where browser interactivity requires them.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use Server Components by default and introduce Client Components only where browser interactivity requires them."
+    },
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Treat the App Router file system as application structure, not as a place to hide business rules.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Treat the App Router file system as application structure, not as a place to hide business rules."
+    },
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Keep secrets and privileged data access on the server side of the Next.js boundary."
+      ],
+      "answer": 3,
+      "explanation": "Keep secrets and privileged data access on the server side of the Next.js boundary."
+    },
+    {
+      "question": "Which practice best matches Phase 03's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Understand caching and rendering behavior before trying to fix stale UI with ad-hoc client state.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Understand caching and rendering behavior before trying to fix stale UI with ad-hoc client state."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Generate the web app in the monorepo and verify the development server from the correct workspace.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Adding 'use client' too high in the tree.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Generate the web app in the monorepo and verify the development server from the correct workspace."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Accessing browser APIs from Server Components.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create nested routes and a shared layout, then predict which layouts persist across navigation."
+      ],
+      "answer": 3,
+      "explanation": "Create nested routes and a shared layout, then predict which layouts persist across navigation."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Leaking secrets through NEXT_PUBLIC variables.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Build one component as a Server Component and identify exactly why it can remain server-only.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Build one component as a Server Component and identify exactly why it can remain server-only."
+    },
+    {
+      "question": "You are working through the Phase 03 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add one Client Component for interaction and explain what 'use client' changes in the dependency graph.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using effects for work that belongs in server rendering or a data layer."
+      ],
+      "answer": 1,
+      "explanation": "Add one Client Component for interaction and explain what 'use client' changes in the dependency graph."
+    }
+  ]
+}

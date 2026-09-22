@@ -1,0 +1,137 @@
+{
+  "number": 36,
+  "slug": "phase-36",
+  "title": "TaskFlow -> Enterprise Systems",
+  "outcome": "Generalize TaskFlow patterns into larger enterprise systems while preserving modular boundaries, workflows, auditability, integration reliability, and migration paths.",
+  "artifact": "Enterprise expansion blueprint for an HRIS/procurement/inventory/payroll-style system with modules, workflows, events, audit, and scaling triggers.",
+  "flow": [
+    "business capabilities",
+    "modular monolith",
+    "workflow/state machines",
+    "transactional boundaries",
+    "outbox/events",
+    "background workers",
+    "reporting/integrations",
+    "scale-out only when earned"
+  ],
+  "labSteps": [
+    "Choose one enterprise domain and identify business capabilities before choosing services/databases.",
+    "Design modules with explicit ownership and public interfaces inside a modular monolith.",
+    "Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.",
+    "Identify a transaction that crosses an integration boundary and design an outbox/event handoff.",
+    "Separate synchronous user requests from background work such as reports, imports, notifications, or payroll runs.",
+    "Write concrete scaling triggers that would justify extracting a service, queue, cache, or separate database later."
+  ],
+  "failureModes": [
+    "Microservices before module boundaries are understood",
+    "Boolean fields replacing explicit workflow states",
+    "Dual writes to database and message broker without reliability design",
+    "Shared database tables with unclear ownership across domains"
+  ],
+  "mastery": [
+    "Can decompose by business capability",
+    "Can model long-running workflows",
+    "Can explain outbox/event reliability",
+    "Can justify when distribution is and is not earned"
+  ],
+  "commands": [],
+  "principles": [
+    "Enterprise scaling starts by identifying new business boundaries, compliance needs, load, and organizational ownership.",
+    "Keep the modular monolith viable until scale or team boundaries justify distributing the system.",
+    "Add queues, caches, services, and orchestration only for concrete bottlenecks or ownership needs.",
+    "Design replaceable infrastructure interfaces so managed services can evolve without rewriting core business rules."
+  ],
+  "prerequisites": [
+    "Phase 35 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Enterprise scaling starts by identifying new business boundaries, compliance needs, load, and organizational ownership.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Enterprise scaling starts by identifying new business boundaries, compliance needs, load, and organizational ownership."
+    },
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Keep the modular monolith viable until scale or team boundaries justify distributing the system."
+      ],
+      "answer": 3,
+      "explanation": "Keep the modular monolith viable until scale or team boundaries justify distributing the system."
+    },
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Add queues, caches, services, and orchestration only for concrete bottlenecks or ownership needs.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Add queues, caches, services, and orchestration only for concrete bottlenecks or ownership needs."
+    },
+    {
+      "question": "Which practice best matches Phase 36's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Design replaceable infrastructure interfaces so managed services can evolve without rewriting core business rules.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Design replaceable infrastructure interfaces so managed services can evolve without rewriting core business rules."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Microservices before module boundaries are understood.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose one enterprise domain and identify business capabilities before choosing services/databases."
+      ],
+      "answer": 3,
+      "explanation": "Choose one enterprise domain and identify business capabilities before choosing services/databases."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Boolean fields replacing explicit workflow states.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Design modules with explicit ownership and public interfaces inside a modular monolith.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Design modules with explicit ownership and public interfaces inside a modular monolith."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Model one long-running approval as a state machine with actors, transitions, evidence, and audit records.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Dual writes to database and message broker without reliability design."
+      ],
+      "answer": 1,
+      "explanation": "Model one long-running approval as a state machine with actors, transitions, evidence, and audit records."
+    },
+    {
+      "question": "You are working through the Phase 36 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Identify a transaction that crosses an integration boundary and design an outbox/event handoff.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Shared database tables with unclear ownership across domains.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Identify a transaction that crosses an integration boundary and design an outbox/event handoff."
+    }
+  ]
+}

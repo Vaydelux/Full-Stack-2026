@@ -1,0 +1,135 @@
+{
+  "number": 15,
+  "slug": "phase-15",
+  "title": "Filtering, Search, Sorting & Pagination",
+  "outcome": "Implement scalable list endpoints with validated filtering/search/sorting/pagination and deterministic database queries.",
+  "artifact": "Task list API with filter/search/sort/page contract plus metadata and indexes justified by measured query patterns.",
+  "flow": [
+    "URL query state",
+    "validated query object",
+    "Prisma where/order/cursor",
+    "PostgreSQL plan",
+    "page response",
+    "frontend navigation"
+  ],
+  "labSteps": [
+    "Write the query contract including defaults and maximum page size.",
+    "Whitelist sortable fields and directions instead of interpolating arbitrary user input.",
+    "Implement filters and text search with clearly defined case/field semantics.",
+    "Start with offset pagination, then explain where cursor pagination changes consistency/performance.",
+    "Guarantee deterministic ordering with a unique tie-breaker.",
+    "Inspect representative query plans/index needs rather than indexing every field."
+  ],
+  "failureModes": [
+    "Unbounded page size",
+    "Nondeterministic order causing duplicates/missing rows",
+    "Client sends database column names unchecked",
+    "Counting/filtering with different predicates so metadata lies"
+  ],
+  "mastery": [
+    "Can design a stable list contract",
+    "Can validate sort/filter input",
+    "Can explain offset vs cursor tradeoffs",
+    "Can connect indexes to actual query patterns"
+  ],
+  "commands": [],
+  "principles": [
+    "Filtering, sorting, and pagination must use deterministic query rules so results remain stable.",
+    "Validate user-supplied sort fields instead of injecting arbitrary column names into queries.",
+    "Pagination metadata should match the strategy used by the API so clients can navigate correctly.",
+    "Indexes should follow real filter and sort patterns when performance data shows they are needed."
+  ],
+  "prerequisites": [
+    "Phase 14 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Filtering, sorting, and pagination must use deterministic query rules so results remain stable.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Filtering, sorting, and pagination must use deterministic query rules so results remain stable."
+    },
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Validate user-supplied sort fields instead of injecting arbitrary column names into queries.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Validate user-supplied sort fields instead of injecting arbitrary column names into queries."
+    },
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Pagination metadata should match the strategy used by the API so clients can navigate correctly."
+      ],
+      "answer": 3,
+      "explanation": "Pagination metadata should match the strategy used by the API so clients can navigate correctly."
+    },
+    {
+      "question": "Which practice best matches Phase 15's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Indexes should follow real filter and sort patterns when performance data shows they are needed.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Indexes should follow real filter and sort patterns when performance data shows they are needed."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Write the query contract including defaults and maximum page size.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Unbounded page size.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Write the query contract including defaults and maximum page size."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Nondeterministic order causing duplicates/missing rows.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Whitelist sortable fields and directions instead of interpolating arbitrary user input."
+      ],
+      "answer": 3,
+      "explanation": "Whitelist sortable fields and directions instead of interpolating arbitrary user input."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Client sends database column names unchecked.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement filters and text search with clearly defined case/field semantics.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Implement filters and text search with clearly defined case/field semantics."
+    },
+    {
+      "question": "You are working through the Phase 15 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Start with offset pagination, then explain where cursor pagination changes consistency/performance.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Counting/filtering with different predicates so metadata lies."
+      ],
+      "answer": 1,
+      "explanation": "Start with offset pagination, then explain where cursor pagination changes consistency/performance."
+    }
+  ]
+}

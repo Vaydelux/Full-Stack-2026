@@ -1,0 +1,135 @@
+{
+  "number": 18,
+  "slug": "phase-18",
+  "title": "NestJS Authentication Guards",
+  "outcome": "Make NestJS independently verify Supabase access tokens and attach trusted identity before protected handlers run.",
+  "artifact": "Authentication guard + verification service + current-user helper + protected /auth/me and task routes.",
+  "flow": [
+    "Next.js session",
+    "Bearer access token",
+    "NestJS guard",
+    "Supabase/JWT verification",
+    "trusted request user",
+    "controller/service"
+  ],
+  "labSteps": [
+    "Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.",
+    "Extract and validate the bearer scheme in a guard with clear missing/malformed behavior.",
+    "Verify the token server-side using the supported Supabase/JWT verification path.",
+    "Normalize verified claims into an application user identity object.",
+    "Attach identity once and expose it through a typed decorator/helper rather than reparsing tokens in services.",
+    "Protect /auth/me and one task endpoint; test valid, missing, malformed, expired, and wrong-project tokens."
+  ],
+  "failureModes": [
+    "Trusting userId from request body/query",
+    "Decoding JWT without signature verification",
+    "Returning 403 when no valid authentication exists",
+    "Logging bearer tokens during debugging"
+  ],
+  "mastery": [
+    "Can explain why Next.js login is not enough for the API",
+    "Can trace guard execution",
+    "Can distinguish 401 and 403",
+    "Can prove identity is derived from verified token claims"
+  ],
+  "commands": [],
+  "principles": [
+    "NestJS guards should verify identity before protected controllers execute.",
+    "Derive the authenticated user from a verified token, never from a user id supplied by the browser.",
+    "Attach validated identity to the request in one controlled place so downstream code can consume it consistently.",
+    "Return 401 for missing or invalid authentication and reserve 403 for authenticated callers lacking permission."
+  ],
+  "prerequisites": [
+    "Phase 17 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "NestJS guards should verify identity before protected controllers execute.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "NestJS guards should verify identity before protected controllers execute."
+    },
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Derive the authenticated user from a verified token, never from a user id supplied by the browser.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Derive the authenticated user from a verified token, never from a user id supplied by the browser."
+    },
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Attach validated identity to the request in one controlled place so downstream code can consume it consistently.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Attach validated identity to the request in one controlled place so downstream code can consume it consistently."
+    },
+    {
+      "question": "Which practice best matches Phase 18's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Return 401 for missing or invalid authentication and reserve 403 for authenticated callers lacking permission."
+      ],
+      "answer": 3,
+      "explanation": "Return 401 for missing or invalid authentication and reserve 403 for authenticated callers lacking permission."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Trusting userId from request body/query."
+      ],
+      "answer": 1,
+      "explanation": "Add Authorization: Bearer token handling in the API client without putting tokens in URLs/logs."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Extract and validate the bearer scheme in a guard with clear missing/malformed behavior.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Decoding JWT without signature verification.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Extract and validate the bearer scheme in a guard with clear missing/malformed behavior."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Returning 403 when no valid authentication exists.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Verify the token server-side using the supported Supabase/JWT verification path."
+      ],
+      "answer": 3,
+      "explanation": "Verify the token server-side using the supported Supabase/JWT verification path."
+    },
+    {
+      "question": "You are working through the Phase 18 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Logging bearer tokens during debugging.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Normalize verified claims into an application user identity object.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Normalize verified claims into an application user identity object."
+    }
+  ]
+}

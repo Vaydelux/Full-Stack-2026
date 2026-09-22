@@ -1,0 +1,140 @@
+{
+  "number": 28,
+  "slug": "phase-28",
+  "title": "Testing",
+  "outcome": "Build a testing strategy that proves pure rules, service orchestration, repositories, HTTP contracts, frontend behavior, and critical browser flows at the right cost.",
+  "artifact": "Vitest + integration + Playwright test suite with deterministic fixtures and CI-ready commands.",
+  "flow": [
+    "risk/question",
+    "choose boundary",
+    "arrange controlled state",
+    "execute behavior",
+    "assert outcome/contract",
+    "cleanup"
+  ],
+  "labSteps": [
+    "List the highest-risk TaskFlow behaviors before choosing test counts.",
+    "Write a pure unit test for one deterministic business policy.",
+    "Test a service with controlled dependencies and assert business outcome rather than private calls.",
+    "Run a repository integration test against real PostgreSQL with isolated data.",
+    "Run an API test through NestJS for validation/auth/error contract.",
+    "Write one Playwright flow for a critical user journey and make setup/cleanup reproducible."
+  ],
+  "failureModes": [
+    "Mocking the thing the test is supposed to prove",
+    "Huge number of brittle snapshot/UI implementation tests",
+    "Shared mutable test data causing order-dependent failures",
+    "E2E used for every rule, making feedback too slow"
+  ],
+  "mastery": [
+    "Can choose test level by risk",
+    "Can write deterministic tests",
+    "Can test real persistence when needed",
+    "Can explain what each test does not prove"
+  ],
+  "commands": [
+    "pnpm test",
+    "pnpm --filter api test",
+    "pnpm --filter web test",
+    "pnpm exec playwright test"
+  ],
+  "principles": [
+    "Use unit tests for focused behavior, integration tests for collaborating infrastructure, and end-to-end tests for critical user flows.",
+    "Test business outcomes and contracts rather than coupling every test to private implementation details.",
+    "Keep tests deterministic by controlling clocks, random values, external services, and database state where necessary.",
+    "A useful test suite catches regressions while remaining fast enough to run continuously in development and CI."
+  ],
+  "prerequisites": [
+    "Phase 27 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Use unit tests for focused behavior, integration tests for collaborating infrastructure, and end-to-end tests for critical user flows.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Use unit tests for focused behavior, integration tests for collaborating infrastructure, and end-to-end tests for critical user flows."
+    },
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Test business outcomes and contracts rather than coupling every test to private implementation details."
+      ],
+      "answer": 3,
+      "explanation": "Test business outcomes and contracts rather than coupling every test to private implementation details."
+    },
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Keep tests deterministic by controlling clocks, random values, external services, and database state where necessary.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Keep tests deterministic by controlling clocks, random values, external services, and database state where necessary."
+    },
+    {
+      "question": "Which practice best matches Phase 28's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "A useful test suite catches regressions while remaining fast enough to run continuously in development and CI.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "A useful test suite catches regressions while remaining fast enough to run continuously in development and CI."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Mocking the thing the test is supposed to prove.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List the highest-risk TaskFlow behaviors before choosing test counts."
+      ],
+      "answer": 3,
+      "explanation": "List the highest-risk TaskFlow behaviors before choosing test counts."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Huge number of brittle snapshot/UI implementation tests.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write a pure unit test for one deterministic business policy.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write a pure unit test for one deterministic business policy."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Test a service with controlled dependencies and assert business outcome rather than private calls.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Shared mutable test data causing order-dependent failures."
+      ],
+      "answer": 1,
+      "explanation": "Test a service with controlled dependencies and assert business outcome rather than private calls."
+    },
+    {
+      "question": "You are working through the Phase 28 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Run a repository integration test against real PostgreSQL with isolated data.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: E2E used for every rule, making feedback too slow.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Run a repository integration test against real PostgreSQL with isolated data."
+    }
+  ]
+}

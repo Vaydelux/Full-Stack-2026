@@ -1,0 +1,138 @@
+{
+  "number": 4,
+  "slug": "phase-04",
+  "title": "NestJS + Fastify Fundamentals",
+  "outcome": "Build a NestJS 12 API on Fastify and understand modules, controllers, providers, dependency injection, configuration, and request lifecycle.",
+  "artifact": "A modular API with health endpoint and a small feature module whose controller and service responsibilities are separate.",
+  "flow": [
+    "HTTP request",
+    "Fastify adapter",
+    "Nest middleware/guards/pipes",
+    "Controller",
+    "Service/provider",
+    "Response"
+  ],
+  "labSteps": [
+    "Generate the API workspace and replace the default HTTP adapter with Fastify deliberately.",
+    "Create a HealthModule with controller and service instead of putting everything in AppController.",
+    "Inject the service through the constructor and explain how Nest resolves it.",
+    "Add configuration through Nest Config rather than reading process.env everywhere.",
+    "Trace one request with logs through bootstrap, controller, and service.",
+    "Break provider registration intentionally, read the dependency-resolution error, and repair the module graph."
+  ],
+  "failureModes": [
+    "Provider not registered/exported/imported correctly",
+    "Adapter-specific plugins assumed to work like Express middleware",
+    "Huge AppModule containing unrelated features",
+    "Business logic embedded in decorators/controllers"
+  ],
+  "mastery": [
+    "Can explain provider resolution",
+    "Can create a feature module from scratch",
+    "Can distinguish adapter and framework responsibilities",
+    "Can debug a dependency injection error"
+  ],
+  "commands": [
+    "pnpm --filter api start:dev",
+    "pnpm --filter api build"
+  ],
+  "principles": [
+    "Controllers translate HTTP concerns; services own application behavior and orchestration.",
+    "Dependency injection makes dependencies explicit and replaceable instead of hiding them in global imports.",
+    "Use Fastify as the HTTP adapter without leaking adapter-specific details through the entire application.",
+    "Organize NestJS modules around cohesive features rather than one giant application module."
+  ],
+  "prerequisites": [
+    "Phase 03 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 04's engineering goal?",
+      "options": [
+        "Controllers translate HTTP concerns; services own application behavior and orchestration.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Controllers translate HTTP concerns; services own application behavior and orchestration."
+    },
+    {
+      "question": "Which practice best matches Phase 04's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Dependency injection makes dependencies explicit and replaceable instead of hiding them in global imports."
+      ],
+      "answer": 3,
+      "explanation": "Dependency injection makes dependencies explicit and replaceable instead of hiding them in global imports."
+    },
+    {
+      "question": "Which practice best matches Phase 04's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Use Fastify as the HTTP adapter without leaking adapter-specific details through the entire application.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Use Fastify as the HTTP adapter without leaking adapter-specific details through the entire application."
+    },
+    {
+      "question": "Which practice best matches Phase 04's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Organize NestJS modules around cohesive features rather than one giant application module.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Organize NestJS modules around cohesive features rather than one giant application module."
+    },
+    {
+      "question": "You are working through the Phase 04 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Provider not registered/exported/imported correctly.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Generate the API workspace and replace the default HTTP adapter with Fastify deliberately."
+      ],
+      "answer": 3,
+      "explanation": "Generate the API workspace and replace the default HTTP adapter with Fastify deliberately."
+    },
+    {
+      "question": "You are working through the Phase 04 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Adapter-specific plugins assumed to work like Express middleware.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a HealthModule with controller and service instead of putting everything in AppController.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a HealthModule with controller and service instead of putting everything in AppController."
+    },
+    {
+      "question": "You are working through the Phase 04 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inject the service through the constructor and explain how Nest resolves it.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Huge AppModule containing unrelated features."
+      ],
+      "answer": 1,
+      "explanation": "Inject the service through the constructor and explain how Nest resolves it."
+    },
+    {
+      "question": "You are working through the Phase 04 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Add configuration through Nest Config rather than reading process.env everywhere.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Business logic embedded in decorators/controllers.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Add configuration through Nest Config rather than reading process.env everywhere."
+    }
+  ]
+}

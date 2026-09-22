@@ -1,0 +1,136 @@
+{
+  "number": 33,
+  "slug": "phase-33",
+  "title": "CI/CD with GitHub Actions",
+  "outcome": "Build a trustworthy GitHub Actions pipeline that verifies pull requests, creates immutable release artifacts, uses least privilege, caches safely, and controls deployment concurrency.",
+  "artifact": ".github/workflows/ci.yml plus release/deploy workflows that build once, tag by commit SHA, and gate promotion.",
+  "flow": [
+    "pull request",
+    "deterministic install",
+    "lint/typecheck/test/build",
+    "trusted main",
+    "immutable artifact",
+    "environment gate",
+    "deployment"
+  ],
+  "labSteps": [
+    "Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.",
+    "Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile.",
+    "Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.",
+    "Add dependency/package cache only after correctness works; key it from lockfile inputs.",
+    "Create trusted-main release workflow that tags an image/artifact with the commit SHA rather than latest only.",
+    "Add environment protection/permissions for deployment and ensure stale production runs are not silently canceled mid-release."
+  ],
+  "failureModes": [
+    "Using pull_request_target with untrusted checkout/secrets",
+    "Broad write permissions for all jobs",
+    "Rebuilding different artifacts in each environment",
+    "CI green because important workspace checks never ran"
+  ],
+  "mastery": [
+    "Can read/write a GitHub Actions workflow",
+    "Can explain trigger trust boundaries",
+    "Can enforce deterministic install",
+    "Can build once/promote same artifact"
+  ],
+  "commands": [],
+  "principles": [
+    "CI verifies changes on pull requests; release workflows should operate from trusted code and immutable commit identities.",
+    "Use frozen lockfile installs so CI fails when dependency manifests and the lockfile disagree.",
+    "Give GitHub Actions tokens the minimum permissions each job requires.",
+    "Build once and promote the same artifact instead of rebuilding different binaries for each environment."
+  ],
+  "prerequisites": [
+    "Phase 32 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "CI verifies changes on pull requests; release workflows should operate from trusted code and immutable commit identities."
+      ],
+      "answer": 3,
+      "explanation": "CI verifies changes on pull requests; release workflows should operate from trusted code and immutable commit identities."
+    },
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Use frozen lockfile installs so CI fails when dependency manifests and the lockfile disagree.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Use frozen lockfile installs so CI fails when dependency manifests and the lockfile disagree."
+    },
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Give GitHub Actions tokens the minimum permissions each job requires.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Give GitHub Actions tokens the minimum permissions each job requires."
+    },
+    {
+      "question": "Which practice best matches Phase 33's engineering goal?",
+      "options": [
+        "Build once and promote the same artifact instead of rebuilding different binaries for each environment.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Build once and promote the same artifact instead of rebuilding different binaries for each environment."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using pull_request_target with untrusted checkout/secrets.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create CI triggered by pull_request with read-only contents permission and explicit concurrency cancellation."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Broad write permissions for all jobs."
+      ],
+      "answer": 1,
+      "explanation": "Set up Node and pnpm, then install with --frozen-lockfile so manifests cannot drift from the lockfile."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Rebuilding different artifacts in each environment.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Run lint/typecheck/tests/build as separate clear steps or jobs with understandable failure ownership."
+    },
+    {
+      "question": "You are working through the Phase 33 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: CI green because important workspace checks never ran.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add dependency/package cache only after correctness works; key it from lockfile inputs."
+      ],
+      "answer": 3,
+      "explanation": "Add dependency/package cache only after correctness works; key it from lockfile inputs."
+    }
+  ]
+}

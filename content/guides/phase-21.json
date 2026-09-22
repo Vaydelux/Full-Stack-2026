@@ -1,0 +1,135 @@
+{
+  "number": 21,
+  "slug": "phase-21",
+  "title": "Forms with React Hook Form + Zod",
+  "outcome": "Build robust forms with React Hook Form and Zod while separating transient form state from authoritative server state.",
+  "artifact": "Create/edit task forms with shared field rules, accessible errors, async submission, server-error mapping, and reset behavior.",
+  "flow": [
+    "input controls",
+    "React Hook Form state",
+    "Zod resolver",
+    "submit mutation",
+    "API validation/business rules",
+    "field/non-field feedback"
+  ],
+  "labSteps": [
+    "Define form values and defaults before wiring UI fields.",
+    "Register basic fields and observe dirty/touched/submitting state intentionally.",
+    "Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.",
+    "Implement accessible field errors and focus behavior after invalid submit.",
+    "Send data through the mutation layer and map server validation/conflict errors back to fields or form-level feedback.",
+    "Implement edit/reset/cancel semantics and test what happens when server data changes while a form is open."
+  ],
+  "failureModes": [
+    "Duplicating server data into form state without reset strategy",
+    "Assuming client validation secures the API",
+    "Clearing user input on every failed request",
+    "Showing only generic toast instead of actionable field errors"
+  ],
+  "mastery": [
+    "Can distinguish form state from server state",
+    "Can build schema-backed forms",
+    "Can handle async errors",
+    "Can reason about create vs edit/reset lifecycles"
+  ],
+  "commands": [],
+  "principles": [
+    "React Hook Form should own transient form interaction while Zod defines the input contract.",
+    "Validate close to the user for feedback, but repeat trust-boundary validation on the backend.",
+    "Map server validation errors back to fields without losing non-field errors.",
+    "Reset or preserve form state deliberately after successful mutations based on the workflow."
+  ],
+  "prerequisites": [
+    "Phase 20 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "React Hook Form should own transient form interaction while Zod defines the input contract."
+      ],
+      "answer": 3,
+      "explanation": "React Hook Form should own transient form interaction while Zod defines the input contract."
+    },
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Validate close to the user for feedback, but repeat trust-boundary validation on the backend.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Validate close to the user for feedback, but repeat trust-boundary validation on the backend."
+    },
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Map server validation errors back to fields without losing non-field errors.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Map server validation errors back to fields without losing non-field errors."
+    },
+    {
+      "question": "Which practice best matches Phase 21's engineering goal?",
+      "options": [
+        "Reset or preserve form state deliberately after successful mutations based on the workflow.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Reset or preserve form state deliberately after successful mutations based on the workflow."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicating server data into form state without reset strategy.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Define form values and defaults before wiring UI fields.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Define form values and defaults before wiring UI fields."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Register basic fields and observe dirty/touched/submitting state intentionally.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Assuming client validation secures the API."
+      ],
+      "answer": 1,
+      "explanation": "Register basic fields and observe dirty/touched/submitting state intentionally."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Clearing user input on every failed request.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Connect Zod resolver and reuse only rules that genuinely belong in both client and API validation."
+    },
+    {
+      "question": "You are working through the Phase 21 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Showing only generic toast instead of actionable field errors.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement accessible field errors and focus behavior after invalid submit."
+      ],
+      "answer": 3,
+      "explanation": "Implement accessible field errors and focus behavior after invalid submit."
+    }
+  ]
+}

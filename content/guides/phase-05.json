@@ -1,0 +1,137 @@
+{
+  "number": 5,
+  "slug": "phase-05",
+  "title": "HTTP, REST & API Engineering",
+  "outcome": "Design HTTP APIs using resources, methods, status codes, idempotency, errors, caching semantics, and versionable contracts.",
+  "artifact": "A written TaskFlow API contract for tasks with request/response examples and deliberate error semantics.",
+  "flow": [
+    "Client intent",
+    "HTTP method + URI",
+    "headers/body",
+    "server processing",
+    "status + response representation",
+    "client state transition"
+  ],
+  "labSteps": [
+    "Write the task resource shape before writing controller code.",
+    "Design collection and item URIs and justify GET/POST/PATCH/DELETE choices.",
+    "Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.",
+    "Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior.",
+    "Repeat safe/idempotent requests and reason about what should or should not change.",
+    "Write an error envelope that the frontend can parse consistently."
+  ],
+  "failureModes": [
+    "Using 200 for every outcome",
+    "Encoding actions into routes when resource semantics are clearer",
+    "Returning database rows as accidental public contracts",
+    "Confusing authentication failures with authorization failures"
+  ],
+  "mastery": [
+    "Can design a resource-oriented route set",
+    "Can choose meaningful status codes",
+    "Can explain idempotency",
+    "Can reason about API contract evolution"
+  ],
+  "commands": [
+    "curl -i http://localhost:4000/health"
+  ],
+  "principles": [
+    "Design APIs around resources, contracts, and HTTP semantics rather than controller method names.",
+    "Use status codes consistently so clients can distinguish validation, authentication, authorization, and missing resources.",
+    "Make request and response contracts explicit enough that frontend and backend can evolve safely.",
+    "Treat idempotency, pagination, errors, and concurrency as API design concerns, not afterthoughts."
+  ],
+  "prerequisites": [
+    "Phase 04 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Design APIs around resources, contracts, and HTTP semantics rather than controller method names."
+      ],
+      "answer": 3,
+      "explanation": "Design APIs around resources, contracts, and HTTP semantics rather than controller method names."
+    },
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Use status codes consistently so clients can distinguish validation, authentication, authorization, and missing resources.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Use status codes consistently so clients can distinguish validation, authentication, authorization, and missing resources."
+    },
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Make request and response contracts explicit enough that frontend and backend can evolve safely.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Make request and response contracts explicit enough that frontend and backend can evolve safely."
+    },
+    {
+      "question": "Which practice best matches Phase 05's engineering goal?",
+      "options": [
+        "Treat idempotency, pagination, errors, and concurrency as API design concerns, not afterthoughts.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Treat idempotency, pagination, errors, and concurrency as API design concerns, not afterthoughts."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using 200 for every outcome.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write the task resource shape before writing controller code.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write the task resource shape before writing controller code."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Design collection and item URIs and justify GET/POST/PATCH/DELETE choices.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Encoding actions into routes when resource semantics are clearer."
+      ],
+      "answer": 1,
+      "explanation": "Design collection and item URIs and justify GET/POST/PATCH/DELETE choices."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Returning database rows as accidental public contracts.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define success and failure status codes for create, read, update, delete, validation, auth, forbidden, and missing-resource cases."
+    },
+    {
+      "question": "You are working through the Phase 05 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Confusing authentication failures with authorization failures.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior."
+      ],
+      "answer": 3,
+      "explanation": "Use curl or an API client to inspect raw headers and bodies rather than only frontend behavior."
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "number": 8,
+  "slug": "phase-08",
+  "title": "Supabase PostgreSQL",
+  "outcome": "Operate Supabase as managed PostgreSQL with deliberate project, connection, pooling, dashboard, and environment boundaries.",
+  "artifact": "A Supabase project configured for TaskFlow development with documented connection paths and safe environment variables.",
+  "flow": [
+    "Application",
+    "connection string/pooler",
+    "Supabase Postgres",
+    "database objects",
+    "dashboard/observability"
+  ],
+  "labSteps": [
+    "Create the project and record which values are public identifiers versus secrets.",
+    "Inspect the database with SQL editor and an external client so the dashboard is not the only access path.",
+    "Compare direct and pooled connection strings and document when each is appropriate.",
+    "Place connection information in environment files excluded from Git.",
+    "Test connectivity from the API environment and diagnose a deliberately incorrect host/port/password.",
+    "Document how local, staging, and production projects will remain separate."
+  ],
+  "failureModes": [
+    "Committing database credentials",
+    "Using the wrong connection mode for serverless/concurrent workloads",
+    "Treating dashboard clicks as schema migration history",
+    "Pointing preview environments at production data"
+  ],
+  "mastery": [
+    "Can explain direct vs pooled connections",
+    "Can identify public vs secret Supabase values",
+    "Can diagnose connectivity",
+    "Can keep environments isolated"
+  ],
+  "commands": [],
+  "principles": [
+    "Treat Supabase Postgres as PostgreSQL first; managed services do not remove relational design responsibilities.",
+    "Separate connection details, credentials, and environment configuration from source code.",
+    "Understand pooling and connection limits before scaling application instances.",
+    "Use the Supabase dashboard as an operational tool, not as a substitute for migrations and repeatable schema changes."
+  ],
+  "prerequisites": [
+    "Phase 07 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Treat Supabase Postgres as PostgreSQL first; managed services do not remove relational design responsibilities.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Treat Supabase Postgres as PostgreSQL first; managed services do not remove relational design responsibilities."
+    },
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Separate connection details, credentials, and environment configuration from source code."
+      ],
+      "answer": 3,
+      "explanation": "Separate connection details, credentials, and environment configuration from source code."
+    },
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Understand pooling and connection limits before scaling application instances.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Understand pooling and connection limits before scaling application instances."
+    },
+    {
+      "question": "Which practice best matches Phase 08's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use the Supabase dashboard as an operational tool, not as a substitute for migrations and repeatable schema changes.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use the Supabase dashboard as an operational tool, not as a substitute for migrations and repeatable schema changes."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Committing database credentials.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create the project and record which values are public identifiers versus secrets."
+      ],
+      "answer": 3,
+      "explanation": "Create the project and record which values are public identifiers versus secrets."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using the wrong connection mode for serverless/concurrent workloads.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inspect the database with SQL editor and an external client so the dashboard is not the only access path.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Inspect the database with SQL editor and an external client so the dashboard is not the only access path."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Compare direct and pooled connection strings and document when each is appropriate.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating dashboard clicks as schema migration history."
+      ],
+      "answer": 1,
+      "explanation": "Compare direct and pooled connection strings and document when each is appropriate."
+    },
+    {
+      "question": "You are working through the Phase 08 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Place connection information in environment files excluded from Git.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Pointing preview environments at production data.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Place connection information in environment files excluded from Git."
+    }
+  ]
+}

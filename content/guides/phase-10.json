@@ -1,0 +1,139 @@
+{
+  "number": 10,
+  "slug": "phase-10",
+  "title": "Relational Data Modeling",
+  "outcome": "Translate TaskFlow business relationships into a relational model that can enforce membership, ordering, labels, comments, ownership, and lifecycle rules.",
+  "artifact": "A complete Prisma/ER model for TaskFlow core entities with keys, relation tables, uniqueness, and important indexes.",
+  "flow": [
+    "Business nouns",
+    "entities",
+    "relationships/cardinality",
+    "constraints",
+    "Prisma models",
+    "migration",
+    "seeded graph"
+  ],
+  "labSteps": [
+    "List TaskFlow nouns and separate entities from attributes and events.",
+    "Model workspace membership as an explicit relation carrying role/state rather than an array on User.",
+    "Model boards/lists/tasks and decide which parent IDs should be required.",
+    "Model labels through a join table and explain composite uniqueness.",
+    "Add comments and timestamps with intentional delete behavior.",
+    "Seed a small realistic graph and query it from several directions to validate the model."
+  ],
+  "failureModes": [
+    "JSON arrays replacing relational join tables without reason",
+    "Ambiguous cascade-delete behavior",
+    "Duplicate membership rows permitted",
+    "Using nullable foreign keys where the domain requires ownership"
+  ],
+  "mastery": [
+    "Can explain every cardinality",
+    "Can justify join tables",
+    "Can identify invariants enforced by constraints",
+    "Can query the model from parent and child directions"
+  ],
+  "commands": [
+    "pnpm exec prisma migrate dev --name taskflow-core-model",
+    "pnpm exec prisma studio"
+  ],
+  "principles": [
+    "Normalize relationships enough to preserve correctness before optimizing for convenience.",
+    "Choose cardinality intentionally: one-to-one, one-to-many, and many-to-many model different business rules.",
+    "Use unique constraints and foreign keys to encode invariants where the database can enforce them.",
+    "Design TaskFlow entities around actual workflows such as workspaces, members, boards, lists, tasks, comments, and labels."
+  ],
+  "prerequisites": [
+    "Phase 09 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Normalize relationships enough to preserve correctness before optimizing for convenience.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Normalize relationships enough to preserve correctness before optimizing for convenience."
+    },
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Choose cardinality intentionally: one-to-one, one-to-many, and many-to-many model different business rules.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Choose cardinality intentionally: one-to-one, one-to-many, and many-to-many model different business rules."
+    },
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Use unique constraints and foreign keys to encode invariants where the database can enforce them.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Use unique constraints and foreign keys to encode invariants where the database can enforce them."
+    },
+    {
+      "question": "Which practice best matches Phase 10's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Design TaskFlow entities around actual workflows such as workspaces, members, boards, lists, tasks, comments, and labels."
+      ],
+      "answer": 3,
+      "explanation": "Design TaskFlow entities around actual workflows such as workspaces, members, boards, lists, tasks, comments, and labels."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List TaskFlow nouns and separate entities from attributes and events.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: JSON arrays replacing relational join tables without reason."
+      ],
+      "answer": 1,
+      "explanation": "List TaskFlow nouns and separate entities from attributes and events."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Model workspace membership as an explicit relation carrying role/state rather than an array on User.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Ambiguous cascade-delete behavior.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Model workspace membership as an explicit relation carrying role/state rather than an array on User."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Duplicate membership rows permitted.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Model boards/lists/tasks and decide which parent IDs should be required."
+      ],
+      "answer": 3,
+      "explanation": "Model boards/lists/tasks and decide which parent IDs should be required."
+    },
+    {
+      "question": "You are working through the Phase 10 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Using nullable foreign keys where the domain requires ownership.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Model labels through a join table and explain composite uniqueness.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Model labels through a join table and explain composite uniqueness."
+    }
+  ]
+}

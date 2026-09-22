@@ -1,0 +1,135 @@
+{
+  "number": 31,
+  "slug": "phase-31",
+  "title": "Performance",
+  "outcome": "Measure TaskFlow and improve bottlenecks systematically across browser, API, database, cache, and network without sacrificing correctness.",
+  "artifact": "Before/after performance report with measured bottleneck, change, and regression guard.",
+  "flow": [
+    "measure baseline",
+    "locate bottleneck",
+    "form hypothesis",
+    "change one thing",
+    "remeasure",
+    "add regression guard"
+  ],
+  "labSteps": [
+    "Choose a user-visible flow and collect a baseline instead of optimizing globally.",
+    "Inspect network waterfalls/payloads and frontend rendering for avoidable work.",
+    "Measure API endpoint latency with enough context to separate application and database time.",
+    "Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes.",
+    "Reduce N+1 or redundant requests before adding caches.",
+    "Record the before/after result and add a budget/test where a regression would matter."
+  ],
+  "failureModes": [
+    "Optimizing from intuition only",
+    "Caching incorrect data or bypassing authorization",
+    "Adding indexes that slow writes without helping real queries",
+    "Benchmarking development mode and assuming production behavior"
+  ],
+  "mastery": [
+    "Can produce a baseline",
+    "Can identify bottleneck layer",
+    "Can read basic query-plan evidence",
+    "Can justify performance tradeoffs with measurements"
+  ],
+  "commands": [],
+  "principles": [
+    "Measure before optimizing so work targets real bottlenecks instead of intuition.",
+    "Reduce unnecessary network requests, database queries, rendering work, and payload size before reaching for exotic caching.",
+    "Use indexes and query plans when database latency is the bottleneck.",
+    "Performance work must preserve correctness, observability, and maintainability."
+  ],
+  "prerequisites": [
+    "Phase 30 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Measure before optimizing so work targets real bottlenecks instead of intuition.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Measure before optimizing so work targets real bottlenecks instead of intuition."
+    },
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Reduce unnecessary network requests, database queries, rendering work, and payload size before reaching for exotic caching.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Reduce unnecessary network requests, database queries, rendering work, and payload size before reaching for exotic caching."
+    },
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use indexes and query plans when database latency is the bottleneck."
+      ],
+      "answer": 3,
+      "explanation": "Use indexes and query plans when database latency is the bottleneck."
+    },
+    {
+      "question": "Which practice best matches Phase 31's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Performance work must preserve correctness, observability, and maintainability.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Performance work must preserve correctness, observability, and maintainability."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Choose a user-visible flow and collect a baseline instead of optimizing globally.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Optimizing from intuition only.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Choose a user-visible flow and collect a baseline instead of optimizing globally."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Caching incorrect data or bypassing authorization.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inspect network waterfalls/payloads and frontend rendering for avoidable work."
+      ],
+      "answer": 3,
+      "explanation": "Inspect network waterfalls/payloads and frontend rendering for avoidable work."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Adding indexes that slow writes without helping real queries.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Measure API endpoint latency with enough context to separate application and database time.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Measure API endpoint latency with enough context to separate application and database time."
+    },
+    {
+      "question": "You are working through the Phase 31 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Benchmarking development mode and assuming production behavior."
+      ],
+      "answer": 1,
+      "explanation": "Inspect PostgreSQL EXPLAIN/ANALYZE for a representative slow query and validate index/query changes."
+    }
+  ]
+}

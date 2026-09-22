@@ -1,0 +1,135 @@
+{
+  "number": 30,
+  "slug": "phase-30",
+  "title": "Logging & Observability",
+  "outcome": "Make production behavior observable with structured logs, request correlation, error monitoring, metrics, traces/signals, and actionable alerts.",
+  "artifact": "Observability layer connecting Next.js/API errors and request IDs to structured logs and monitoring releases.",
+  "flow": [
+    "request/user action",
+    "correlation ID",
+    "structured events",
+    "error monitor/metrics",
+    "dashboard/alert",
+    "diagnosis"
+  ],
+  "labSteps": [
+    "Define the minimum structured fields every API request/error log should carry.",
+    "Generate or propagate a request ID and return it so support can correlate client reports.",
+    "Redact secrets and PII deliberately before adding rich context.",
+    "Integrate error monitoring for both Next.js and NestJS and tag releases by commit SHA.",
+    "Add a few meaningful application/HTTP/database signals rather than hundreds of vanity metrics.",
+    "Simulate a production-style error and walk from user-visible request ID to logs/monitoring evidence."
+  ],
+  "failureModes": [
+    "console.log strings with no searchable structure",
+    "Tokens/passwords in logs",
+    "Alerts on every exception rather than user-impacting symptoms",
+    "No release/environment tags so errors cannot be tied to deployments"
+  ],
+  "mastery": [
+    "Can correlate one request across layers",
+    "Can log useful context safely",
+    "Can distinguish logs/metrics/traces/error monitoring",
+    "Can define an actionable alert"
+  ],
+  "commands": [],
+  "principles": [
+    "Logs should answer what happened, where, and for which request without exposing sensitive data.",
+    "Use request or correlation identifiers to connect events across application boundaries.",
+    "Metrics reveal system trends while traces and structured logs help explain individual failures.",
+    "Alert on user-impacting symptoms and actionable conditions rather than every noisy internal event."
+  ],
+  "prerequisites": [
+    "Phase 29 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 30's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Logs should answer what happened, where, and for which request without exposing sensitive data.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Logs should answer what happened, where, and for which request without exposing sensitive data."
+    },
+    {
+      "question": "Which practice best matches Phase 30's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Use request or correlation identifiers to connect events across application boundaries.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Use request or correlation identifiers to connect events across application boundaries."
+    },
+    {
+      "question": "Which practice best matches Phase 30's engineering goal?",
+      "options": [
+        "Metrics reveal system trends while traces and structured logs help explain individual failures.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Metrics reveal system trends while traces and structured logs help explain individual failures."
+    },
+    {
+      "question": "Which practice best matches Phase 30's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Alert on user-impacting symptoms and actionable conditions rather than every noisy internal event."
+      ],
+      "answer": 3,
+      "explanation": "Alert on user-impacting symptoms and actionable conditions rather than every noisy internal event."
+    },
+    {
+      "question": "You are working through the Phase 30 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Define the minimum structured fields every API request/error log should carry.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: console.log strings with no searchable structure."
+      ],
+      "answer": 1,
+      "explanation": "Define the minimum structured fields every API request/error log should carry."
+    },
+    {
+      "question": "You are working through the Phase 30 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Generate or propagate a request ID and return it so support can correlate client reports.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Tokens/passwords in logs.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Generate or propagate a request ID and return it so support can correlate client reports."
+    },
+    {
+      "question": "You are working through the Phase 30 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Alerts on every exception rather than user-impacting symptoms.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Redact secrets and PII deliberately before adding rich context."
+      ],
+      "answer": 3,
+      "explanation": "Redact secrets and PII deliberately before adding rich context."
+    },
+    {
+      "question": "You are working through the Phase 30 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: No release/environment tags so errors cannot be tied to deployments.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Integrate error monitoring for both Next.js and NestJS and tag releases by commit SHA.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Integrate error monitoring for both Next.js and NestJS and tag releases by commit SHA."
+    }
+  ]
+}

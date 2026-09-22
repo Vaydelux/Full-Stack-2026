@@ -1,0 +1,135 @@
+{
+  "number": 16,
+  "slug": "phase-16",
+  "title": "Authentication Fundamentals",
+  "outcome": "Understand identity primitives before using a vendor: credentials, password hashing, sessions, JWTs, cookies, CSRF, expiration, renewal, and revocation.",
+  "artifact": "Authentication threat/flow diagram explaining what the browser stores, what servers verify, and what happens when credentials expire.",
+  "flow": [
+    "credential/sign-in",
+    "identity provider",
+    "session/token",
+    "browser storage/cookie",
+    "API verification",
+    "authenticated identity"
+  ],
+  "labSteps": [
+    "Draw password login without writing code and mark where plain-text password may exist temporarily.",
+    "Compare opaque sessions and JWT access tokens by state, revocation, and verification model.",
+    "Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.",
+    "Trace token expiration and refresh as a state machine rather than a happy-path callback.",
+    "Separate authentication (who) from authorization (may do what) with concrete TaskFlow examples.",
+    "Write abuse cases: stolen token, CSRF, XSS, replay, brute force, user ID spoofing."
+  ],
+  "failureModes": [
+    "Treating base64 JWT content as proof of authenticity",
+    "Storing long-lived secrets in localStorage by default",
+    "Confusing hidden UI with authorization",
+    "No plan for expired/revoked sessions"
+  ],
+  "mastery": [
+    "Can explain session vs token",
+    "Can identify browser storage risks",
+    "Can trace expiration/refresh",
+    "Can separate identity from permission"
+  ],
+  "commands": [],
+  "principles": [
+    "Authentication establishes who a caller is; authorization decides what that identity may do.",
+    "Passwords, sessions, tokens, and cookies solve different parts of identity management and have different risks.",
+    "Treat credentials and tokens as secrets in transit, storage, logs, and browser code.",
+    "Design authentication flows around expiration, revocation, renewal, and failure states rather than only the happy path."
+  ],
+  "prerequisites": [
+    "Phase 15 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Authentication establishes who a caller is; authorization decides what that identity may do.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Authentication establishes who a caller is; authorization decides what that identity may do."
+    },
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Passwords, sessions, tokens, and cookies solve different parts of identity management and have different risks."
+      ],
+      "answer": 3,
+      "explanation": "Passwords, sessions, tokens, and cookies solve different parts of identity management and have different risks."
+    },
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Treat credentials and tokens as secrets in transit, storage, logs, and browser code.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Treat credentials and tokens as secrets in transit, storage, logs, and browser code."
+    },
+    {
+      "question": "Which practice best matches Phase 16's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Design authentication flows around expiration, revocation, renewal, and failure states rather than only the happy path.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Design authentication flows around expiration, revocation, renewal, and failure states rather than only the happy path."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating base64 JWT content as proof of authenticity.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Draw password login without writing code and mark where plain-text password may exist temporarily."
+      ],
+      "answer": 3,
+      "explanation": "Draw password login without writing code and mark where plain-text password may exist temporarily."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Storing long-lived secrets in localStorage by default.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Compare opaque sessions and JWT access tokens by state, revocation, and verification model.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Compare opaque sessions and JWT access tokens by state, revocation, and verification model."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Confusing hidden UI with authorization."
+      ],
+      "answer": 1,
+      "explanation": "Explain secure/httpOnly/sameSite cookie attributes and when browser JS should not read a token."
+    },
+    {
+      "question": "You are working through the Phase 16 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Trace token expiration and refresh as a state machine rather than a happy-path callback.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: No plan for expired/revoked sessions.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Trace token expiration and refresh as a state machine rather than a happy-path callback."
+    }
+  ]
+}

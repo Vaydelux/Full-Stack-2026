@@ -1,0 +1,136 @@
+{
+  "number": 22,
+  "slug": "phase-22",
+  "title": "TanStack Query",
+  "outcome": "Use TanStack Query as the owner of asynchronous server state with deliberate query keys, freshness, invalidation, mutations, and pagination behavior.",
+  "artifact": "TaskFlow query/mutation layer with stable keys, list/detail caching, invalidation, filters, and debugging via devtools/logs.",
+  "flow": [
+    "component",
+    "query key/options",
+    "cache",
+    "HTTP fetch",
+    "server",
+    "cache update/invalidation",
+    "render"
+  ],
+  "labSteps": [
+    "Install/configure one QueryClient at the correct client boundary.",
+    "Define a query-key factory that includes every parameter affecting the result.",
+    "Move task-list fetching into query options and observe loading/error/success/cache states.",
+    "Add task detail query and prove list/detail caches are distinct.",
+    "Implement create/update mutations and choose between invalidation and direct cache updates deliberately.",
+    "Add pagination/filter URL state and inspect how query keys prevent cross-filter cache corruption."
+  ],
+  "failureModes": [
+    "Random query-key arrays scattered through components",
+    "Copying query data into useState/useEffect",
+    "Invalidating too broadly or not at all",
+    "Treating staleTime as data lifetime/deletion"
+  ],
+  "mastery": [
+    "Can explain cache freshness vs garbage collection",
+    "Can design stable keys",
+    "Can reconcile mutations",
+    "Can debug stale/wrong cache entries"
+  ],
+  "commands": [],
+  "principles": [
+    "TanStack Query owns asynchronous server state; it is not a replacement for every kind of React state.",
+    "Choose query keys that uniquely describe the data and parameters being cached.",
+    "Invalidate or update the relevant cache after mutations so UI state converges with the server.",
+    "Configure stale time and refetch behavior based on data freshness needs rather than copying defaults blindly."
+  ],
+  "prerequisites": [
+    "Phase 21 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "TanStack Query owns asynchronous server state; it is not a replacement for every kind of React state.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "TanStack Query owns asynchronous server state; it is not a replacement for every kind of React state."
+    },
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Choose query keys that uniquely describe the data and parameters being cached.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Choose query keys that uniquely describe the data and parameters being cached."
+    },
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Invalidate or update the relevant cache after mutations so UI state converges with the server.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Invalidate or update the relevant cache after mutations so UI state converges with the server."
+    },
+    {
+      "question": "Which practice best matches Phase 22's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Configure stale time and refetch behavior based on data freshness needs rather than copying defaults blindly."
+      ],
+      "answer": 3,
+      "explanation": "Configure stale time and refetch behavior based on data freshness needs rather than copying defaults blindly."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Install/configure one QueryClient at the correct client boundary.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Random query-key arrays scattered through components."
+      ],
+      "answer": 1,
+      "explanation": "Install/configure one QueryClient at the correct client boundary."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define a query-key factory that includes every parameter affecting the result.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Copying query data into useState/useEffect.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define a query-key factory that includes every parameter affecting the result."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Invalidating too broadly or not at all.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Move task-list fetching into query options and observe loading/error/success/cache states."
+      ],
+      "answer": 3,
+      "explanation": "Move task-list fetching into query options and observe loading/error/success/cache states."
+    },
+    {
+      "question": "You are working through the Phase 22 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Treating staleTime as data lifetime/deletion.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add task detail query and prove list/detail caches are distinct.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Add task detail query and prove list/detail caches are distinct."
+    }
+  ]
+}

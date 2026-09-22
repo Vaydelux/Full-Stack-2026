@@ -1,0 +1,135 @@
+{
+  "number": 27,
+  "slug": "phase-27",
+  "title": "File Uploads & Supabase Storage",
+  "outcome": "Design a secure file-upload pipeline with storage objects, metadata, validation, signed access, lifecycle cleanup, and authorization.",
+  "artifact": "Task attachment upload/download/delete workflow using Supabase Storage plus application metadata.",
+  "flow": [
+    "upload intent",
+    "API authorization/validation",
+    "signed upload or storage request",
+    "object store",
+    "finalize metadata",
+    "signed/read access"
+  ],
+  "labSteps": [
+    "Define file policy: allowed types, size, naming/path rules, ownership, retention.",
+    "Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability.",
+    "Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.",
+    "Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows.",
+    "Generate time-limited access for private objects and test outsider access denial.",
+    "Implement delete/cleanup behavior for abandoned uploads and metadata/object mismatch."
+  ],
+  "failureModes": [
+    "Trusting filename extension as MIME proof",
+    "Public bucket for private tenant files",
+    "User-controlled storage path enabling cross-tenant overwrite",
+    "Database metadata created before upload succeeds with no cleanup"
+  ],
+  "mastery": [
+    "Can separate object bytes and metadata",
+    "Can validate/authorize upload intent",
+    "Can use signed access",
+    "Can reason about partial failure cleanup"
+  ],
+  "commands": [],
+  "principles": [
+    "Keep file bytes in object storage and metadata/authorization relationships in application data where appropriate.",
+    "Validate file type, size, path, and ownership before trusting an upload workflow.",
+    "Use signed or access-controlled URLs instead of making private files globally public.",
+    "Treat deletion as a coordinated workflow when both storage objects and database metadata must remain consistent."
+  ],
+  "prerequisites": [
+    "Phase 26 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Keep file bytes in object storage and metadata/authorization relationships in application data where appropriate.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Keep file bytes in object storage and metadata/authorization relationships in application data where appropriate."
+    },
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Validate file type, size, path, and ownership before trusting an upload workflow.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Validate file type, size, path, and ownership before trusting an upload workflow."
+    },
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Use signed or access-controlled URLs instead of making private files globally public."
+      ],
+      "answer": 3,
+      "explanation": "Use signed or access-controlled URLs instead of making private files globally public."
+    },
+    {
+      "question": "Which practice best matches Phase 27's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Treat deletion as a coordinated workflow when both storage objects and database metadata must remain consistent.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Treat deletion as a coordinated workflow when both storage objects and database metadata must remain consistent."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define file policy: allowed types, size, naming/path rules, ownership, retention.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Trusting filename extension as MIME proof.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define file policy: allowed types, size, naming/path rules, ownership, retention."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Public bucket for private tenant files.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability."
+      ],
+      "answer": 3,
+      "explanation": "Create an upload-intent endpoint that checks authenticated user and target task access before granting upload capability."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: User-controlled storage path enabling cross-tenant overwrite.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Upload bytes directly to storage where appropriate rather than proxying large files through the API by default.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Upload bytes directly to storage where appropriate rather than proxying large files through the API by default."
+    },
+    {
+      "question": "You are working through the Phase 27 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Database metadata created before upload succeeds with no cleanup."
+      ],
+      "answer": 1,
+      "explanation": "Finalize by verifying object existence and committing metadata transactionally as far as the architecture allows."
+    }
+  ]
+}

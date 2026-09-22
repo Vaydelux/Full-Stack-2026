@@ -1,0 +1,134 @@
+{
+  "number": 20,
+  "slug": "phase-20",
+  "title": "Production Application UI",
+  "outcome": "Build a production application shell and reusable UI states instead of isolated demo components.",
+  "artifact": "TaskFlow responsive shell with navigation, workspace context, task screens, loading/empty/error states, and accessible interactions.",
+  "flow": [
+    "route/layout",
+    "server data boundary",
+    "page composition",
+    "client interaction islands",
+    "responsive/accessibility states"
+  ],
+  "labSteps": [
+    "Design the application shell first: sidebar/topbar/main content/mobile navigation.",
+    "Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state.",
+    "Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.",
+    "Compose Server and Client Components so interactive islands remain small.",
+    "Test keyboard focus, labels, landmarks, reduced-motion expectations, and narrow widths.",
+    "Exercise all non-happy states by forcing no data, slow data, error, and forbidden responses."
+  ],
+  "failureModes": [
+    "Only styling the success state",
+    "Global client component wrapping the whole app",
+    "Clickable divs without keyboard semantics",
+    "Mobile layout treated as desktop squeezed smaller"
+  ],
+  "mastery": [
+    "Can compose a shell from reusable patterns",
+    "Can model all UI states",
+    "Can choose server/client boundaries",
+    "Can verify basic accessibility and responsive behavior"
+  ],
+  "commands": [],
+  "principles": [
+    "Build production UI from reusable layout and interaction patterns, not a collection of one-off pages.",
+    "Represent loading, empty, error, success, and permission states explicitly.",
+    "Accessibility and responsive behavior are requirements of the component, not a final polishing step.",
+    "Keep UI composition separate from server-state ownership so components remain understandable."
+  ],
+  "prerequisites": [
+    "Phase 19 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Build production UI from reusable layout and interaction patterns, not a collection of one-off pages.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Build production UI from reusable layout and interaction patterns, not a collection of one-off pages."
+    },
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Represent loading, empty, error, success, and permission states explicitly."
+      ],
+      "answer": 3,
+      "explanation": "Represent loading, empty, error, success, and permission states explicitly."
+    },
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Accessibility and responsive behavior are requirements of the component, not a final polishing step.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Accessibility and responsive behavior are requirements of the component, not a final polishing step."
+    },
+    {
+      "question": "Which practice best matches Phase 20's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Keep UI composition separate from server-state ownership so components remain understandable.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Keep UI composition separate from server-state ownership so components remain understandable."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Only styling the success state.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Design the application shell first: sidebar/topbar/main content/mobile navigation."
+      ],
+      "answer": 3,
+      "explanation": "Design the application shell first: sidebar/topbar/main content/mobile navigation."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Global client component wrapping the whole app.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create reusable primitives for page header, panel/card, empty state, loading skeleton, and error state."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Build workspace/board/task navigation with active state derived from routing rather than duplicated local state.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Clickable divs without keyboard semantics."
+      ],
+      "answer": 1,
+      "explanation": "Build workspace/board/task navigation with active state derived from routing rather than duplicated local state."
+    },
+    {
+      "question": "You are working through the Phase 20 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Compose Server and Client Components so interactive islands remain small.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Mobile layout treated as desktop squeezed smaller.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Compose Server and Client Components so interactive islands remain small."
+    }
+  ]
+}

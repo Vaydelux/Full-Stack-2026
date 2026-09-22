@@ -1,0 +1,135 @@
+{
+  "number": 29,
+  "slug": "phase-29",
+  "title": "Security Hardening",
+  "outcome": "Threat-model TaskFlow and apply layered controls for access control, input/output safety, headers, abuse, secrets, uploads, dependencies, and configuration.",
+  "artifact": "Security baseline checklist plus concrete tests for the most important abuse cases.",
+  "flow": [
+    "asset/trust boundary",
+    "abuse case",
+    "preventive control",
+    "detection/logging",
+    "test",
+    "residual risk"
+  ],
+  "labSteps": [
+    "List sensitive assets and trust boundaries before selecting mitigations.",
+    "Run an IDOR/broken-access-control test by changing resource IDs as another user.",
+    "Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.",
+    "Review rendering/output paths for XSS assumptions and add sensible content/security headers.",
+    "Check secret locations, source control, logs, client bundles, CI, and deployment settings.",
+    "Add abuse controls where justified and write security regression tests for discovered cases."
+  ],
+  "failureModes": [
+    "Security checklist with no threat model",
+    "Trusting hidden buttons as protection",
+    "Secrets printed to logs/build output",
+    "Rate limiter treated as authentication or authorization"
+  ],
+  "mastery": [
+    "Can describe assets and attackers",
+    "Can test broken access control",
+    "Can audit secret exposure",
+    "Can explain defense in depth and residual risk"
+  ],
+  "commands": [],
+  "principles": [
+    "Threat-model trust boundaries before applying random security checklists.",
+    "Validate and authorize every sensitive server operation even if the frontend already restricts the UI.",
+    "Keep secrets out of source control, client bundles, logs, and error responses.",
+    "Use layered defenses for common web risks such as injection, broken access control, unsafe uploads, and misconfiguration."
+  ],
+  "prerequisites": [
+    "Phase 28 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Threat-model trust boundaries before applying random security checklists."
+      ],
+      "answer": 3,
+      "explanation": "Threat-model trust boundaries before applying random security checklists."
+    },
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Validate and authorize every sensitive server operation even if the frontend already restricts the UI.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Validate and authorize every sensitive server operation even if the frontend already restricts the UI."
+    },
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Keep secrets out of source control, client bundles, logs, and error responses.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Keep secrets out of source control, client bundles, logs, and error responses."
+    },
+    {
+      "question": "Which practice best matches Phase 29's engineering goal?",
+      "options": [
+        "Use layered defenses for common web risks such as injection, broken access control, unsafe uploads, and misconfiguration.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Use layered defenses for common web risks such as injection, broken access control, unsafe uploads, and misconfiguration."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Security checklist with no threat model.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List sensitive assets and trust boundaries before selecting mitigations.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "List sensitive assets and trust boundaries before selecting mitigations."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Run an IDOR/broken-access-control test by changing resource IDs as another user.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Trusting hidden buttons as protection."
+      ],
+      "answer": 1,
+      "explanation": "Run an IDOR/broken-access-control test by changing resource IDs as another user."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Secrets printed to logs/build output.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Review all external input boundaries and confirm validation plus parameterized/ORM-safe persistence."
+    },
+    {
+      "question": "You are working through the Phase 29 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Rate limiter treated as authentication or authorization.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Review rendering/output paths for XSS assumptions and add sensible content/security headers."
+      ],
+      "answer": 3,
+      "explanation": "Review rendering/output paths for XSS assumptions and add sensible content/security headers."
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "number": 6,
+  "slug": "phase-06",
+  "title": "Next.js <-> NestJS Communication",
+  "outcome": "Connect Next.js and NestJS through an explicit, debuggable HTTP boundary with environment-safe base URLs and correct CORS behavior.",
+  "artifact": "A typed API client boundary that can call the NestJS health/tasks endpoints from the appropriate Next.js execution context.",
+  "flow": [
+    "Next.js component/action",
+    "API client",
+    "HTTP request",
+    "CORS/origin rules",
+    "NestJS",
+    "HTTP response",
+    "UI state"
+  ],
+  "labSteps": [
+    "Define API base URLs per environment instead of hard-coding localhost throughout components.",
+    "Call a public endpoint from a Server Component and inspect where the request originates.",
+    "Call an endpoint from a Client Component and observe browser CORS behavior.",
+    "Configure NestJS CORS for the exact development origin and credentials policy required.",
+    "Centralize response parsing and non-2xx error handling in one API helper.",
+    "Use Network tab plus API logs to trace one failing request end-to-end."
+  ],
+  "failureModes": [
+    "Using the browser-only URL from server-to-server code in deployment",
+    "Wildcard CORS with credentials",
+    "Ignoring non-2xx fetch responses because fetch did not throw",
+    "Duplicating fetch/error logic in every component"
+  ],
+  "mastery": [
+    "Can locate a failure on frontend, network, or API side",
+    "Can explain CORS as a browser policy",
+    "Can configure environment-specific API URLs",
+    "Can build one reusable request helper"
+  ],
+  "commands": [
+    "pnpm --filter web dev",
+    "pnpm --filter api start:dev"
+  ],
+  "principles": [
+    "Keep the browser dependent on a stable API contract rather than importing backend implementation details.",
+    "Configure CORS narrowly for the origins that should call the API.",
+    "Centralize base URLs and environment-specific configuration instead of hard-coding localhost throughout components.",
+    "Trace failures across browser network tools, API logs, and server responses rather than guessing from UI symptoms."
+  ],
+  "prerequisites": [
+    "Phase 05 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Keep the browser dependent on a stable API contract rather than importing backend implementation details.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Keep the browser dependent on a stable API contract rather than importing backend implementation details."
+    },
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Configure CORS narrowly for the origins that should call the API.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Configure CORS narrowly for the origins that should call the API."
+    },
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Centralize base URLs and environment-specific configuration instead of hard-coding localhost throughout components.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Centralize base URLs and environment-specific configuration instead of hard-coding localhost throughout components."
+    },
+    {
+      "question": "Which practice best matches Phase 06's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Trace failures across browser network tools, API logs, and server responses rather than guessing from UI symptoms."
+      ],
+      "answer": 3,
+      "explanation": "Trace failures across browser network tools, API logs, and server responses rather than guessing from UI symptoms."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Define API base URLs per environment instead of hard-coding localhost throughout components.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using the browser-only URL from server-to-server code in deployment."
+      ],
+      "answer": 1,
+      "explanation": "Define API base URLs per environment instead of hard-coding localhost throughout components."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Call a public endpoint from a Server Component and inspect where the request originates.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Wildcard CORS with credentials.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Call a public endpoint from a Server Component and inspect where the request originates."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Ignoring non-2xx fetch responses because fetch did not throw.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Call an endpoint from a Client Component and observe browser CORS behavior."
+      ],
+      "answer": 3,
+      "explanation": "Call an endpoint from a Client Component and observe browser CORS behavior."
+    },
+    {
+      "question": "You are working through the Phase 06 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicating fetch/error logic in every component.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Configure NestJS CORS for the exact development origin and credentials policy required.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Configure NestJS CORS for the exact development origin and credentials policy required."
+    }
+  ]
+}

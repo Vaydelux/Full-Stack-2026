@@ -1,0 +1,135 @@
+{
+  "number": 19,
+  "slug": "phase-19",
+  "title": "Authorization, Ownership, RBAC & Permissions",
+  "outcome": "Enforce resource ownership, workspace membership, roles, and permissions on the API with server-side policies.",
+  "artifact": "Permission model + guards/policies protecting TaskFlow workspace/task actions with deliberate 401/403/404 semantics.",
+  "flow": [
+    "verified identity",
+    "resource lookup",
+    "membership",
+    "role/permission policy",
+    "allowed/denied use case",
+    "audit/error"
+  ],
+  "labSteps": [
+    "List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.",
+    "Map roles to capabilities without scattering role-name if statements across controllers.",
+    "Load membership for the relevant workspace and treat it as authorization evidence.",
+    "Enforce owner/member/role checks in server-side policy code.",
+    "Decide when 403 reveals too much and when a 404-style response better protects resource existence.",
+    "Write a matrix test covering at least owner, member, outsider, unauthenticated caller, and missing resource."
+  ],
+  "failureModes": [
+    "Authorization only in frontend",
+    "Role strings checked inconsistently in every route",
+    "Checking membership after performing the mutation",
+    "IDOR: trusting a resource ID without proving caller access"
+  ],
+  "mastery": [
+    "Can model permission checks by action/resource",
+    "Can test authorization matrixes",
+    "Can prevent IDOR",
+    "Can explain 401/403/404 choices"
+  ],
+  "commands": [],
+  "principles": [
+    "Enforce ownership and role checks on the server even when the UI hides forbidden actions.",
+    "Model permissions around actions and resources instead of scattering role-name comparisons everywhere.",
+    "Check workspace membership before allowing resource operations tied to that workspace.",
+    "Use least privilege: a role should receive only the capabilities its workflows require."
+  ],
+  "prerequisites": [
+    "Phase 18 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Enforce ownership and role checks on the server even when the UI hides forbidden actions.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Enforce ownership and role checks on the server even when the UI hides forbidden actions."
+    },
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Model permissions around actions and resources instead of scattering role-name comparisons everywhere.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Model permissions around actions and resources instead of scattering role-name comparisons everywhere."
+    },
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Check workspace membership before allowing resource operations tied to that workspace."
+      ],
+      "answer": 3,
+      "explanation": "Check workspace membership before allowing resource operations tied to that workspace."
+    },
+    {
+      "question": "Which practice best matches Phase 19's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Use least privilege: a role should receive only the capabilities its workflows require.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Use least privilege: a role should receive only the capabilities its workflows require."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "List TaskFlow actions such as workspace.read, task.create, task.update, member.manage.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Authorization only in frontend.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "List TaskFlow actions such as workspace.read, task.create, task.update, member.manage."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Role strings checked inconsistently in every route.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Map roles to capabilities without scattering role-name if statements across controllers."
+      ],
+      "answer": 3,
+      "explanation": "Map roles to capabilities without scattering role-name if statements across controllers."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Checking membership after performing the mutation.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Load membership for the relevant workspace and treat it as authorization evidence.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Load membership for the relevant workspace and treat it as authorization evidence."
+    },
+    {
+      "question": "You are working through the Phase 19 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Enforce owner/member/role checks in server-side policy code.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: IDOR: trusting a resource ID without proving caller access."
+      ],
+      "answer": 1,
+      "explanation": "Enforce owner/member/role checks in server-side policy code."
+    }
+  ]
+}

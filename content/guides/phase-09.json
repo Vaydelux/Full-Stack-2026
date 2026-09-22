@@ -1,0 +1,140 @@
+{
+  "number": 9,
+  "slug": "phase-09",
+  "title": "Prisma 7.9.1 Architecture, Configuration & Migrations",
+  "outcome": "Integrate Prisma 7.9.1 as a repeatable persistence layer with schema, generated client, adapter/configuration, migrations, and NestJS lifecycle.",
+  "artifact": "Prisma schema + migration history + generated client + NestJS PrismaService connected to TaskFlow PostgreSQL.",
+  "flow": [
+    "schema.prisma",
+    "migration files",
+    "database schema",
+    "generated Prisma Client",
+    "PrismaService",
+    "feature service"
+  ],
+  "labSteps": [
+    "Pin Prisma packages to the course version contract and verify all Prisma package versions match.",
+    "Initialize Prisma with the intended generated-client output and PostgreSQL configuration.",
+    "Model one entity, create the first migration, and inspect the SQL before applying it.",
+    "Generate the client and wire a PrismaService into NestJS with controlled lifecycle.",
+    "Perform a smoke query through the service, then inspect the created database object independently.",
+    "Cause a safe migration/configuration failure and practice reading Prisma error codes instead of reinstalling randomly."
+  ],
+  "failureModes": [
+    "CLI/client version mismatch",
+    "Editing generated client code",
+    "Using db push as a substitute for migration history in team environments",
+    "Creating a new PrismaClient per request"
+  ],
+  "mastery": [
+    "Can explain schema vs migration vs generated client",
+    "Can create and inspect a migration",
+    "Can wire Prisma to NestJS cleanly",
+    "Can diagnose common connection/migration failures"
+  ],
+  "commands": [
+    "pnpm exec prisma version",
+    "pnpm exec prisma validate",
+    "pnpm exec prisma migrate dev --name <name>",
+    "pnpm exec prisma generate"
+  ],
+  "principles": [
+    "Use Prisma migrations as the authoritative history of application schema changes.",
+    "Keep generated Prisma Client code derived from the schema instead of hand-editing it.",
+    "Use a shared Prisma service in NestJS so connection lifecycle and access patterns remain controlled.",
+    "Pin Prisma versions deliberately when the course architecture depends on a specific configuration model."
+  ],
+  "prerequisites": [
+    "Phase 08 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use Prisma migrations as the authoritative history of application schema changes."
+      ],
+      "answer": 3,
+      "explanation": "Use Prisma migrations as the authoritative history of application schema changes."
+    },
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Keep generated Prisma Client code derived from the schema instead of hand-editing it.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Keep generated Prisma Client code derived from the schema instead of hand-editing it."
+    },
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use a shared Prisma service in NestJS so connection lifecycle and access patterns remain controlled.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use a shared Prisma service in NestJS so connection lifecycle and access patterns remain controlled."
+    },
+    {
+      "question": "Which practice best matches Phase 09's engineering goal?",
+      "options": [
+        "Pin Prisma versions deliberately when the course architecture depends on a specific configuration model.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Pin Prisma versions deliberately when the course architecture depends on a specific configuration model."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: CLI/client version mismatch.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Pin Prisma packages to the course version contract and verify all Prisma package versions match.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Pin Prisma packages to the course version contract and verify all Prisma package versions match."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Initialize Prisma with the intended generated-client output and PostgreSQL configuration.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Editing generated client code."
+      ],
+      "answer": 1,
+      "explanation": "Initialize Prisma with the intended generated-client output and PostgreSQL configuration."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Model one entity, create the first migration, and inspect the SQL before applying it.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using db push as a substitute for migration history in team environments.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Model one entity, create the first migration, and inspect the SQL before applying it."
+    },
+    {
+      "question": "You are working through the Phase 09 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Creating a new PrismaClient per request.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Generate the client and wire a PrismaService into NestJS with controlled lifecycle."
+      ],
+      "answer": 3,
+      "explanation": "Generate the client and wire a PrismaService into NestJS with controlled lifecycle."
+    }
+  ]
+}

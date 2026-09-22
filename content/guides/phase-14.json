@@ -1,0 +1,134 @@
+{
+  "number": 14,
+  "slug": "phase-14",
+  "title": "Service & Business Logic Architecture",
+  "outcome": "Move orchestration and business invariants into cohesive services/policies so transport and persistence details do not become the domain model.",
+  "artifact": "Refactored task service with explicit policies/invariants and thin controllers.",
+  "flow": [
+    "validated request",
+    "service use case",
+    "policy/invariant",
+    "repository/Prisma",
+    "result/error"
+  ],
+  "labSteps": [
+    "Choose one endpoint with mixed concerns and list every responsibility it currently performs.",
+    "Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator.",
+    "Express one business rule with a name that describes the rule, not the framework.",
+    "Add a use-case method whose inputs/outputs make orchestration visible.",
+    "Test the rule without booting the whole web server where practical.",
+    "Review the resulting dependency direction and remove abstractions that add no clarity."
+  ],
+  "failureModes": [
+    "God services with hundreds of unrelated lines",
+    "Business rules duplicated in controllers and frontend",
+    "Repository abstraction added before there is a boundary to protect",
+    "Methods named only after CRUD verbs when workflow intent matters"
+  ],
+  "mastery": [
+    "Can place a rule in the correct layer",
+    "Can keep controllers thin",
+    "Can explain orchestration vs persistence",
+    "Can refactor without changing external behavior"
+  ],
+  "commands": [],
+  "principles": [
+    "Business rules belong in services or domain-focused collaborators, not duplicated across controllers and components.",
+    "Keep orchestration separate from low-level persistence details so behavior can be tested clearly.",
+    "Make rule boundaries explicit before adding abstractions such as repositories.",
+    "Prefer small cohesive methods that communicate intent over giant service methods that mix validation, authorization, and I/O."
+  ],
+  "prerequisites": [
+    "Phase 13 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Business rules belong in services or domain-focused collaborators, not duplicated across controllers and components.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Business rules belong in services or domain-focused collaborators, not duplicated across controllers and components."
+    },
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Keep orchestration separate from low-level persistence details so behavior can be tested clearly.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Keep orchestration separate from low-level persistence details so behavior can be tested clearly."
+    },
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Make rule boundaries explicit before adding abstractions such as repositories.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Make rule boundaries explicit before adding abstractions such as repositories."
+    },
+    {
+      "question": "Which practice best matches Phase 14's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Prefer small cohesive methods that communicate intent over giant service methods that mix validation, authorization, and I/O."
+      ],
+      "answer": 3,
+      "explanation": "Prefer small cohesive methods that communicate intent over giant service methods that mix validation, authorization, and I/O."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Choose one endpoint with mixed concerns and list every responsibility it currently performs.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: God services with hundreds of unrelated lines."
+      ],
+      "answer": 1,
+      "explanation": "Choose one endpoint with mixed concerns and list every responsibility it currently performs."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Business rules duplicated in controllers and frontend.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Move HTTP-only concerns back to controller/boundary and persistence mechanics behind a focused collaborator."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Repository abstraction added before there is a boundary to protect.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Express one business rule with a name that describes the rule, not the framework."
+      ],
+      "answer": 3,
+      "explanation": "Express one business rule with a name that describes the rule, not the framework."
+    },
+    {
+      "question": "You are working through the Phase 14 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Methods named only after CRUD verbs when workflow intent matters.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add a use-case method whose inputs/outputs make orchestration visible.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Add a use-case method whose inputs/outputs make orchestration visible."
+    }
+  ]
+}

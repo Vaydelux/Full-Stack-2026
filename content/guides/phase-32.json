@@ -1,0 +1,142 @@
+{
+  "number": 32,
+  "slug": "phase-32",
+  "title": "Docker",
+  "outcome": "Containerize the production API/web artifacts reproducibly with secure runtime configuration, small images, health checks, networking, and graceful shutdown.",
+  "artifact": "Dockerfiles and compose/dev verification that build and run TaskFlow services from clean inputs.",
+  "flow": [
+    "source + lockfile",
+    "build context",
+    "dependency/build stages",
+    "runtime image",
+    "container process",
+    "network/healthcheck",
+    "orchestrator"
+  ],
+  "labSteps": [
+    "Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context.",
+    "Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts.",
+    "Build with frozen lockfile and inspect image layers/size.",
+    "Run the container with runtime env vars and map the service port explicitly.",
+    "Add healthcheck/readiness behavior and test startup plus graceful stop.",
+    "Create a small compose setup only for local integration needs and explain what remains externally managed."
+  ],
+  "failureModes": [
+    "Copying .env into image",
+    "Running development server in production container",
+    "Huge build context invalidating caches",
+    "Container listens only on localhost internally"
+  ],
+  "mastery": [
+    "Can explain image vs container",
+    "Can build multi-stage image",
+    "Can inject secrets at runtime",
+    "Can diagnose ports/network/health failures"
+  ],
+  "commands": [
+    "docker build -t taskflow-api:dev .",
+    "docker run --rm -p 4000:4000 --env-file .env taskflow-api:dev",
+    "docker ps",
+    "docker logs <container>",
+    "docker inspect <container>"
+  ],
+  "principles": [
+    "A Dockerfile should produce a repeatable image from declared inputs rather than depend on a developer machine.",
+    "Use multi-stage builds to keep runtime images smaller and separate build-time tools from production dependencies.",
+    "Do not bake secrets into images; inject runtime configuration through the deployment environment.",
+    "Health checks and graceful shutdown help orchestrators know when a container is ready and when it should be replaced."
+  ],
+  "prerequisites": [
+    "Phase 31 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "A Dockerfile should produce a repeatable image from declared inputs rather than depend on a developer machine.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "A Dockerfile should produce a repeatable image from declared inputs rather than depend on a developer machine."
+    },
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use multi-stage builds to keep runtime images smaller and separate build-time tools from production dependencies."
+      ],
+      "answer": 3,
+      "explanation": "Use multi-stage builds to keep runtime images smaller and separate build-time tools from production dependencies."
+    },
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Do not bake secrets into images; inject runtime configuration through the deployment environment.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Do not bake secrets into images; inject runtime configuration through the deployment environment."
+    },
+    {
+      "question": "Which practice best matches Phase 32's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Health checks and graceful shutdown help orchestrators know when a container is ready and when it should be replaced.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Health checks and graceful shutdown help orchestrators know when a container is ready and when it should be replaced."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Copying .env into image.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context."
+      ],
+      "answer": 3,
+      "explanation": "Write a .dockerignore first so local node_modules, Git history, secrets, and build output do not enter context."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Running development server in production container.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a multi-stage API Dockerfile separating dependencies/build/runtime artifacts."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Build with frozen lockfile and inspect image layers/size.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Huge build context invalidating caches."
+      ],
+      "answer": 1,
+      "explanation": "Build with frozen lockfile and inspect image layers/size."
+    },
+    {
+      "question": "You are working through the Phase 32 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Run the container with runtime env vars and map the service port explicitly.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Container listens only on localhost internally.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Run the container with runtime env vars and map the service port explicitly."
+    }
+  ]
+}

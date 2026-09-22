@@ -1,0 +1,142 @@
+{
+  "number": 2,
+  "slug": "phase-02",
+  "title": "Monorepo, pnpm Workspaces & Repository Foundation",
+  "outcome": "Create a pnpm monorepo whose boundaries, scripts, shared configuration, and dependency ownership are understandable before feature code grows.",
+  "artifact": "TaskFlow repository root with apps/web, apps/api, shared packages, workspace metadata, root scripts, and clean Git hygiene.",
+  "flow": [
+    "Repository root",
+    "pnpm-workspace.yaml",
+    "apps/*",
+    "packages/*",
+    "workspace dependencies",
+    "root scripts",
+    "Turbo/task graph"
+  ],
+  "labSteps": [
+    "Create the repository root and initialize Git before generating applications.",
+    "Declare workspace globs and explain why apps and packages are separate categories.",
+    "Create web and API workspaces without copying node_modules between them.",
+    "Create a shared TypeScript configuration package and consume it through workspace dependencies.",
+    "Add root dev/build/typecheck/test scripts that delegate to workspaces.",
+    "Inspect pnpm why/list output so you can explain where a dependency is owned and why."
+  ],
+  "failureModes": [
+    "Installing app-only dependencies at workspace root",
+    "Duplicating tsconfig settings in every package",
+    "Using relative imports across app boundaries instead of package contracts",
+    "Committing build output, environment files, or node_modules"
+  ],
+  "mastery": [
+    "Can explain workspace protocol dependencies",
+    "Can run one app and the whole repository intentionally",
+    "Can identify dependency ownership",
+    "Can add a shared package without circular dependencies"
+  ],
+  "commands": [
+    "pnpm -w install",
+    "pnpm --filter web dev",
+    "pnpm --filter api start:dev",
+    "pnpm -r typecheck",
+    "git status"
+  ],
+  "principles": [
+    "A monorepo should make shared ownership and coordinated changes easier, not merely put folders in one repository.",
+    "Use pnpm workspaces to make package boundaries explicit and dependency installation deterministic.",
+    "Keep shared configuration in dedicated packages instead of duplicating compiler and lint settings.",
+    "Run repository-wide tasks from the root while allowing app-specific commands when debugging."
+  ],
+  "prerequisites": [
+    "Phase 01 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "A monorepo should make shared ownership and coordinated changes easier, not merely put folders in one repository.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "A monorepo should make shared ownership and coordinated changes easier, not merely put folders in one repository."
+    },
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Use pnpm workspaces to make package boundaries explicit and dependency installation deterministic.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "Use pnpm workspaces to make package boundaries explicit and dependency installation deterministic."
+    },
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Keep shared configuration in dedicated packages instead of duplicating compiler and lint settings.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Keep shared configuration in dedicated packages instead of duplicating compiler and lint settings."
+    },
+    {
+      "question": "Which practice best matches Phase 02's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Run repository-wide tasks from the root while allowing app-specific commands when debugging."
+      ],
+      "answer": 3,
+      "explanation": "Run repository-wide tasks from the root while allowing app-specific commands when debugging."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create the repository root and initialize Git before generating applications.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Installing app-only dependencies at workspace root."
+      ],
+      "answer": 1,
+      "explanation": "Create the repository root and initialize Git before generating applications."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Declare workspace globs and explain why apps and packages are separate categories.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Duplicating tsconfig settings in every package.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Declare workspace globs and explain why apps and packages are separate categories."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Using relative imports across app boundaries instead of package contracts.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create web and API workspaces without copying node_modules between them."
+      ],
+      "answer": 3,
+      "explanation": "Create web and API workspaces without copying node_modules between them."
+    },
+    {
+      "question": "You are working through the Phase 02 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Committing build output, environment files, or node_modules.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a shared TypeScript configuration package and consume it through workspace dependencies.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a shared TypeScript configuration package and consume it through workspace dependencies."
+    }
+  ]
+}

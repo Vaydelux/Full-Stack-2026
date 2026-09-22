@@ -1,0 +1,134 @@
+{
+  "number": 23,
+  "slug": "phase-23",
+  "title": "Professional Frontend State Architecture",
+  "outcome": "Choose the correct owner for URL state, server state, local UI state, forms, and global client state instead of duplicating everything.",
+  "artifact": "A state ownership map for TaskFlow plus refactored examples removing redundant synchronized state.",
+  "flow": [
+    "classify state",
+    "choose authoritative owner",
+    "derive values",
+    "share only when necessary",
+    "avoid synchronization loops"
+  ],
+  "labSteps": [
+    "Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.",
+    "Move filter/search/page state that should survive/share navigation into URL search params.",
+    "Remove local copies of TanStack Query data and derive filtered/presentational values during render.",
+    "Keep ephemeral dialog/menu state at the smallest component that owns it.",
+    "Evaluate whether any global store is actually needed; write the requirement before adding one.",
+    "Create a diagram showing source of truth and allowed data flow for the screen."
+  ],
+  "failureModes": [
+    "useEffect syncing query data into local state",
+    "Global store used for all state categories",
+    "URL and React state disagreeing about filters",
+    "Storing derived values that can be computed"
+  ],
+  "mastery": [
+    "Can classify state before choosing library",
+    "Can remove duplicate state",
+    "Can use URL for shareable navigation state",
+    "Can justify any global client store"
+  ],
+  "commands": [],
+  "principles": [
+    "Put shareable navigation state in the URL, server state in TanStack Query, and local interaction state near the component that owns it.",
+    "Avoid duplicating the same piece of state across URL, React state, and query cache.",
+    "Derive values when possible instead of synchronizing multiple mutable copies.",
+    "Choose state ownership by lifecycle and source of truth, not by whichever library is fashionable."
+  ],
+  "prerequisites": [
+    "Phase 22 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Put shareable navigation state in the URL, server state in TanStack Query, and local interaction state near the component that owns it.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Put shareable navigation state in the URL, server state in TanStack Query, and local interaction state near the component that owns it."
+    },
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Avoid duplicating the same piece of state across URL, React state, and query cache.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Avoid duplicating the same piece of state across URL, React state, and query cache."
+    },
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Derive values when possible instead of synchronizing multiple mutable copies."
+      ],
+      "answer": 3,
+      "explanation": "Derive values when possible instead of synchronizing multiple mutable copies."
+    },
+    {
+      "question": "Which practice best matches Phase 23's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Choose state ownership by lifecycle and source of truth, not by whichever library is fashionable.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Choose state ownership by lifecycle and source of truth, not by whichever library is fashionable."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: useEffect syncing query data into local state.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Inventory every state variable on one TaskFlow screen and classify it: server, URL, form, local UI, or cross-cutting client."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Global store used for all state categories.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Move filter/search/page state that should survive/share navigation into URL search params."
+      ],
+      "answer": 3,
+      "explanation": "Move filter/search/page state that should survive/share navigation into URL search params."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: URL and React state disagreeing about filters.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Remove local copies of TanStack Query data and derive filtered/presentational values during render.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Remove local copies of TanStack Query data and derive filtered/presentational values during render."
+    },
+    {
+      "question": "You are working through the Phase 23 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Keep ephemeral dialog/menu state at the smallest component that owns it.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Storing derived values that can be computed."
+      ],
+      "answer": 1,
+      "explanation": "Keep ephemeral dialog/menu state at the smallest component that owns it."
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "number": 11,
+  "slug": "phase-11",
+  "title": "Persistent Task CRUD API",
+  "outcome": "Build persistent task CRUD through controller → service → Prisma with explicit contracts and verified database effects.",
+  "artifact": "Working /tasks API supporting create/list/read/update/delete against PostgreSQL with consistent error behavior.",
+  "flow": [
+    "HTTP route",
+    "controller",
+    "service",
+    "Prisma query",
+    "PostgreSQL",
+    "mapped response"
+  ],
+  "labSteps": [
+    "Define Task create/update/read response shapes before implementation.",
+    "Implement create through the service and verify both HTTP response and database row.",
+    "Implement list/read with deterministic ordering and missing-record behavior.",
+    "Implement partial update without overwriting omitted fields accidentally.",
+    "Implement delete semantics and decide whether the API returns the resource, metadata, or no content.",
+    "Run a manual CRUD script from empty database to cleanup and save it as a repeatable smoke test."
+  ],
+  "failureModes": [
+    "Controllers contain Prisma calls",
+    "PATCH treats omitted values as null/empty",
+    "Missing records bubble up as raw ORM exceptions",
+    "UI is considered proof without inspecting API/database"
+  ],
+  "mastery": [
+    "Can build CRUD without copy-paste controller logic",
+    "Can map persistence failures to API semantics",
+    "Can verify durable effects",
+    "Can explain why response contracts should not be accidental Prisma types"
+  ],
+  "commands": [],
+  "principles": [
+    "CRUD endpoints are complete only when data persists and failure cases are handled deliberately.",
+    "Keep database calls behind service methods so controllers remain thin and testable.",
+    "Return the created or updated resource contract consistently after successful mutations.",
+    "Verify persistence independently with API requests and database inspection instead of trusting only the UI."
+  ],
+  "prerequisites": [
+    "Phase 10 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "CRUD endpoints are complete only when data persists and failure cases are handled deliberately.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later."
+      ],
+      "answer": 1,
+      "explanation": "CRUD endpoints are complete only when data persists and failure cases are handled deliberately."
+    },
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Keep database calls behind service methods so controllers remain thin and testable.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Keep database calls behind service methods so controllers remain thin and testable."
+    },
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Return the created or updated resource contract consistently after successful mutations."
+      ],
+      "answer": 3,
+      "explanation": "Return the created or updated resource contract consistently after successful mutations."
+    },
+    {
+      "question": "Which practice best matches Phase 11's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Verify persistence independently with API requests and database inspection instead of trusting only the UI.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Verify persistence independently with API requests and database inspection instead of trusting only the UI."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Define Task create/update/read response shapes before implementation.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Controllers contain Prisma calls.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Define Task create/update/read response shapes before implementation."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: PATCH treats omitted values as null/empty.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement create through the service and verify both HTTP response and database row."
+      ],
+      "answer": 3,
+      "explanation": "Implement create through the service and verify both HTTP response and database row."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Missing records bubble up as raw ORM exceptions.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement list/read with deterministic ordering and missing-record behavior.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Implement list/read with deterministic ordering and missing-record behavior."
+    },
+    {
+      "question": "You are working through the Phase 11 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Implement partial update without overwriting omitted fields accidentally.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: UI is considered proof without inspecting API/database."
+      ],
+      "answer": 1,
+      "explanation": "Implement partial update without overwriting omitted fields accidentally."
+    }
+  ]
+}

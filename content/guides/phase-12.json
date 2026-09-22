@@ -1,0 +1,134 @@
+{
+  "number": 12,
+  "slug": "phase-12",
+  "title": "DTOs, Zod & Input Validation",
+  "outcome": "Validate untrusted input with Zod and DTO/boundary patterns while keeping transport validation distinct from business rules.",
+  "artifact": "Reusable create/update/query schemas integrated into NestJS request handling with useful validation errors.",
+  "flow": [
+    "untrusted JSON/query",
+    "schema parse",
+    "typed validated value",
+    "business rules",
+    "persistence"
+  ],
+  "labSteps": [
+    "List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately.",
+    "Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts.",
+    "Integrate validation at the NestJS boundary before the service receives data.",
+    "Create a partial update schema carefully and reason about omitted vs nullable fields.",
+    "Validate query parameters such as page size/sort values instead of trusting strings.",
+    "Send malformed requests and verify the error contract is actionable but does not expose internals."
+  ],
+  "failureModes": [
+    "Assuming TypeScript validates runtime JSON",
+    "Duplicating client and server validation rules without a sharing strategy",
+    "Putting database existence checks into pure syntax schemas",
+    "Accepting arbitrary unknown keys into persistence calls"
+  ],
+  "mastery": [
+    "Can distinguish type checking from runtime validation",
+    "Can build create/update/query schemas",
+    "Can map Zod failures to HTTP responses",
+    "Can identify domain rules that belong after validation"
+  ],
+  "commands": [],
+  "principles": [
+    "Validate external input at the application boundary before business logic trusts it.",
+    "Use schemas to produce both runtime checks and reusable TypeScript types where appropriate.",
+    "Distinguish transport validation from domain/business rules because they fail for different reasons.",
+    "Return validation errors that help clients correct input without exposing internal implementation details."
+  ],
+  "prerequisites": [
+    "Phase 11 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Validate external input at the application boundary before business logic trusts it.",
+        "Use broad permissions and public access first, then harden later.",
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 0,
+      "explanation": "Validate external input at the application boundary before business logic trusts it."
+    },
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Add abstractions before a concrete problem requires them.",
+        "Hide failures by returning the same success/status shape for every outcome.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Use schemas to produce both runtime checks and reusable TypeScript types where appropriate."
+      ],
+      "answer": 3,
+      "explanation": "Use schemas to produce both runtime checks and reusable TypeScript types where appropriate."
+    },
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Distinguish transport validation from domain/business rules because they fail for different reasons.",
+        "Hide failures by returning the same success/status shape for every outcome."
+      ],
+      "answer": 2,
+      "explanation": "Distinguish transport validation from domain/business rules because they fail for different reasons."
+    },
+    {
+      "question": "Which practice best matches Phase 12's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Return validation errors that help clients correct input without exposing internal implementation details.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Return validation errors that help clients correct input without exposing internal implementation details."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Assuming TypeScript validates runtime JSON.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately."
+      ],
+      "answer": 3,
+      "explanation": "List the exact fields accepted by create-task and reject unknown/invalid shapes deliberately."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: Duplicating client and server validation rules without a sharing strategy.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Create a Zod schema and derive the TypeScript type instead of maintaining two divergent contracts."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Integrate validation at the NestJS boundary before the service receives data.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Putting database existence checks into pure syntax schemas."
+      ],
+      "answer": 1,
+      "explanation": "Integrate validation at the NestJS boundary before the service receives data."
+    },
+    {
+      "question": "You are working through the Phase 12 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Create a partial update schema carefully and reason about omitted vs nullable fields.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Accepting arbitrary unknown keys into persistence calls.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Create a partial update schema carefully and reason about omitted vs nullable fields."
+    }
+  ]
+}

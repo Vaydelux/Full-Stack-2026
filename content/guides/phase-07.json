@@ -1,0 +1,139 @@
+{
+  "number": 7,
+  "slug": "phase-07",
+  "title": "PostgreSQL Fundamentals",
+  "outcome": "Use relational modeling and SQL deliberately: keys, constraints, joins, transactions, indexes, and query reasoning.",
+  "artifact": "A TaskFlow relational sketch plus SQL exercises that create, query, join, update, and constrain representative data.",
+  "flow": [
+    "Business invariant",
+    "table design",
+    "key/constraint",
+    "SQL query",
+    "query plan/index",
+    "transaction",
+    "durable rows"
+  ],
+  "labSteps": [
+    "Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.",
+    "Create a small local schema and insert data that exercises one-to-many and many-to-many relationships.",
+    "Write joins by hand and predict row counts before executing them.",
+    "Add unique/check/not-null constraints and intentionally violate each to observe database enforcement.",
+    "Wrap a multi-step change in a transaction and prove rollback preserves consistency.",
+    "Create an index for a real filter/sort pattern and compare EXPLAIN output conceptually."
+  ],
+  "failureModes": [
+    "Treating IDs as the only integrity mechanism",
+    "Missing composite uniqueness on membership-like tables",
+    "N+1 query patterns hidden by application loops",
+    "Adding indexes without understanding query patterns"
+  ],
+  "mastery": [
+    "Can read and write core SQL",
+    "Can choose keys and cardinality",
+    "Can explain transaction atomicity",
+    "Can justify an index from a query"
+  ],
+  "commands": [
+    "psql --version",
+    "psql -h 127.0.0.1 -U <user> -d <db>"
+  ],
+  "principles": [
+    "Model data around entities, relationships, constraints, and access patterns before writing application queries.",
+    "Use transactions when multiple writes must succeed or fail as one unit.",
+    "Add indexes to support real query patterns, not every column indiscriminately.",
+    "Let database constraints defend invariants that must remain true regardless of application code."
+  ],
+  "prerequisites": [
+    "Phase 06 checkpoint or equivalent knowledge"
+  ],
+  "quiz": [
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Model data around entities, relationships, constraints, and access patterns before writing application queries.",
+        "Store secrets in source control so all environments stay consistent.",
+        "Move every concern into the frontend so the API stays thin."
+      ],
+      "answer": 1,
+      "explanation": "Model data around entities, relationships, constraints, and access patterns before writing application queries."
+    },
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Use transactions when multiple writes must succeed or fail as one unit.",
+        "Move every concern into the frontend so the API stays thin.",
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 0,
+      "explanation": "Use transactions when multiple writes must succeed or fail as one unit."
+    },
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Duplicate the same state in several places and synchronize it with effects.",
+        "Trust client-provided identity because the browser already logged in.",
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Add indexes to support real query patterns, not every column indiscriminately."
+      ],
+      "answer": 3,
+      "explanation": "Add indexes to support real query patterns, not every column indiscriminately."
+    },
+    {
+      "question": "Which practice best matches Phase 07's engineering goal?",
+      "options": [
+        "Skip verification and rely on the happy-path UI as proof.",
+        "Use broad permissions and public access first, then harden later.",
+        "Let database constraints defend invariants that must remain true regardless of application code.",
+        "Trust client-provided identity because the browser already logged in."
+      ],
+      "answer": 2,
+      "explanation": "Let database constraints defend invariants that must remain true regardless of application code."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Treating IDs as the only integrity mechanism.",
+        "Change multiple unrelated layers at once so the final result can be tested faster."
+      ],
+      "answer": 0,
+      "explanation": "Model users, workspaces, membership, boards, lists, and tasks with primary/foreign keys on paper first."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Missing composite uniqueness on membership-like tables.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Create a small local schema and insert data that exercises one-to-many and many-to-many relationships."
+      ],
+      "answer": 3,
+      "explanation": "Create a small local schema and insert data that exercises one-to-many and many-to-many relationships."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Use this shortcut instead: N+1 query patterns hidden by application loops.",
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Write joins by hand and predict row counts before executing them.",
+        "Skip the verification step and proceed as long as the UI appears to work."
+      ],
+      "answer": 2,
+      "explanation": "Write joins by hand and predict row counts before executing them."
+    },
+    {
+      "question": "You are working through the Phase 07 lab. Which next action is the most disciplined step?",
+      "options": [
+        "Change multiple unrelated layers at once so the final result can be tested faster.",
+        "Add unique/check/not-null constraints and intentionally violate each to observe database enforcement.",
+        "Skip the verification step and proceed as long as the UI appears to work.",
+        "Use this shortcut instead: Adding indexes without understanding query patterns."
+      ],
+      "answer": 1,
+      "explanation": "Add unique/check/not-null constraints and intentionally violate each to observe database enforcement."
+    }
+  ]
+}
