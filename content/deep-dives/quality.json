@@ -1,0 +1,410 @@
+{
+  "number": 9,
+  "slug": "quality",
+  "title": "Testing + Security + Observability + Performance",
+  "audience": "Phases 28–31",
+  "description": "Turn production quality into observable, testable engineering rather than a checklist.",
+  "lessons": [
+    {
+      "slug": "test-pyramid",
+      "title": "Testing by Risk and Boundary",
+      "why": "Choose the cheapest test that proves the behavior at the correct boundary.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Testing by Risk and Boundary using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Testing by Risk and Boundary using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Testing by Risk and Boundary” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Mock every dependency in every test and identify what integration failures become invisible.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "unit: pure rule\nintegration: service + DB\nAPI: HTTP contract\nE2E: critical user journey",
+        "expected": "Different test levels answer different questions; more E2E is not automatically better."
+      },
+      "breakIt": "Mock every dependency in every test and identify what integration failures become invisible.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Testing by Risk and Boundary to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Testing by Risk and Boundary exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "service-tests",
+      "title": "Service Tests for Business Rules",
+      "why": "Test invariants using realistic inputs and decisive assertions.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Service Tests for Business Rules using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Service Tests for Business Rules using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Service Tests for Business Rules” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Assert only that a function was called and explain why the business outcome is unproven.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "it(\"rejects closing an already closed task\", async () => {\n  await expect(service.close(closedTask.id)).rejects.toThrow(\"already closed\");\n});",
+        "expected": "The rule is protected independently of HTTP/UI details."
+      },
+      "breakIt": "Assert only that a function was called and explain why the business outcome is unproven.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Service Tests for Business Rules to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Service Tests for Business Rules exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "api-integration",
+      "title": "API Integration Tests",
+      "why": "Verify routing, validation, auth, status codes, and persistence together.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain API Integration Tests using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to API Integration Tests using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “API Integration Tests” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Bypass the Nest app and call the service directly, then list the HTTP-layer bugs you no longer test.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "POST /tasks with valid auth → 201\nPOST /tasks without title → 400/422\nPOST /tasks cross-workspace → 403/404",
+        "expected": "The public API contract is proven through real boundary behavior."
+      },
+      "breakIt": "Bypass the Nest app and call the service directly, then list the HTTP-layer bugs you no longer test.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply API Integration Tests to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why API Integration Tests exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "threat-model",
+      "title": "Threat Modeling Before Patching",
+      "why": "Identify assets, actors, entry points, and trust boundaries before selecting controls.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Threat Modeling Before Patching using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Threat Modeling Before Patching using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Threat Modeling Before Patching” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Add random security headers without identifying which threat they address.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "asset: task data\nactor: authenticated member\nentry: PATCH /tasks/:id\ntrust boundary: browser → API\nthreat: cross-workspace IDOR",
+        "expected": "A concrete threat has a corresponding control and verification test."
+      },
+      "breakIt": "Add random security headers without identifying which threat they address.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Threat Modeling Before Patching to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Threat Modeling Before Patching exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "structured-logs",
+      "title": "Structured Logs and Correlation IDs",
+      "why": "Make one request traceable through distributed steps.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Structured Logs and Correlation IDs using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Structured Logs and Correlation IDs using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Structured Logs and Correlation IDs” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Log full Authorization headers and explain the secret exposure you created.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "{ \"level\":\"error\", \"requestId\":\"req-123\", \"route\":\"POST /tasks\", \"userId\":\"u-9\", \"error\":\"DB_TIMEOUT\" }",
+        "expected": "You can filter logs by requestId and follow one failure."
+      },
+      "breakIt": "Log full Authorization headers and explain the secret exposure you created.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Structured Logs and Correlation IDs to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Structured Logs and Correlation IDs exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "metrics-traces",
+      "title": "Metrics, Traces, and SLO Thinking",
+      "why": "Use different telemetry types for different questions.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Metrics, Traces, and SLO Thinking using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Metrics, Traces, and SLO Thinking using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Metrics, Traces, and SLO Thinking” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Try to answer p95 latency from raw logs only and describe the operational friction.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "logs → what happened?\nmetrics → how often/how much?\ntraces → where did time/failure travel?",
+        "expected": "A latency spike can be quantified then traced to a slow dependency."
+      },
+      "breakIt": "Try to answer p95 latency from raw logs only and describe the operational friction.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Metrics, Traces, and SLO Thinking to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Metrics, Traces, and SLO Thinking exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "performance-evidence",
+      "title": "Measure Before Optimizing",
+      "why": "Use timings/query plans/profiles to locate the bottleneck before changing code.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Measure Before Optimizing using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Measure Before Optimizing using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Measure Before Optimizing” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Add caching first, hide the slow query, then discuss the invalidation complexity you introduced.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "baseline GET /tasks: 1.8s\nEXPLAIN ANALYZE → seq scan\nadd targeted index\nretest: 140ms",
+        "expected": "The optimization is justified by before/after evidence."
+      },
+      "breakIt": "Add caching first, hide the slow query, then discuss the invalidation complexity you introduced.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Measure Before Optimizing to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Measure Before Optimizing exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "quality-capstone",
+      "title": "Capstone: Diagnose a Production Incident",
+      "why": "Combine tests, logs, metrics, traces, security reasoning, and performance evidence.",
+      "audience": "Phases 28–31",
+      "objectives": [
+        "Explain Capstone: Diagnose a Production Incident using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Capstone: Diagnose a Production Incident using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Capstone: Diagnose a Production Incident” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Simulate intermittent task-creation 500s and write the investigation timeline you would expect from an on-call engineer.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "symptom → reproduce → correlate → narrow boundary → test hypothesis → fix → regression test → monitor",
+        "expected": "The fix is accompanied by evidence and a regression guard."
+      },
+      "breakIt": "Simulate intermittent task-creation 500s and write the investigation timeline you would expect from an on-call engineer.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Capstone: Diagnose a Production Incident to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Capstone: Diagnose a Production Incident exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    }
+  ],
+  "lessonCount": 8
+}

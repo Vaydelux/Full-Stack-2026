@@ -1,0 +1,582 @@
+{
+  "number": 3,
+  "slug": "f03",
+  "title": "JavaScript Foundations II: Async and HTTP",
+  "description": "Understand asynchronous control flow before data fetching libraries hide the mechanics.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "event-loop-promises",
+      "title": "Event Loop, Promises, and Asynchronous Work",
+      "summary": "JavaScript can start asynchronous operations while the runtime continues processing other work.",
+      "body": "Event Loop, Promises, and Asynchronous Work\n\nWhy this matters\nJavaScript can start asynchronous operations while the runtime continues processing other work. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• JavaScript can start asynchronous operations while the runtime continues processing other work.\n• A Promise represents eventual fulfillment or rejection, not a background thread you control directly.\n• Microtasks/callback scheduling explains why logs can appear in an order different from source lines.\n• Reason about when a value exists rather than treating async/await as syntax magic.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, javascript foundations ii: async and http stops being an isolated topic and becomes infrastructure for real features. When you encounter event loop, promises, and asynchronous work again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 485,
+      "objectives": [
+        "JavaScript can start asynchronous operations while the runtime continues processing other work.",
+        "A Promise represents eventual fulfillment or rejection, not a background thread you control directly.",
+        "Microtasks/callback scheduling explains why logs can appear in an order different from source lines."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Event Loop, Promises, and Asynchronous Work in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Event Loop, Promises, and Asynchronous Work”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Guided practice: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "First write your predicted log order.",
+          "Run the file with Node.",
+          "Expected base order: A, D, B, C.",
+          "Explain synchronous work, microtasks, and timer/task queue without saying “JavaScript is random”."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Event Loop, Promises, and Asynchronous Work”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Event Loop, Promises, and Asynchronous Work?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Event Loop, Promises, and Asynchronous Work” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "event-loop-promises-lab",
+      "title": "Lab — Event Loop, Promises, and Asynchronous Work",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Event Loop, Promises, and Asynchronous Work\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Event Loop, Promises, and Asynchronous Work”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 198,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Event Loop, Promises, and Asynchronous Work in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Event Loop, Promises, and Asynchronous Work”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Independent lab: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "First write your predicted log order.",
+          "Run the file with Node.",
+          "Expected base order: A, D, B, C.",
+          "Explain synchronous work, microtasks, and timer/task queue without saying “JavaScript is random”."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Event Loop, Promises, and Asynchronous Work”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Event Loop, Promises, and Asynchronous Work?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Event Loop, Promises, and Asynchronous Work” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "async-await-errors",
+      "title": "async/await and Error Propagation",
+      "summary": "An async function always returns a Promise.",
+      "body": "async/await and Error Propagation\n\nWhy this matters\nAn async function always returns a Promise. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• An async function always returns a Promise.\n• await pauses that async function until the awaited Promise settles; it does not block the entire server/browser runtime.\n• Rejected Promises propagate like thrown errors through async functions until handled.\n• Use try/catch when you can recover/map/add context, not merely to print and continue with invalid state.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, javascript foundations ii: async and http stops being an isolated topic and becomes infrastructure for real features. When you encounter async/await and error propagation again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 479,
+      "objectives": [
+        "An async function always returns a Promise.",
+        "await pauses that async function until the awaited Promise settles; it does not block the entire server/browser runtime.",
+        "Rejected Promises propagate like thrown errors through async functions until handled."
+      ],
+      "practice": {
+        "objectives": [
+          "Use async/await and Error Propagation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Write one async function that succeeds and one that rejects. Trace where try/catch catches the failure and where an unhandled rejection appears.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Guided practice: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “async/await and Error Propagation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of async/await and Error Propagation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “async/await and Error Propagation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "async-await-errors-lab",
+      "title": "Lab — async/await and Error Propagation",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: async/await and Error Propagation\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nWrite one async function that succeeds and one that rejects. Trace where try/catch catches the failure and where an unhandled rejection appears.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 195,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use async/await and Error Propagation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Write one async function that succeeds and one that rejects. Trace where try/catch catches the failure and where an unhandled rejection appears.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Independent lab: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “async/await and Error Propagation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of async/await and Error Propagation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “async/await and Error Propagation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "fetch-http",
+      "title": "Fetch and HTTP from JavaScript",
+      "summary": "fetch resolves for HTTP error statuses such as 404/500; code must inspect response.ok/status.",
+      "body": "Fetch and HTTP from JavaScript\n\nWhy this matters\nfetch resolves for HTTP error statuses such as 404/500; code must inspect response.ok/status. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• fetch resolves for HTTP error statuses such as 404/500; code must inspect response.ok/status.\n• Headers describe content/auth/cache semantics; JSON parsing is a second operation that can also fail.\n• Use AbortController/timeouts when a workflow needs cancellation behavior.\n• A thin request helper can centralize base URL, JSON parsing, and error mapping without hiding the HTTP contract.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, javascript foundations ii: async and http stops being an isolated topic and becomes infrastructure for real features. When you encounter fetch and http from javascript again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 491,
+      "objectives": [
+        "fetch resolves for HTTP error statuses such as 404/500; code must inspect response.ok/status.",
+        "Headers describe content/auth/cache semantics; JSON parsing is a second operation that can also fail.",
+        "Use AbortController/timeouts when a workflow needs cancellation behavior."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Fetch and HTTP from JavaScript in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Use fetch against a public/local test endpoint, inspect status before parsing, and handle a non-2xx response without assuming fetch rejects automatically.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Guided practice: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Fetch and HTTP from JavaScript”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Fetch and HTTP from JavaScript?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Fetch and HTTP from JavaScript” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "fetch-http-lab",
+      "title": "Lab — Fetch and HTTP from JavaScript",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Fetch and HTTP from JavaScript\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nUse fetch against a public/local test endpoint, inspect status before parsing, and handle a non-2xx response without assuming fetch rejects automatically.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Fetch and HTTP from JavaScript in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Use fetch against a public/local test endpoint, inspect status before parsing, and handle a non-2xx response without assuming fetch rejects automatically.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Independent lab: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Fetch and HTTP from JavaScript”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Fetch and HTTP from JavaScript?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Fetch and HTTP from JavaScript” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "concurrency-races",
+      "title": "Concurrency, Race Conditions, and Stale Results",
+      "summary": "Two requests can finish in a different order from which they started.",
+      "body": "Concurrency, Race Conditions, and Stale Results\n\nWhy this matters\nTwo requests can finish in a different order from which they started. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Two requests can finish in a different order from which they started.\n• A stale response can overwrite newer user intent if code does not track identity/version/cancellation.\n• Promise.all is useful when operations are independent and all must succeed; sequential await is appropriate when later work depends on earlier results.\n• Optimistic updates and realtime later make race reasoning even more important.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, javascript foundations ii: async and http stops being an isolated topic and becomes infrastructure for real features. When you encounter concurrency, race conditions, and stale results again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 492,
+      "objectives": [
+        "Two requests can finish in a different order from which they started.",
+        "A stale response can overwrite newer user intent if code does not track identity/version/cancellation.",
+        "Promise.all is useful when operations are independent and all must succeed; sequential await is appropriate when later work depends on earlier results."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Concurrency, Race Conditions, and Stale Results in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Start two simulated searches with different delays. Reproduce a stale result, then guard the latest request or cancellation boundary.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Guided practice: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Concurrency, Race Conditions, and Stale Results”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Concurrency, Race Conditions, and Stale Results?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Concurrency, Race Conditions, and Stale Results” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "concurrency-races-lab",
+      "title": "Lab — Concurrency, Race Conditions, and Stale Results",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Concurrency, Race Conditions, and Stale Results\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nStart two simulated searches with different delays. Reproduce a stale result, then guard the latest request or cancellation boundary.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 192,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Concurrency, Race Conditions, and Stale Results in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Start two simulated searches with different delays. Reproduce a stale result, then guard the latest request or cancellation boundary.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Independent lab: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Concurrency, Race Conditions, and Stale Results”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Concurrency, Race Conditions, and Stale Results?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Concurrency, Race Conditions, and Stale Results” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "async-debugging",
+      "title": "Debugging Async and Network Failures",
+      "summary": "Separate network failure, HTTP failure, parse failure, validation failure, and business failure.",
+      "body": "Debugging Async and Network Failures\n\nWhy this matters\nSeparate network failure, HTTP failure, parse failure, validation failure, and business failure. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Separate network failure, HTTP failure, parse failure, validation failure, and business failure.\n• Use Network timing/status/body and server logs together instead of relying on one console message.\n• Record request identifiers when systems span multiple processes.\n• Reproduce with curl/API client to determine whether the UI is involved.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, javascript foundations ii: async and http stops being an isolated topic and becomes infrastructure for real features. When you encounter debugging async and network failures again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 476,
+      "objectives": [
+        "Separate network failure, HTTP failure, parse failure, validation failure, and business failure.",
+        "Use Network timing/status/body and server logs together instead of relying on one console message.",
+        "Record request identifiers when systems span multiple processes."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Debugging Async and Network Failures in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Debugging Async and Network Failures”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Guided practice: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Debugging Async and Network Failures”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Debugging Async and Network Failures?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Debugging Async and Network Failures” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "async-debugging-lab",
+      "title": "Lab — Debugging Async and Network Failures",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Debugging Async and Network Failures\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Debugging Async and Network Failures”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Debugging Async and Network Failures in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Debugging Async and Network Failures”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "js",
+          "caption": "Independent lab: Predict async order before running",
+          "code": "console.log(\"A\");\n\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\n\nconsole.log(\"D\");"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Debugging Async and Network Failures”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Debugging Async and Network Failures?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Debugging Async and Network Failures” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3398,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Event Loop, Promises, and Asynchronous Work'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "JavaScript can start asynchronous operations while the runtime continues processing other work.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "JavaScript can start asynchronous operations while the runtime continues processing other work."
+    },
+    {
+      "question": "Which statement best captures the lesson 'async/await and Error Propagation'?",
+      "options": [
+        "An async function always returns a Promise.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "An async function always returns a Promise."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Fetch and HTTP from JavaScript'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "fetch resolves for HTTP error statuses such as 404/500; code must inspect response.ok/status."
+      ],
+      "answer": 3,
+      "explanation": "fetch resolves for HTTP error statuses such as 404/500; code must inspect response.ok/status."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Concurrency, Race Conditions, and Stale Results'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Two requests can finish in a different order from which they started.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Two requests can finish in a different order from which they started."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Debugging Async and Network Failures'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "Separate network failure, HTTP failure, parse failure, validation failure, and business failure.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "Separate network failure, HTTP failure, parse failure, validation failure, and business failure."
+    }
+  ]
+}

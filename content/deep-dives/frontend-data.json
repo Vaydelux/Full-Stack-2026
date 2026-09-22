@@ -1,0 +1,410 @@
+{
+  "number": 8,
+  "slug": "frontend-data",
+  "title": "Forms + TanStack Query — Professional Frontend Data Flow",
+  "audience": "Phases 21–25",
+  "description": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+  "lessons": [
+    {
+      "slug": "rhf-zod",
+      "title": "React Hook Form + Zod Contract",
+      "why": "Keep field mechanics separate from validation semantics.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain React Hook Form + Zod Contract using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to React Hook Form + Zod Contract using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “React Hook Form + Zod Contract” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Remove API validation and explain why client-side schema validation is not a security boundary.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const schema = z.object({ title: z.string().trim().min(1) });\nconst form = useForm({ resolver: zodResolver(schema), defaultValues: { title: \"\" } });",
+        "expected": "Invalid titles are caught before mutation; server validation still remains authoritative."
+      },
+      "breakIt": "Remove API validation and explain why client-side schema validation is not a security boundary.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply React Hook Form + Zod Contract to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why React Hook Form + Zod Contract exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "server-errors",
+      "title": "Mapping Server Validation Errors Back to Forms",
+      "why": "Treat server failures as structured form feedback where appropriate.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Mapping Server Validation Errors Back to Forms using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Mapping Server Validation Errors Back to Forms using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Mapping Server Validation Errors Back to Forms” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Map a 500 server outage onto the title field and explain why that misleads the user.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "try { await createTask(values); }\ncatch (error) {\n  if (error.code === \"TITLE_TAKEN\") form.setError(\"title\", { message: error.message });\n}",
+        "expected": "A domain/API failure appears at the relevant field without pretending every error is local validation."
+      },
+      "breakIt": "Map a 500 server outage onto the title field and explain why that misleads the user.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Mapping Server Validation Errors Back to Forms to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Mapping Server Validation Errors Back to Forms exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "query-keys",
+      "title": "Query Keys as Cache Identity",
+      "why": "Design keys that encode every input affecting server data.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Query Keys as Cache Identity using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Query Keys as Cache Identity using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Query Keys as Cache Identity” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Use [\"tasks\"] for every query and observe accidental cache collisions.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const taskKeys = {\n  all: [\"tasks\"] as const,\n  list: (filters) => [\"tasks\", \"list\", filters] as const,\n  detail: (id) => [\"tasks\", \"detail\", id] as const,\n};",
+        "expected": "Different filters/details have distinct cache identities."
+      },
+      "breakIt": "Use [\"tasks\"] for every query and observe accidental cache collisions.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Query Keys as Cache Identity to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Query Keys as Cache Identity exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "fresh-stale",
+      "title": "Freshness, staleTime, and Refetching",
+      "why": "Make cache freshness a UX/business choice.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Freshness, staleTime, and Refetching using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Freshness, staleTime, and Refetching using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Freshness, staleTime, and Refetching” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Set staleTime to Infinity for collaborative data and describe how stale views persist.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "useQuery({\n  queryKey: taskKeys.list(filters),\n  queryFn: () => getTasks(filters),\n  staleTime: 30_000,\n});",
+        "expected": "For 30 seconds this result is considered fresh; later triggers may refetch it."
+      },
+      "breakIt": "Set staleTime to Infinity for collaborative data and describe how stale views persist.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Freshness, staleTime, and Refetching to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Freshness, staleTime, and Refetching exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "mutations",
+      "title": "Mutations and Invalidation",
+      "why": "After server writes, decide which cached views became uncertain.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Mutations and Invalidation using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Mutations and Invalidation using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Mutations and Invalidation” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Invalidate every query in the entire app and explain the performance/UX cost.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const mutation = useMutation({\n  mutationFn: createTask,\n  onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),\n});",
+        "expected": "Relevant task queries become eligible to refetch after creation."
+      },
+      "breakIt": "Invalidate every query in the entire app and explain the performance/UX cost.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Mutations and Invalidation to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Mutations and Invalidation exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "optimistic",
+      "title": "Optimistic Update with Snapshot and Rollback",
+      "why": "Make the UI fast without pretending the server cannot reject writes.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Optimistic Update with Snapshot and Rollback using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Optimistic Update with Snapshot and Rollback using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Optimistic Update with Snapshot and Rollback” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Remove cancellation/snapshot and create overlapping mutations to expose race behavior.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "onMutate: async (next) => {\n  await queryClient.cancelQueries({ queryKey: taskKeys.all });\n  const previous = queryClient.getQueryData(taskKeys.all);\n  queryClient.setQueryData(taskKeys.all, optimistic(next));\n  return { previous };\n},\nonError: (_e,_v,ctx) => queryClient.setQueryData(taskKeys.all, ctx?.previous)",
+        "expected": "The UI changes immediately but can return to the server-trusted snapshot on failure."
+      },
+      "breakIt": "Remove cancellation/snapshot and create overlapping mutations to expose race behavior.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Optimistic Update with Snapshot and Rollback to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Optimistic Update with Snapshot and Rollback exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "state-ownership",
+      "title": "Choose URL, Local, Form, or Server State",
+      "why": "Put each value where its lifecycle naturally belongs.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Choose URL, Local, Form, or Server State using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Choose URL, Local, Form, or Server State using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Choose URL, Local, Form, or Server State” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Put API tasks in both Redux and TanStack Query and identify the duplicated source of truth.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "filters → URL\nmodal open → local component state\nform values → React Hook Form\nAPI tasks → TanStack Query",
+        "expected": "State ownership matches persistence/shareability/source-of-truth needs."
+      },
+      "breakIt": "Put API tasks in both Redux and TanStack Query and identify the duplicated source of truth.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Choose URL, Local, Form, or Server State to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Choose URL, Local, Form, or Server State exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "frontend-data-capstone",
+      "title": "Capstone: Production Task Editor",
+      "why": "Combine query, form, mutation, errors, optimistic behavior, and cache repair.",
+      "audience": "Phases 21–25",
+      "objectives": [
+        "Explain Capstone: Production Task Editor using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Capstone: Production Task Editor using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Capstone: Production Task Editor” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Open the same task in two tabs, edit both, and reason about conflict/staleness behavior.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "Task detail query → edit form → mutation → optimistic patch → API → settle/invalidate",
+        "expected": "Success, validation failure, transport failure, and race recovery are all intentionally handled."
+      },
+      "breakIt": "Open the same task in two tabs, edit both, and reason about conflict/staleness behavior.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Capstone: Production Task Editor to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Capstone: Production Task Editor exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    }
+  ],
+  "lessonCount": 8
+}

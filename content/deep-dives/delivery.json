@@ -1,0 +1,410 @@
+{
+  "number": 10,
+  "slug": "delivery",
+  "title": "Docker + GitHub Actions + Production Deployment",
+  "audience": "Phases 32–35",
+  "description": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+  "lessons": [
+    {
+      "slug": "docker-basics",
+      "title": "Docker Image vs Container and Build Context",
+      "why": "Understand what is captured at build time and what should arrive at runtime.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Docker Image vs Container and Build Context using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Docker Image vs Container and Build Context using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Docker Image vs Container and Build Context” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: COPY . before install and observe how every source edit invalidates dependency-cache layers.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "FROM node:24-alpine\nWORKDIR /app\nCOPY package.json pnpm-lock.yaml ./\nRUN corepack enable && pnpm install --frozen-lockfile\nCOPY . .",
+        "expected": "The image contains application/runtime dependencies; runtime secrets are not baked into it."
+      },
+      "breakIt": "COPY . before install and observe how every source edit invalidates dependency-cache layers.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Docker Image vs Container and Build Context to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Docker Image vs Container and Build Context exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "multi-stage",
+      "title": "Multi-Stage Production Image",
+      "why": "Separate build tools from the smaller runtime artifact.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Multi-Stage Production Image using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Multi-Stage Production Image using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Multi-Stage Production Image” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Run as root and discuss why least privilege still matters inside a container.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "FROM node:24-alpine AS build\n# install + build\n\nFROM node:24-alpine AS runtime\n# copy only runtime output\nUSER node",
+        "expected": "The final image excludes unnecessary build tooling/source where possible and runs non-root."
+      },
+      "breakIt": "Run as root and discuss why least privilege still matters inside a container.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Multi-Stage Production Image to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Multi-Stage Production Image exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "compose-network",
+      "title": "Compose and Container Networking",
+      "why": "Use service names across the Docker network instead of confusing container localhost with host localhost.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Compose and Container Networking using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Compose and Container Networking using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Compose and Container Networking” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Configure DATABASE_URL with localhost:5432 inside the API container and diagnose the connection failure.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "services:\n  api:\n    build: ./apps/api\n    depends_on: [db]\n  db:\n    image: postgres:18",
+        "expected": "Inside api, db:5432 points to PostgreSQL; localhost points back to api itself."
+      },
+      "breakIt": "Configure DATABASE_URL with localhost:5432 inside the API container and diagnose the connection failure.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Compose and Container Networking to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Compose and Container Networking exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "ci-basic",
+      "title": "GitHub Actions CI from First Principles",
+      "why": "Make every pull request prove install/lint/typecheck/test/build.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain GitHub Actions CI from First Principles using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to GitHub Actions CI from First Principles using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “GitHub Actions CI from First Principles” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Remove frozen-lockfile, modify package.json without committing the lockfile, and explain why CI becomes less deterministic.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "name: CI\non: [pull_request]\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: corepack enable\n      - run: pnpm install --frozen-lockfile\n      - run: pnpm lint\n      - run: pnpm typecheck\n      - run: pnpm test\n      - run: pnpm build",
+        "expected": "A failing quality gate blocks a trustworthy merge when branch protection requires CI."
+      },
+      "breakIt": "Remove frozen-lockfile, modify package.json without committing the lockfile, and explain why CI becomes less deterministic.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply GitHub Actions CI from First Principles to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why GitHub Actions CI from First Principles exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "ci-security",
+      "title": "Workflow Permissions, Secrets, and Untrusted PRs",
+      "why": "Treat CI as privileged production infrastructure.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Workflow Permissions, Secrets, and Untrusted PRs using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Workflow Permissions, Secrets, and Untrusted PRs using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Workflow Permissions, Secrets, and Untrusted PRs” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Use pull_request_target to run untrusted PR code with secrets and explain the risk.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "permissions:\n  contents: read\n\n# grant deployment/package permissions only to the job that needs them",
+        "expected": "Default permissions are minimized; secrets are not exposed to arbitrary untrusted code."
+      },
+      "breakIt": "Use pull_request_target to run untrusted PR code with secrets and explain the risk.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Workflow Permissions, Secrets, and Untrusted PRs to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Workflow Permissions, Secrets, and Untrusted PRs exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "deploy-topology",
+      "title": "Deploy Next.js, API, and Database as Separate Runtime Concerns",
+      "why": "Make environment boundaries explicit.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Deploy Next.js, API, and Database as Separate Runtime Concerns using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Deploy Next.js, API, and Database as Separate Runtime Concerns using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Deploy Next.js, API, and Database as Separate Runtime Concerns” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Hardcode localhost API URLs into production and follow the browser failure.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "GitHub → Vercel → Next.js\nGitHub Actions → API host → NestJS\nAPI → Supabase/PostgreSQL",
+        "expected": "Each deployable has independent configuration, health checks, and rollback concerns."
+      },
+      "breakIt": "Hardcode localhost API URLs into production and follow the browser failure.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Deploy Next.js, API, and Database as Separate Runtime Concerns to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Deploy Next.js, API, and Database as Separate Runtime Concerns exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "release-runbook",
+      "title": "Production Release Runbook and Smoke Tests",
+      "why": "Turn deployment into a repeatable sequence with go/no-go evidence.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Production Release Runbook and Smoke Tests using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Production Release Runbook and Smoke Tests using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Production Release Runbook and Smoke Tests” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Deploy an API version requiring a DB migration before running the migration and analyze compatibility failure.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "migrate → deploy API → health check → deploy web → smoke auth/tasks/upload → inspect telemetry",
+        "expected": "A release is not done when deployment says “success”; user-critical behavior is verified."
+      },
+      "breakIt": "Deploy an API version requiring a DB migration before running the migration and analyze compatibility failure.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Production Release Runbook and Smoke Tests to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Production Release Runbook and Smoke Tests exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "delivery-capstone",
+      "title": "Capstone: Release and Roll Back TaskFlow",
+      "why": "Practice the full path including failure recovery.",
+      "audience": "Phases 32–35",
+      "objectives": [
+        "Explain Capstone: Release and Roll Back TaskFlow using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Capstone: Release and Roll Back TaskFlow using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Capstone: Release and Roll Back TaskFlow” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Introduce a failing release, detect it via smoke test/telemetry, then document the rollback and postmortem evidence.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "PR → CI → image/artifact → migrate → deploy → smoke test → monitor → rollback decision",
+        "expected": "You can state exactly what artifact is running, what schema it expects, and how to recover."
+      },
+      "breakIt": "Introduce a failing release, detect it via smoke test/telemetry, then document the rollback and postmortem evidence.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Capstone: Release and Roll Back TaskFlow to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Capstone: Release and Roll Back TaskFlow exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    }
+  ],
+  "lessonCount": 8
+}

@@ -1,0 +1,410 @@
+{
+  "number": 1,
+  "slug": "javascript",
+  "title": "JavaScript Core — From Syntax to Runtime Reasoning",
+  "audience": "Foundation",
+  "description": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+  "lessons": [
+    {
+      "slug": "values-control-flow",
+      "title": "Values, Types, Conditions, and Control Flow",
+      "why": "Understand how JavaScript evaluates values and chooses which branch runs.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Values, Types, Conditions, and Control Flow using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Values, Types, Conditions, and Control Flow using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Values, Types, Conditions, and Control Flow” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Change HIGH to high and predict the result before running it.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const priority = \"HIGH\";\nconst done = false;\n\nif (priority === \"HIGH\" && !done) {\n  console.log(\"Work on this task first\");\n} else {\n  console.log(\"Continue normally\");\n}",
+        "expected": "Work on this task first"
+      },
+      "breakIt": "Change HIGH to high and predict the result before running it.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Values, Types, Conditions, and Control Flow to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Values, Types, Conditions, and Control Flow exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "functions-scope",
+      "title": "Functions, Parameters, Return Values, and Scope",
+      "why": "Treat functions as small contracts: inputs enter, work happens, one result leaves.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Functions, Parameters, Return Values, and Scope using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Functions, Parameters, Return Values, and Scope using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Functions, Parameters, Return Values, and Scope” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Move trimmed outside the function and explain why the program now fails.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "function createTask(title, priority = \"MEDIUM\") {\n  const trimmed = title.trim();\n  if (!trimmed) throw new Error(\"Title is required\");\n  return { id: crypto.randomUUID(), title: trimmed, priority, done: false };\n}\n\nconst task = createTask(\"  Learn scope  \");\nconsole.log(task.title);",
+        "expected": "Learn scope"
+      },
+      "breakIt": "Move trimmed outside the function and explain why the program now fails.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Functions, Parameters, Return Values, and Scope to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Functions, Parameters, Return Values, and Scope exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "arrays-objects",
+      "title": "Arrays, Objects, map/filter/find, and Immutability",
+      "why": "Model real application data and transform it without losing track of identity and mutation.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Arrays, Objects, map/filter/find, and Immutability using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Arrays, Objects, map/filter/find, and Immutability using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Arrays, Objects, map/filter/find, and Immutability” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Replace map with forEach and explain why the returned value changes.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const tasks = [\n  { id: 1, title: \"JS\", done: true },\n  { id: 2, title: \"React\", done: false },\n  { id: 3, title: \"Next\", done: false },\n];\n\nconst openTitles = tasks\n  .filter(task => !task.done)\n  .map(task => task.title);\n\nconsole.log(openTitles);",
+        "expected": "[\"React\", \"Next\"]"
+      },
+      "breakIt": "Replace map with forEach and explain why the returned value changes.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Arrays, Objects, map/filter/find, and Immutability to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Arrays, Objects, map/filter/find, and Immutability exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "references-mutation",
+      "title": "References, Mutation, Copies, and Why UI State Can Surprise You",
+      "why": "Understand that objects are reference values and why shared mutation creates bugs.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain References, Mutation, Copies, and Why UI State Can Surprise You using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to References, Mutation, Copies, and Why UI State Can Surprise You using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “References, Mutation, Copies, and Why UI State Can Surprise You” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Create a copied object with spread, mutate the copy, and verify the original stays unchanged.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const original = { id: 1, title: \"Learn JS\", done: false };\nconst alias = original;\nalias.done = true;\n\nconsole.log(original.done);",
+        "expected": "true"
+      },
+      "breakIt": "Create a copied object with spread, mutate the copy, and verify the original stays unchanged.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply References, Mutation, Copies, and Why UI State Can Surprise You to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why References, Mutation, Copies, and Why UI State Can Surprise You exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "errors-debugging",
+      "title": "Errors, try/catch, Stack Traces, and Debugging",
+      "why": "Read errors as evidence instead of immediately changing random code.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Errors, try/catch, Stack Traces, and Debugging using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Errors, try/catch, Stack Traces, and Debugging using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Errors, try/catch, Stack Traces, and Debugging” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Remove try/catch, inspect the stack trace, and identify the first frame you own.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "function findTask(tasks, id) {\n  const task = tasks.find(task => task.id === id);\n  if (!task) throw new Error(`Task ${id} not found`);\n  return task;\n}\n\ntry {\n  findTask([], \"missing\");\n} catch (error) {\n  console.error(error.message);\n}",
+        "expected": "Task missing not found"
+      },
+      "breakIt": "Remove try/catch, inspect the stack trace, and identify the first frame you own.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Errors, try/catch, Stack Traces, and Debugging to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Errors, try/catch, Stack Traces, and Debugging exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "promises-event-loop",
+      "title": "Promises, Microtasks, Timers, and the Event Loop",
+      "why": "Predict asynchronous ordering before frameworks add more layers.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Promises, Microtasks, Timers, and the Event Loop using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Promises, Microtasks, Timers, and the Event Loop using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Promises, Microtasks, Timers, and the Event Loop” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Add a second Promise callback inside the first and predict the complete ordering.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "console.log(\"A\");\nPromise.resolve().then(() => console.log(\"B\"));\nsetTimeout(() => console.log(\"C\"), 0);\nconsole.log(\"D\");",
+        "expected": "A → D → B → C"
+      },
+      "breakIt": "Add a second Promise callback inside the first and predict the complete ordering.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Promises, Microtasks, Timers, and the Event Loop to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Promises, Microtasks, Timers, and the Event Loop exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "async-fetch",
+      "title": "async/await, Fetch, HTTP Failures, and AbortController",
+      "why": "Separate transport success from application success and cancellation.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain async/await, Fetch, HTTP Failures, and AbortController using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to async/await, Fetch, HTTP Failures, and AbortController using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “async/await, Fetch, HTTP Failures, and AbortController” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Remove the response.ok check and explain why a 404 can look like a successful fetch Promise.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "async function loadTasks(signal) {\n  const response = await fetch(\"/api/tasks\", { signal });\n  if (!response.ok) {\n    throw new Error(`HTTP ${response.status}`);\n  }\n  return response.json();\n}",
+        "expected": "A resolved array of tasks, or an explicit error when HTTP is not 2xx."
+      },
+      "breakIt": "Remove the response.ok check and explain why a 404 can look like a successful fetch Promise.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply async/await, Fetch, HTTP Failures, and AbortController to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why async/await, Fetch, HTTP Failures, and AbortController exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "taskflow-lite-js",
+      "title": "Capstone: TaskFlow Lite in Plain JavaScript",
+      "why": "Combine data modeling, events, rendering, persistence, and debugging before React.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Capstone: TaskFlow Lite in Plain JavaScript using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Capstone: TaskFlow Lite in Plain JavaScript using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Capstone: TaskFlow Lite in Plain JavaScript” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Persist tasks to localStorage, reload the page, and verify identity and completion state survive.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "const state = { tasks: [] };\n\nfunction addTask(title) {\n  state.tasks = [...state.tasks, {\n    id: crypto.randomUUID(),\n    title,\n    done: false,\n  }];\n  render();\n}\n\nfunction render() {\n  // derive UI from state\n}",
+        "expected": "Adding a task changes state first, then rendering reflects that state."
+      },
+      "breakIt": "Persist tasks to localStorage, reload the page, and verify identity and completion state survive.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Capstone: TaskFlow Lite in Plain JavaScript to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Capstone: TaskFlow Lite in Plain JavaScript exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    }
+  ],
+  "lessonCount": 8
+}

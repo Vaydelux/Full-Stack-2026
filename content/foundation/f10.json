@@ -1,0 +1,582 @@
+{
+  "number": 10,
+  "slug": "f10",
+  "title": "API and Security Primer",
+  "description": "Learn trust boundaries, validation, identity, permission, and safe data handling before authentication phases.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "trust-boundaries",
+      "title": "Trust Boundaries and Untrusted Input",
+      "summary": "Any value crossing from browser/client/external service should be considered untrusted until validated/verified.",
+      "body": "Trust Boundaries and Untrusted Input\n\nWhy this matters\nAny value crossing from browser/client/external service should be considered untrusted until validated/verified. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Any value crossing from browser/client/external service should be considered untrusted until validated/verified.\n• Frontend validation improves UX but cannot enforce server security because callers can bypass the UI.\n• A boundary should parse/validate shape before business code assumes types/required fields.\n• Database constraints and authorization are separate checks, not replacements for validation.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, api and security primer stops being an isolated topic and becomes infrastructure for real features. When you encounter trust boundaries and untrusted input again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 483,
+      "objectives": [
+        "Any value crossing from browser/client/external service should be considered untrusted until validated/verified.",
+        "Frontend validation improves UX but cannot enforce server security because callers can bypass the UI.",
+        "A boundary should parse/validate shape before business code assumes types/required fields."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Trust Boundaries and Untrusted Input in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Trust Boundaries and Untrusted Input”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Guided practice: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Trust Boundaries and Untrusted Input”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Trust Boundaries and Untrusted Input?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Trust Boundaries and Untrusted Input” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "trust-boundaries-lab",
+      "title": "Lab — Trust Boundaries and Untrusted Input",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Trust Boundaries and Untrusted Input\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Trust Boundaries and Untrusted Input”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Trust Boundaries and Untrusted Input in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Trust Boundaries and Untrusted Input”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Independent lab: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Trust Boundaries and Untrusted Input”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Trust Boundaries and Untrusted Input?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Trust Boundaries and Untrusted Input” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "authn-authz",
+      "title": "Authentication vs Authorization",
+      "summary": "Authentication establishes identity evidence; authorization evaluates whether that identity may perform an action on a resource.",
+      "body": "Authentication vs Authorization\n\nWhy this matters\nAuthentication establishes identity evidence; authorization evaluates whether that identity may perform an action on a resource. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Authentication establishes identity evidence; authorization evaluates whether that identity may perform an action on a resource.\n• A valid token does not imply permission to every record.\n• Resource ownership/membership checks prevent IDOR even when route IDs are guessable.\n• Use 401 for missing/invalid authentication and 403 for authenticated-but-not-allowed when disclosure policy permits.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, api and security primer stops being an isolated topic and becomes infrastructure for real features. When you encounter authentication vs authorization again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 478,
+      "objectives": [
+        "Authentication establishes identity evidence; authorization evaluates whether that identity may perform an action on a resource.",
+        "A valid token does not imply permission to every record.",
+        "Resource ownership/membership checks prevent IDOR even when route IDs are guessable."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Authentication vs Authorization in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Write four scenarios: anonymous, authenticated owner, authenticated non-owner, admin. Decide which are identity checks and which are permission checks.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Guided practice: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Authentication vs Authorization”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Authentication vs Authorization?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Authentication vs Authorization” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "authn-authz-lab",
+      "title": "Lab — Authentication vs Authorization",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Authentication vs Authorization\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nWrite four scenarios: anonymous, authenticated owner, authenticated non-owner, admin. Decide which are identity checks and which are permission checks.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 189,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Authentication vs Authorization in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Write four scenarios: anonymous, authenticated owner, authenticated non-owner, admin. Decide which are identity checks and which are permission checks.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Independent lab: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Authentication vs Authorization”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Authentication vs Authorization?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Authentication vs Authorization” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "secrets",
+      "title": "Secrets, Public Configuration, and Environment Boundaries",
+      "summary": "A secret is valuable because unauthorized possession grants capability; treat keys/passwords/tokens accordingly.",
+      "body": "Secrets, Public Configuration, and Environment Boundaries\n\nWhy this matters\nA secret is valuable because unauthorized possession grants capability; treat keys/passwords/tokens accordingly. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A secret is valuable because unauthorized possession grants capability; treat keys/passwords/tokens accordingly.\n• Anything shipped to browser JavaScript must be considered public to the user.\n• Environment variables are a delivery mechanism, not automatically secret if included in client bundles/logs.\n• Rotate credentials after exposure; deleting them from the latest commit does not erase Git history.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, api and security primer stops being an isolated topic and becomes infrastructure for real features. When you encounter secrets, public configuration, and environment boundaries again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 486,
+      "objectives": [
+        "A secret is valuable because unauthorized possession grants capability; treat keys/passwords/tokens accordingly.",
+        "Anything shipped to browser JavaScript must be considered public to the user.",
+        "Environment variables are a delivery mechanism, not automatically secret if included in client bundles/logs."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Secrets, Public Configuration, and Environment Boundaries in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Classify sample configuration as public or secret. Demonstrate why a browser-delivered value cannot remain a secret even if its variable name contains SECRET.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Guided practice: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Secrets, Public Configuration, and Environment Boundaries”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Secrets, Public Configuration, and Environment Boundaries?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Secrets, Public Configuration, and Environment Boundaries” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "secrets-lab",
+      "title": "Lab — Secrets, Public Configuration, and Environment Boundaries",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Secrets, Public Configuration, and Environment Boundaries\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nClassify sample configuration as public or secret. Demonstrate why a browser-delivered value cannot remain a secret even if its variable name contains SECRET.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Secrets, Public Configuration, and Environment Boundaries in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Classify sample configuration as public or secret. Demonstrate why a browser-delivered value cannot remain a secret even if its variable name contains SECRET.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Independent lab: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Secrets, Public Configuration, and Environment Boundaries”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Secrets, Public Configuration, and Environment Boundaries?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Secrets, Public Configuration, and Environment Boundaries” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "web-risks",
+      "title": "Common Web Risks in Plain Language",
+      "summary": "XSS executes attacker-controlled script in another user's browser context.",
+      "body": "Common Web Risks in Plain Language\n\nWhy this matters\nXSS executes attacker-controlled script in another user's browser context. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• XSS executes attacker-controlled script in another user's browser context.\n• CSRF abuses ambient browser credentials to send actions from another origin when protections are weak.\n• Injection occurs when untrusted data is interpreted as commands/query syntax.\n• Broken access control occurs when server permission checks are missing or inconsistent.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, api and security primer stops being an isolated topic and becomes infrastructure for real features. When you encounter common web risks in plain language again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 472,
+      "objectives": [
+        "XSS executes attacker-controlled script in another user's browser context.",
+        "CSRF abuses ambient browser credentials to send actions from another origin when protections are weak.",
+        "Injection occurs when untrusted data is interpreted as commands/query syntax."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Common Web Risks in Plain Language in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Take one TaskFlow input and map how XSS, CSRF/unsafe cookie assumptions, IDOR, and injection differ in attacker capability and defense.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Guided practice: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Common Web Risks in Plain Language”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Common Web Risks in Plain Language?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Common Web Risks in Plain Language” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "web-risks-lab",
+      "title": "Lab — Common Web Risks in Plain Language",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Common Web Risks in Plain Language\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nTake one TaskFlow input and map how XSS, CSRF/unsafe cookie assumptions, IDOR, and injection differ in attacker capability and defense.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Common Web Risks in Plain Language in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Take one TaskFlow input and map how XSS, CSRF/unsafe cookie assumptions, IDOR, and injection differ in attacker capability and defense.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Independent lab: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Common Web Risks in Plain Language”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Common Web Risks in Plain Language?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Common Web Risks in Plain Language” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "security-debugging",
+      "title": "Security Testing Mindset",
+      "summary": "Test what an attacker would change: IDs, roles, methods, fields, file names, content types, request rate, expired tokens.",
+      "body": "Security Testing Mindset\n\nWhy this matters\nTest what an attacker would change: IDs, roles, methods, fields, file names, content types, request rate, expired tokens. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Test what an attacker would change: IDs, roles, methods, fields, file names, content types, request rate, expired tokens.\n• Negative tests are first-class: the system must prove it rejects unauthorized/invalid operations.\n• Logs should help diagnose abuse without recording passwords/tokens/private content unnecessarily.\n• Security is layered risk reduction, not one library or final checklist.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, api and security primer stops being an isolated topic and becomes infrastructure for real features. When you encounter security testing mindset again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 482,
+      "objectives": [
+        "Test what an attacker would change: IDs, roles, methods, fields, file names, content types, request rate, expired tokens.",
+        "Negative tests are first-class: the system must prove it rejects unauthorized/invalid operations.",
+        "Logs should help diagnose abuse without recording passwords/tokens/private content unnecessarily."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Security Testing Mindset in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Security Testing Mindset”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Guided practice: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Security Testing Mindset”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Security Testing Mindset?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Security Testing Mindset” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "security-debugging-lab",
+      "title": "Lab — Security Testing Mindset",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Security Testing Mindset\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Security Testing Mindset”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 192,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Security Testing Mindset in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Security Testing Mindset”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "text",
+          "caption": "Independent lab: Write a trust-boundary test",
+          "code": "Scenario: User B sends a request for User A's task.\n\nUntrusted:\n- URL task id\n- request body\n- role claimed by the browser\n\nTrusted only after server verification:\n- authenticated subject\n- database-backed membership/ownership\n\nExpected result: 403 and unchanged data."
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Security Testing Mindset”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Security Testing Mindset?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Security Testing Mindset” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3368,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Trust Boundaries and Untrusted Input'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Any value crossing from browser/client/external service should be considered untrusted until validated/verified.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Any value crossing from browser/client/external service should be considered untrusted until validated/verified."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Authentication vs Authorization'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "Authentication establishes identity evidence; authorization evaluates whether that identity may perform an action on a resource.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "Authentication establishes identity evidence; authorization evaluates whether that identity may perform an action on a resource."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Secrets, Public Configuration, and Environment Boundaries'?",
+      "options": [
+        "A secret is valuable because unauthorized possession grants capability; treat keys/passwords/tokens accordingly.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "A secret is valuable because unauthorized possession grants capability; treat keys/passwords/tokens accordingly."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Common Web Risks in Plain Language'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "XSS executes attacker-controlled script in another user's browser context."
+      ],
+      "answer": 3,
+      "explanation": "XSS executes attacker-controlled script in another user's browser context."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Security Testing Mindset'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Test what an attacker would change: IDs, roles, methods, fields, file names, content types, request rate, expired tokens.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Test what an attacker would change: IDs, roles, methods, fields, file names, content types, request rate, expired tokens."
+    }
+  ]
+}

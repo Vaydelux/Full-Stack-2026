@@ -1,0 +1,582 @@
+{
+  "number": 8,
+  "slug": "f08",
+  "title": "Command Line and Developer Tooling",
+  "description": "Become comfortable navigating and diagnosing a project from the terminal instead of depending entirely on IDE buttons.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "navigation-files",
+      "title": "Navigation, Files, Globs, and Pipelines",
+      "summary": "pwd/Get-Location answers where you are; ls/Get-ChildItem shows what exists; cd/Set-Location changes context.",
+      "body": "Navigation, Files, Globs, and Pipelines\n\nWhy this matters\npwd/Get-Location answers where you are; ls/Get-ChildItem shows what exists; cd/Set-Location changes context. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• pwd/Get-Location answers where you are; ls/Get-ChildItem shows what exists; cd/Set-Location changes context.\n• Use quoted paths when spaces/special characters are present.\n• Pipelines connect command output to filtering/processing tools, which is powerful for logs and repository inspection.\n• Know when a command is shell syntax versus an executable provided by a tool.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, command line and developer tooling stops being an isolated topic and becomes infrastructure for real features. When you encounter navigation, files, globs, and pipelines again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 484,
+      "objectives": [
+        "pwd/Get-Location answers where you are; ls/Get-ChildItem shows what exists; cd/Set-Location changes context.",
+        "Use quoted paths when spaces/special characters are present.",
+        "Pipelines connect command output to filtering/processing tools, which is powerful for logs and repository inspection."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Navigation, Files, Globs, and Pipelines in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Navigation, Files, Globs, and Pipelines”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Navigation, Files, Globs, and Pipelines”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Navigation, Files, Globs, and Pipelines?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Navigation, Files, Globs, and Pipelines” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "navigation-files-lab",
+      "title": "Lab — Navigation, Files, Globs, and Pipelines",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Navigation, Files, Globs, and Pipelines\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Navigation, Files, Globs, and Pipelines”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Navigation, Files, Globs, and Pipelines in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Navigation, Files, Globs, and Pipelines”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Navigation, Files, Globs, and Pipelines”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Navigation, Files, Globs, and Pipelines?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Navigation, Files, Globs, and Pipelines” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "processes-ports",
+      "title": "Processes, Ports, and Signals",
+      "summary": "A dev server is an operating-system process; stopping the terminal or sending a signal changes process lifecycle.",
+      "body": "Processes, Ports, and Signals\n\nWhy this matters\nA dev server is an operating-system process; stopping the terminal or sending a signal changes process lifecycle. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A dev server is an operating-system process; stopping the terminal or sending a signal changes process lifecycle.\n• A listening port is owned by a process. Identify the PID before killing anything.\n• Graceful shutdown lets servers stop accepting work and close resources.\n• Containers later package processes but do not remove these fundamentals.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, command line and developer tooling stops being an isolated topic and becomes infrastructure for real features. When you encounter processes, ports, and signals again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 481,
+      "objectives": [
+        "A dev server is an operating-system process; stopping the terminal or sending a signal changes process lifecycle.",
+        "A listening port is owned by a process. Identify the PID before killing anything.",
+        "Graceful shutdown lets servers stop accepting work and close resources."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Processes, Ports, and Signals in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Launch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Processes, Ports, and Signals”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Processes, Ports, and Signals?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Processes, Ports, and Signals” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "processes-ports-lab",
+      "title": "Lab — Processes, Ports, and Signals",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Processes, Ports, and Signals\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nLaunch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 191,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Processes, Ports, and Signals in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Launch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Processes, Ports, and Signals”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Processes, Ports, and Signals?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Processes, Ports, and Signals” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "package-managers",
+      "title": "Package Managers, Lockfiles, and Scripts",
+      "summary": "package.json declares project metadata/dependencies/scripts; a lockfile records exact resolved dependency graph.",
+      "body": "Package Managers, Lockfiles, and Scripts\n\nWhy this matters\npackage.json declares project metadata/dependencies/scripts; a lockfile records exact resolved dependency graph. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• package.json declares project metadata/dependencies/scripts; a lockfile records exact resolved dependency graph.\n• Use repository-declared package-manager versions so machines/CI resolve dependencies consistently.\n• Scripts provide project-specific command names; inspect what they run before using them.\n• Deleting lockfiles is not a neutral troubleshooting step—it changes dependency resolution.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, command line and developer tooling stops being an isolated topic and becomes infrastructure for real features. When you encounter package managers, lockfiles, and scripts again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 477,
+      "objectives": [
+        "package.json declares project metadata/dependencies/scripts; a lockfile records exact resolved dependency graph.",
+        "Use repository-declared package-manager versions so machines/CI resolve dependencies consistently.",
+        "Scripts provide project-specific command names; inspect what they run before using them."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Package Managers, Lockfiles, and Scripts in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Inspect package.json versus the lockfile, change one dependency in a disposable project, and explain why CI should install from the lockfile.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Package Managers, Lockfiles, and Scripts”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Package Managers, Lockfiles, and Scripts?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Package Managers, Lockfiles, and Scripts” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "package-managers-lab",
+      "title": "Lab — Package Managers, Lockfiles, and Scripts",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Package Managers, Lockfiles, and Scripts\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nInspect package.json versus the lockfile, change one dependency in a disposable project, and explain why CI should install from the lockfile.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Package Managers, Lockfiles, and Scripts in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Inspect package.json versus the lockfile, change one dependency in a disposable project, and explain why CI should install from the lockfile.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Package Managers, Lockfiles, and Scripts”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Package Managers, Lockfiles, and Scripts?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Package Managers, Lockfiles, and Scripts” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "devtools",
+      "title": "Browser and Editor DevTools",
+      "summary": "Use Elements/Styles for DOM/CSS evidence, Network for HTTP evidence, Console for client runtime evidence, and Sources for breakpoints.",
+      "body": "Browser and Editor DevTools\n\nWhy this matters\nUse Elements/Styles for DOM/CSS evidence, Network for HTTP evidence, Console for client runtime evidence, and Sources for breakpoints. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Use Elements/Styles for DOM/CSS evidence, Network for HTTP evidence, Console for client runtime evidence, and Sources for breakpoints.\n• Editor language-server errors are compile/static feedback, not necessarily runtime failures.\n• Integrated terminals inherit environment from the editor process and may need restart after PATH changes.\n• A debugger breakpoint can reveal actual values more reliably than adding dozens of logs.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, command line and developer tooling stops being an isolated topic and becomes infrastructure for real features. When you encounter browser and editor devtools again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 493,
+      "objectives": [
+        "Use Elements/Styles for DOM/CSS evidence, Network for HTTP evidence, Console for client runtime evidence, and Sources for breakpoints.",
+        "Editor language-server errors are compile/static feedback, not necessarily runtime failures.",
+        "Integrated terminals inherit environment from the editor process and may need restart after PATH changes."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Browser and Editor DevTools in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Browser and Editor DevTools”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Browser and Editor DevTools”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Browser and Editor DevTools?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Browser and Editor DevTools” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "devtools-lab",
+      "title": "Lab — Browser and Editor DevTools",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Browser and Editor DevTools\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Browser and Editor DevTools”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Browser and Editor DevTools in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Browser and Editor DevTools”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Browser and Editor DevTools”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Browser and Editor DevTools?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Browser and Editor DevTools” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "tooling-checklist",
+      "title": "Tool Verification and Reproducibility Checklist",
+      "summary": "Record versions, executable locations, repository path, package-manager version, and required external services.",
+      "body": "Tool Verification and Reproducibility Checklist\n\nWhy this matters\nRecord versions, executable locations, repository path, package-manager version, and required external services. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Record versions, executable locations, repository path, package-manager version, and required external services.\n• A setup is complete only when verification commands succeed in a fresh terminal.\n• Keep machine-specific secrets outside the repository while documenting required variable names.\n• Automate checks after you understand them; automation should make reproducibility visible rather than hide it.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, command line and developer tooling stops being an isolated topic and becomes infrastructure for real features. When you encounter tool verification and reproducibility checklist again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 478,
+      "objectives": [
+        "Record versions, executable locations, repository path, package-manager version, and required external services.",
+        "A setup is complete only when verification commands succeed in a fresh terminal.",
+        "Keep machine-specific secrets outside the repository while documenting required variable names."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Tool Verification and Reproducibility Checklist in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Tool Verification and Reproducibility Checklist”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Tool Verification and Reproducibility Checklist”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Tool Verification and Reproducibility Checklist?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Tool Verification and Reproducibility Checklist” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "tooling-checklist-lab",
+      "title": "Lab — Tool Verification and Reproducibility Checklist",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Tool Verification and Reproducibility Checklist\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Tool Verification and Reproducibility Checklist”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Tool Verification and Reproducibility Checklist in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Tool Verification and Reproducibility Checklist”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Build a repeatable tool check",
+          "code": "Get-Location\nnode --version\ncorepack --version\npnpm --version\ngit --version\n\n# Inspect a suspicious port\nGet-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Tool Verification and Reproducibility Checklist”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Tool Verification and Reproducibility Checklist?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Tool Verification and Reproducibility Checklist” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3384,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Navigation, Files, Globs, and Pipelines'?",
+      "options": [
+        "pwd/Get-Location answers where you are; ls/Get-ChildItem shows what exists; cd/Set-Location changes context.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "pwd/Get-Location answers where you are; ls/Get-ChildItem shows what exists; cd/Set-Location changes context."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Processes, Ports, and Signals'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "A dev server is an operating-system process; stopping the terminal or sending a signal changes process lifecycle."
+      ],
+      "answer": 3,
+      "explanation": "A dev server is an operating-system process; stopping the terminal or sending a signal changes process lifecycle."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Package Managers, Lockfiles, and Scripts'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "package.json declares project metadata/dependencies/scripts; a lockfile records exact resolved dependency graph.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "package.json declares project metadata/dependencies/scripts; a lockfile records exact resolved dependency graph."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Browser and Editor DevTools'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "Use Elements/Styles for DOM/CSS evidence, Network for HTTP evidence, Console for client runtime evidence, and Sources for breakpoints.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "Use Elements/Styles for DOM/CSS evidence, Network for HTTP evidence, Console for client runtime evidence, and Sources for breakpoints."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Tool Verification and Reproducibility Checklist'?",
+      "options": [
+        "Record versions, executable locations, repository path, package-manager version, and required external services.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "Record versions, executable locations, repository path, package-manager version, and required external services."
+    }
+  ]
+}

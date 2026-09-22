@@ -1,0 +1,572 @@
+{
+  "number": 9,
+  "slug": "f09",
+  "title": "Databases and SQL Primer",
+  "description": "Prepare for PostgreSQL and Prisma by understanding tables, keys, relationships, constraints, and basic SQL.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "tables-rows-columns",
+      "title": "Tables, Rows, Columns, and Data Types",
+      "summary": "A relational table represents a set of rows with named typed columns.",
+      "body": "Tables, Rows, Columns, and Data Types\n\nWhy this matters\nA relational table represents a set of rows with named typed columns. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A relational table represents a set of rows with named typed columns.\n• Choose types that match domain meaning and constraints, not just whatever accepts the current example.\n• NULL means missing/unknown, not empty string or zero.\n• Schema design determines which invalid states the database can prevent.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, databases and sql primer stops being an isolated topic and becomes infrastructure for real features. When you encounter tables, rows, columns, and data types again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 474,
+      "objectives": [
+        "A relational table represents a set of rows with named typed columns.",
+        "Choose types that match domain meaning and constraints, not just whatever accepts the current example.",
+        "NULL means missing/unknown, not empty string or zero."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Tables, Rows, Columns, and Data Types in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Tables, Rows, Columns, and Data Types”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Guided practice: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Tables, Rows, Columns, and Data Types”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Tables, Rows, Columns, and Data Types?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Tables, Rows, Columns, and Data Types” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "tables-rows-columns-lab",
+      "title": "Lab — Tables, Rows, Columns, and Data Types",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Tables, Rows, Columns, and Data Types\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Tables, Rows, Columns, and Data Types”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 198,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Tables, Rows, Columns, and Data Types in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Tables, Rows, Columns, and Data Types”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Independent lab: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Tables, Rows, Columns, and Data Types”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Tables, Rows, Columns, and Data Types?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Tables, Rows, Columns, and Data Types” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "keys-relations",
+      "title": "Primary Keys, Foreign Keys, and Relationships",
+      "summary": "Primary keys identify rows; foreign keys state that a referenced parent must exist.",
+      "body": "Primary Keys, Foreign Keys, and Relationships\n\nWhy this matters\nPrimary keys identify rows; foreign keys state that a referenced parent must exist. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Primary keys identify rows; foreign keys state that a referenced parent must exist.\n• One-to-many places the foreign key on the many side; many-to-many uses a relation/join table.\n• Composite keys/unique constraints can encode business identity such as one membership per user/workspace.\n• Delete/update behavior should be deliberate rather than relying on default cascades.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, databases and sql primer stops being an isolated topic and becomes infrastructure for real features. When you encounter primary keys, foreign keys, and relationships again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 484,
+      "objectives": [
+        "Primary keys identify rows; foreign keys state that a referenced parent must exist.",
+        "One-to-many places the foreign key on the many side; many-to-many uses a relation/join table.",
+        "Composite keys/unique constraints can encode business identity such as one membership per user/workspace."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Primary Keys, Foreign Keys, and Relationships in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Render reorderable items first with unstable index keys and then stable ids. Observe how component identity changes.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Guided practice: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Primary Keys, Foreign Keys, and Relationships”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Primary Keys, Foreign Keys, and Relationships?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Primary Keys, Foreign Keys, and Relationships” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "keys-relations-lab",
+      "title": "Lab — Primary Keys, Foreign Keys, and Relationships",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Primary Keys, Foreign Keys, and Relationships\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nRender reorderable items first with unstable index keys and then stable ids. Observe how component identity changes.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 190,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Primary Keys, Foreign Keys, and Relationships in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Render reorderable items first with unstable index keys and then stable ids. Observe how component identity changes.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Independent lab: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Primary Keys, Foreign Keys, and Relationships”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Primary Keys, Foreign Keys, and Relationships?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Primary Keys, Foreign Keys, and Relationships” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "sql-crud",
+      "title": "SELECT, INSERT, UPDATE, and DELETE",
+      "summary": "SELECT describes which rows/columns to read; WHERE filters; ORDER BY makes sequence explicit.",
+      "body": "SELECT, INSERT, UPDATE, and DELETE\n\nWhy this matters\nSELECT describes which rows/columns to read; WHERE filters; ORDER BY makes sequence explicit. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• SELECT describes which rows/columns to read; WHERE filters; ORDER BY makes sequence explicit.\n• INSERT adds rows; UPDATE/DELETE without intended WHERE conditions can affect far more data than expected.\n• RETURNING can provide changed rows in PostgreSQL.\n• Practice SQL directly so ORM-generated queries later remain understandable.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, databases and sql primer stops being an isolated topic and becomes infrastructure for real features. When you encounter select, insert, update, and delete again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 474,
+      "objectives": [
+        "SELECT describes which rows/columns to read; WHERE filters; ORDER BY makes sequence explicit.",
+        "INSERT adds rows; UPDATE/DELETE without intended WHERE conditions can affect far more data than expected.",
+        "RETURNING can provide changed rows in PostgreSQL."
+      ],
+      "practice": {
+        "objectives": [
+          "Use SELECT, INSERT, UPDATE, and DELETE in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “SELECT, INSERT, UPDATE, and DELETE”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Guided practice: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “SELECT, INSERT, UPDATE, and DELETE”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of SELECT, INSERT, UPDATE, and DELETE?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “SELECT, INSERT, UPDATE, and DELETE” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "sql-crud-lab",
+      "title": "Lab — SELECT, INSERT, UPDATE, and DELETE",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: SELECT, INSERT, UPDATE, and DELETE\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “SELECT, INSERT, UPDATE, and DELETE”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use SELECT, INSERT, UPDATE, and DELETE in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “SELECT, INSERT, UPDATE, and DELETE”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Independent lab: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “SELECT, INSERT, UPDATE, and DELETE”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of SELECT, INSERT, UPDATE, and DELETE?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “SELECT, INSERT, UPDATE, and DELETE” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "joins-aggregation",
+      "title": "Joins, Grouping, and Aggregation",
+      "summary": "INNER JOIN keeps matching rows; LEFT JOIN preserves left rows even without a match.",
+      "body": "Joins, Grouping, and Aggregation\n\nWhy this matters\nINNER JOIN keeps matching rows; LEFT JOIN preserves left rows even without a match. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• INNER JOIN keeps matching rows; LEFT JOIN preserves left rows even without a match.\n• Predict cardinality before joining or aggregation results can surprise you.\n• GROUP BY forms groups before aggregate functions such as count/sum/min/max.\n• Application reports often combine joins and aggregation; correctness comes before ORM syntax.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, databases and sql primer stops being an isolated topic and becomes infrastructure for real features. When you encounter joins, grouping, and aggregation again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 475,
+      "objectives": [
+        "INNER JOIN keeps matching rows; LEFT JOIN preserves left rows even without a match.",
+        "Predict cardinality before joining or aggregation results can surprise you.",
+        "GROUP BY forms groups before aggregate functions such as count/sum/min/max."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Joins, Grouping, and Aggregation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Insert users and tasks, write INNER and LEFT JOIN variants, and predict row counts before executing each query.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Guided practice: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Joins, Grouping, and Aggregation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Joins, Grouping, and Aggregation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Joins, Grouping, and Aggregation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "joins-aggregation-lab",
+      "title": "Lab — Joins, Grouping, and Aggregation",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Joins, Grouping, and Aggregation\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nInsert users and tasks, write INNER and LEFT JOIN variants, and predict row counts before executing each query.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 189,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Joins, Grouping, and Aggregation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Insert users and tasks, write INNER and LEFT JOIN variants, and predict row counts before executing each query.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Independent lab: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Joins, Grouping, and Aggregation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Joins, Grouping, and Aggregation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Joins, Grouping, and Aggregation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "transactions-indexes",
+      "title": "Transactions and Indexes",
+      "summary": "A transaction groups operations so atomicity/consistency expectations can be preserved.",
+      "body": "Transactions and Indexes\n\nWhy this matters\nA transaction groups operations so atomicity/consistency expectations can be preserved. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A transaction groups operations so atomicity/consistency expectations can be preserved.\n• Indexes add alternate lookup structures that can speed reads but cost storage and write work.\n• Index columns/order should follow actual query predicates/sorts.\n• EXPLAIN provides evidence about plan choices; do not guess performance only from schema.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, databases and sql primer stops being an isolated topic and becomes infrastructure for real features. When you encounter transactions and indexes again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 469,
+      "objectives": [
+        "A transaction groups operations so atomicity/consistency expectations can be preserved.",
+        "Indexes add alternate lookup structures that can speed reads but cost storage and write work.",
+        "Index columns/order should follow actual query predicates/sorts."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Transactions and Indexes in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Wrap two dependent writes in a transaction, force the second to fail, verify rollback, then compare a query plan before and after a relevant index.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Guided practice: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Transactions and Indexes”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Transactions and Indexes?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Transactions and Indexes” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "transactions-indexes-lab",
+      "title": "Lab — Transactions and Indexes",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Transactions and Indexes\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nWrap two dependent writes in a transaction, force the second to fail, verify rollback, then compare a query plan before and after a relevant index.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 195,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Transactions and Indexes in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Wrap two dependent writes in a transaction, force the second to fail, verify rollback, then compare a query plan before and after a relevant index.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "sql",
+          "caption": "Independent lab: Create and query relational TaskFlow data",
+          "code": "CREATE TABLE tasks (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  title text NOT NULL,\n  done boolean NOT NULL DEFAULT false\n);\n\nINSERT INTO tasks (title) VALUES ('Learn SQL');\nSELECT id, title, done FROM tasks ORDER BY id;"
+        },
+        "expected": [
+          "The SQL executes from a clean schema.",
+          "You can show the exact rows before and after the statement.",
+          "At least one invalid operation is rejected for a reason you can explain."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Transactions and Indexes”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Transactions and Indexes?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Transactions and Indexes” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3344,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Tables, Rows, Columns, and Data Types'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "A relational table represents a set of rows with named typed columns."
+      ],
+      "answer": 3,
+      "explanation": "A relational table represents a set of rows with named typed columns."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Primary Keys, Foreign Keys, and Relationships'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Primary keys identify rows; foreign keys state that a referenced parent must exist.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Primary keys identify rows; foreign keys state that a referenced parent must exist."
+    },
+    {
+      "question": "Which statement best captures the lesson 'SELECT, INSERT, UPDATE, and DELETE'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "SELECT describes which rows/columns to read; WHERE filters; ORDER BY makes sequence explicit.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "SELECT describes which rows/columns to read; WHERE filters; ORDER BY makes sequence explicit."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Joins, Grouping, and Aggregation'?",
+      "options": [
+        "INNER JOIN keeps matching rows; LEFT JOIN preserves left rows even without a match.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "INNER JOIN keeps matching rows; LEFT JOIN preserves left rows even without a match."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Transactions and Indexes'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "A transaction groups operations so atomicity/consistency expectations can be preserved."
+      ],
+      "answer": 3,
+      "explanation": "A transaction groups operations so atomicity/consistency expectations can be preserved."
+    }
+  ]
+}

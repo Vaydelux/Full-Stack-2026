@@ -1,0 +1,572 @@
+{
+  "number": 5,
+  "slug": "f05",
+  "title": "React Foundations I",
+  "description": "Learn components, props, rendering, events, and state before Next.js adds server rendering and routing.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "components-props",
+      "title": "Components, Props, and Composition",
+      "summary": "A component is a function that describes UI for current inputs.",
+      "body": "Components, Props, and Composition\n\nWhy this matters\nA component is a function that describes UI for current inputs. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A component is a function that describes UI for current inputs.\n• Props flow from parent to child; children/composition let parents supply structure without creating giant configurable components.\n• Keep rendering pure: the same inputs should describe the same output.\n• Split components by responsibility and reuse, not every HTML element.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations i stops being an isolated topic and becomes infrastructure for real features. When you encounter components, props, and composition again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 471,
+      "objectives": [
+        "A component is a function that describes UI for current inputs.",
+        "Props flow from parent to child; children/composition let parents supply structure without creating giant configurable components.",
+        "Keep rendering pure: the same inputs should describe the same output."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Components, Props, and Composition in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Split a static task card into parent data ownership and child props. Change the parent data and trace which component rerenders.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Components, Props, and Composition”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Components, Props, and Composition?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Components, Props, and Composition” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "components-props-lab",
+      "title": "Lab — Components, Props, and Composition",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Components, Props, and Composition\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nSplit a static task card into parent data ownership and child props. Change the parent data and trace which component rerenders.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 192,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Components, Props, and Composition in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Split a static task card into parent data ownership and child props. Change the parent data and trace which component rerenders.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Components, Props, and Composition”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Components, Props, and Composition?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Components, Props, and Composition” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "events-state",
+      "title": "Events and Local State",
+      "summary": "Event handlers respond to user actions and are appropriate places to start mutations or update interaction state.",
+      "body": "Events and Local State\n\nWhy this matters\nEvent handlers respond to user actions and are appropriate places to start mutations or update interaction state. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Event handlers respond to user actions and are appropriate places to start mutations or update interaction state.\n• useState stores values that must persist between renders and whose changes should re-render UI.\n• State updates are scheduled; do not assume setting state changes the current render's variable immediately.\n• Use functional updates when next state depends on previous state.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations i stops being an isolated topic and becomes infrastructure for real features. When you encounter events and local state again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 484,
+      "objectives": [
+        "Event handlers respond to user actions and are appropriate places to start mutations or update interaction state.",
+        "useState stores values that must persist between renders and whose changes should re-render UI.",
+        "State updates are scheduled; do not assume setting state changes the current render's variable immediately."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Events and Local State in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Events and Local State”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Events and Local State”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Events and Local State?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Events and Local State” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "events-state-lab",
+      "title": "Lab — Events and Local State",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Events and Local State\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Events and Local State”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Events and Local State in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Events and Local State”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Events and Local State”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Events and Local State?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Events and Local State” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "derived-state",
+      "title": "Derived Values and Single Source of Truth",
+      "summary": "If a value can be computed from props/state during render, usually derive it instead of storing a synchronized copy.",
+      "body": "Derived Values and Single Source of Truth\n\nWhy this matters\nIf a value can be computed from props/state during render, usually derive it instead of storing a synchronized copy. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• If a value can be computed from props/state during render, usually derive it instead of storing a synchronized copy.\n• Duplicate state creates synchronization paths and stale bugs.\n• Lift state to the nearest common owner only when multiple children need coordinated access.\n• Later, server data belongs in a server-state tool rather than copied into local state.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations i stops being an isolated topic and becomes infrastructure for real features. When you encounter derived values and single source of truth again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 493,
+      "objectives": [
+        "If a value can be computed from props/state during render, usually derive it instead of storing a synchronized copy.",
+        "Duplicate state creates synchronization paths and stale bugs.",
+        "Lift state to the nearest common owner only when multiple children need coordinated access."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Derived Values and Single Source of Truth in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Store only source state, compute the derived count during render, then demonstrate the bug caused by storing the same count independently.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Derived Values and Single Source of Truth”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Derived Values and Single Source of Truth?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Derived Values and Single Source of Truth” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "derived-state-lab",
+      "title": "Lab — Derived Values and Single Source of Truth",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Derived Values and Single Source of Truth\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nStore only source state, compute the derived count during render, then demonstrate the bug caused by storing the same count independently.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 195,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Derived Values and Single Source of Truth in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Store only source state, compute the derived count during render, then demonstrate the bug caused by storing the same count independently.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Derived Values and Single Source of Truth”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Derived Values and Single Source of Truth?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Derived Values and Single Source of Truth” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "lists-keys",
+      "title": "Lists, Keys, and Identity",
+      "summary": "Keys tell React which list item identity persists across reordering/insertion/deletion.",
+      "body": "Lists, Keys, and Identity\n\nWhy this matters\nKeys tell React which list item identity persists across reordering/insertion/deletion. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Keys tell React which list item identity persists across reordering/insertion/deletion.\n• Use stable domain IDs rather than array indexes when item order can change.\n• A key is not passed as a normal prop automatically.\n• Identity mistakes can make input state appear to jump between rows.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations i stops being an isolated topic and becomes infrastructure for real features. When you encounter lists, keys, and identity again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 469,
+      "objectives": [
+        "Keys tell React which list item identity persists across reordering/insertion/deletion.",
+        "Use stable domain IDs rather than array indexes when item order can change.",
+        "A key is not passed as a normal prop automatically."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Lists, Keys, and Identity in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Render reorderable items first with unstable index keys and then stable ids. Observe how component identity changes.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Lists, Keys, and Identity”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Lists, Keys, and Identity?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Lists, Keys, and Identity” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "lists-keys-lab",
+      "title": "Lab — Lists, Keys, and Identity",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Lists, Keys, and Identity\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nRender reorderable items first with unstable index keys and then stable ids. Observe how component identity changes.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 188,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Lists, Keys, and Identity in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Render reorderable items first with unstable index keys and then stable ids. Observe how component identity changes.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Lists, Keys, and Identity”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Lists, Keys, and Identity?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Lists, Keys, and Identity” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "forms-controlled",
+      "title": "Basic Form Handling Before Libraries",
+      "summary": "Controlled inputs use React state as the displayed value; uncontrolled inputs let DOM hold current value and can be read through form APIs/refs.",
+      "body": "Basic Form Handling Before Libraries\n\nWhy this matters\nControlled inputs use React state as the displayed value; uncontrolled inputs let DOM hold current value and can be read through form APIs/refs. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Controlled inputs use React state as the displayed value; uncontrolled inputs let DOM hold current value and can be read through form APIs/refs.\n• Prevent default submission only when handling the request in JavaScript.\n• Labels, names, autocomplete, input types, and native constraints still matter in React.\n• Form libraries later optimize boilerplate but do not change the underlying browser semantics.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations i stops being an isolated topic and becomes infrastructure for real features. When you encounter basic form handling before libraries again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 496,
+      "objectives": [
+        "Controlled inputs use React state as the displayed value; uncontrolled inputs let DOM hold current value and can be read through form APIs/refs.",
+        "Prevent default submission only when handling the request in JavaScript.",
+        "Labels, names, autocomplete, input types, and native constraints still matter in React."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Basic Form Handling Before Libraries in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Basic Form Handling Before Libraries”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Basic Form Handling Before Libraries”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Basic Form Handling Before Libraries?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Basic Form Handling Before Libraries” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "forms-controlled-lab",
+      "title": "Lab — Basic Form Handling Before Libraries",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Basic Form Handling Before Libraries\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Basic Form Handling Before Libraries”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Basic Form Handling Before Libraries in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Basic Form Handling Before Libraries”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Build a small component with explicit state ownership",
+          "code": "function TaskToggle({ title }: { title: string }) {\n  const [done, setDone] = useState(false);\n\n  return (\n    <button onClick={() => setDone(value => !value)}>\n      {done ? \"✓\" : \"○\"} {title}\n    </button>\n  );\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Basic Form Handling Before Libraries”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Basic Form Handling Before Libraries?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Basic Form Handling Before Libraries” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3378,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Components, Props, and Composition'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "A component is a function that describes UI for current inputs."
+      ],
+      "answer": 3,
+      "explanation": "A component is a function that describes UI for current inputs."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Events and Local State'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Event handlers respond to user actions and are appropriate places to start mutations or update interaction state.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Event handlers respond to user actions and are appropriate places to start mutations or update interaction state."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Derived Values and Single Source of Truth'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "If a value can be computed from props/state during render, usually derive it instead of storing a synchronized copy.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "If a value can be computed from props/state during render, usually derive it instead of storing a synchronized copy."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Lists, Keys, and Identity'?",
+      "options": [
+        "Keys tell React which list item identity persists across reordering/insertion/deletion.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "Keys tell React which list item identity persists across reordering/insertion/deletion."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Basic Form Handling Before Libraries'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Controlled inputs use React state as the displayed value; uncontrolled inputs let DOM hold current value and can be read through form APIs/refs."
+      ],
+      "answer": 3,
+      "explanation": "Controlled inputs use React state as the displayed value; uncontrolled inputs let DOM hold current value and can be read through form APIs/refs."
+    }
+  ]
+}

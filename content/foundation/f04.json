@@ -1,0 +1,582 @@
+{
+  "number": 4,
+  "slug": "f04",
+  "title": "TypeScript Foundations",
+  "description": "Use TypeScript to express contracts and catch mistakes without confusing compile-time types with runtime validation.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "types-inference",
+      "title": "Inference, Annotations, and Object Types",
+      "summary": "Let TypeScript infer obvious local values; annotate public boundaries where the contract is valuable documentation.",
+      "body": "Inference, Annotations, and Object Types\n\nWhy this matters\nLet TypeScript infer obvious local values; annotate public boundaries where the contract is valuable documentation. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Let TypeScript infer obvious local values; annotate public boundaries where the contract is valuable documentation.\n• Object types describe required/optional properties and nested shapes.\n• Structural typing means compatibility is based mainly on shape rather than class names.\n• Use unknown for untrusted values until validated/narrowed; avoid any as a permanent escape hatch.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, typescript foundations stops being an isolated topic and becomes infrastructure for real features. When you encounter inference, annotations, and object types again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 479,
+      "objectives": [
+        "Let TypeScript infer obvious local values; annotate public boundaries where the contract is valuable documentation.",
+        "Object types describe required/optional properties and nested shapes.",
+        "Structural typing means compatibility is based mainly on shape rather than class names."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Inference, Annotations, and Object Types in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Transform a TaskFlow collection with map/filter/find without mutating the original array. Print both original and result.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Guided practice: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Inference, Annotations, and Object Types”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Inference, Annotations, and Object Types?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Inference, Annotations, and Object Types” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "types-inference-lab",
+      "title": "Lab — Inference, Annotations, and Object Types",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Inference, Annotations, and Object Types\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nTransform a TaskFlow collection with map/filter/find without mutating the original array. Print both original and result.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 190,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Inference, Annotations, and Object Types in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Transform a TaskFlow collection with map/filter/find without mutating the original array. Print both original and result.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Independent lab: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Inference, Annotations, and Object Types”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Inference, Annotations, and Object Types?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Inference, Annotations, and Object Types” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "unions-narrowing",
+      "title": "Unions, Literals, and Narrowing",
+      "summary": "Literal unions model closed domain choices more accurately than arbitrary string.",
+      "body": "Unions, Literals, and Narrowing\n\nWhy this matters\nLiteral unions model closed domain choices more accurately than arbitrary string. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Literal unions model closed domain choices more accurately than arbitrary string.\n• Narrowing uses checks such as typeof, in, discriminants, or user-defined predicates to prove a more specific type.\n• Discriminated unions can model mutually exclusive states such as loading/success/error.\n• Compiler exhaustiveness can turn new domain variants into useful compile errors.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, typescript foundations stops being an isolated topic and becomes infrastructure for real features. When you encounter unions, literals, and narrowing again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 472,
+      "objectives": [
+        "Literal unions model closed domain choices more accurately than arbitrary string.",
+        "Narrowing uses checks such as typeof, in, discriminants, or user-defined predicates to prove a more specific type.",
+        "Discriminated unions can model mutually exclusive states such as loading/success/error."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Unions, Literals, and Narrowing in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Model a success/error union and write a narrowing branch that makes invalid states impossible to access without a check.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Guided practice: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Unions, Literals, and Narrowing”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Unions, Literals, and Narrowing?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Unions, Literals, and Narrowing” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "unions-narrowing-lab",
+      "title": "Lab — Unions, Literals, and Narrowing",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Unions, Literals, and Narrowing\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nModel a success/error union and write a narrowing branch that makes invalid states impossible to access without a check.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 191,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Unions, Literals, and Narrowing in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Model a success/error union and write a narrowing branch that makes invalid states impossible to access without a check.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Independent lab: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Unions, Literals, and Narrowing”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Unions, Literals, and Narrowing?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Unions, Literals, and Narrowing” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "interfaces-types-generics",
+      "title": "Interfaces, Type Aliases, and Generics",
+      "summary": "Interfaces and type aliases overlap for object modeling; choose consistency and clarity over ideology.",
+      "body": "Interfaces, Type Aliases, and Generics\n\nWhy this matters\nInterfaces and type aliases overlap for object modeling; choose consistency and clarity over ideology. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Interfaces and type aliases overlap for object modeling; choose consistency and clarity over ideology.\n• Generics preserve relationships between input/output types instead of erasing information.\n• Framework APIs use generics heavily; reading a generic signature is more important than writing advanced type-level tricks.\n• Constrain generics when the algorithm requires capabilities from the type.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, typescript foundations stops being an isolated topic and becomes infrastructure for real features. When you encounter interfaces, type aliases, and generics again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 478,
+      "objectives": [
+        "Interfaces and type aliases overlap for object modeling; choose consistency and clarity over ideology.",
+        "Generics preserve relationships between input/output types instead of erasing information.",
+        "Framework APIs use generics heavily; reading a generic signature is more important than writing advanced type-level tricks."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Interfaces, Type Aliases, and Generics in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Interfaces, Type Aliases, and Generics”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Guided practice: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Interfaces, Type Aliases, and Generics”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Interfaces, Type Aliases, and Generics?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Interfaces, Type Aliases, and Generics” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "interfaces-types-generics-lab",
+      "title": "Lab — Interfaces, Type Aliases, and Generics",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Interfaces, Type Aliases, and Generics\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Interfaces, Type Aliases, and Generics”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Interfaces, Type Aliases, and Generics in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Interfaces, Type Aliases, and Generics”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Independent lab: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Interfaces, Type Aliases, and Generics”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Interfaces, Type Aliases, and Generics?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Interfaces, Type Aliases, and Generics” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "utility-types",
+      "title": "Utility Types and Contract Transformation",
+      "summary": "Pick, Omit, Partial, Record, Awaited, and related utilities transform existing types.",
+      "body": "Utility Types and Contract Transformation\n\nWhy this matters\nPick, Omit, Partial, Record, Awaited, and related utilities transform existing types. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Pick, Omit, Partial, Record, Awaited, and related utilities transform existing types.\n• Do not create transport contracts only by mechanically applying Partial to database types; domain semantics may differ.\n• Readonly communicates intent but does not deep-freeze runtime values.\n• Prefer named domain/transport types when the meaning deserves a stable concept.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, typescript foundations stops being an isolated topic and becomes infrastructure for real features. When you encounter utility types and contract transformation again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 472,
+      "objectives": [
+        "Pick, Omit, Partial, Record, Awaited, and related utilities transform existing types.",
+        "Do not create transport contracts only by mechanically applying Partial to database types; domain semantics may differ.",
+        "Readonly communicates intent but does not deep-freeze runtime values."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Utility Types and Contract Transformation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Utility Types and Contract Transformation”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Guided practice: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Utility Types and Contract Transformation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Utility Types and Contract Transformation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Utility Types and Contract Transformation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "utility-types-lab",
+      "title": "Lab — Utility Types and Contract Transformation",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Utility Types and Contract Transformation\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Utility Types and Contract Transformation”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Utility Types and Contract Transformation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Utility Types and Contract Transformation”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Independent lab: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Utility Types and Contract Transformation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Utility Types and Contract Transformation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Utility Types and Contract Transformation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "runtime-vs-compile",
+      "title": "TypeScript vs Runtime Validation",
+      "summary": "TypeScript is erased before JavaScript executes, so external JSON can violate every declared type.",
+      "body": "TypeScript vs Runtime Validation\n\nWhy this matters\nTypeScript is erased before JavaScript executes, so external JSON can violate every declared type. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• TypeScript is erased before JavaScript executes, so external JSON can violate every declared type.\n• Runtime schemas such as Zod validate unknown data at trust boundaries.\n• A strong pattern is parse unknown input, obtain validated typed data, then run business rules.\n• Database constraints add another independent correctness layer for invariants that must survive application bugs.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, typescript foundations stops being an isolated topic and becomes infrastructure for real features. When you encounter typescript vs runtime validation again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 478,
+      "objectives": [
+        "TypeScript is erased before JavaScript executes, so external JSON can violate every declared type.",
+        "Runtime schemas such as Zod validate unknown data at trust boundaries.",
+        "A strong pattern is parse unknown input, obtain validated typed data, then run business rules."
+      ],
+      "practice": {
+        "objectives": [
+          "Use TypeScript vs Runtime Validation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Pass invalid JSON through a TypeScript assertion and observe that runtime accepts it; then validate the same value explicitly.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Guided practice: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “TypeScript vs Runtime Validation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of TypeScript vs Runtime Validation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “TypeScript vs Runtime Validation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "runtime-vs-compile-lab",
+      "title": "Lab — TypeScript vs Runtime Validation",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: TypeScript vs Runtime Validation\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nPass invalid JSON through a TypeScript assertion and observe that runtime accepts it; then validate the same value explicitly.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 190,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use TypeScript vs Runtime Validation in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Pass invalid JSON through a TypeScript assertion and observe that runtime accepts it; then validate the same value explicitly.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "ts",
+          "caption": "Independent lab: Migrate a loose JavaScript contract to TypeScript",
+          "code": "type Priority = \"low\" | \"medium\" | \"high\";\n\ntype Task = {\n  id: string;\n  title: string;\n  priority: Priority;\n};\n\nfunction renameTask(task: Task, title: string): Task {\n  return { ...task, title };\n}"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “TypeScript vs Runtime Validation”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of TypeScript vs Runtime Validation?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “TypeScript vs Runtime Validation” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3342,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Inference, Annotations, and Object Types'?",
+      "options": [
+        "Let TypeScript infer obvious local values; annotate public boundaries where the contract is valuable documentation.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "Let TypeScript infer obvious local values; annotate public boundaries where the contract is valuable documentation."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Unions, Literals, and Narrowing'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Literal unions model closed domain choices more accurately than arbitrary string."
+      ],
+      "answer": 3,
+      "explanation": "Literal unions model closed domain choices more accurately than arbitrary string."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Interfaces, Type Aliases, and Generics'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Interfaces and type aliases overlap for object modeling; choose consistency and clarity over ideology.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Interfaces and type aliases overlap for object modeling; choose consistency and clarity over ideology."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Utility Types and Contract Transformation'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "Pick, Omit, Partial, Record, Awaited, and related utilities transform existing types.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "Pick, Omit, Partial, Record, Awaited, and related utilities transform existing types."
+    },
+    {
+      "question": "Which statement best captures the lesson 'TypeScript vs Runtime Validation'?",
+      "options": [
+        "TypeScript is erased before JavaScript executes, so external JSON can violate every declared type.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "TypeScript is erased before JavaScript executes, so external JSON can violate every declared type."
+    }
+  ]
+}

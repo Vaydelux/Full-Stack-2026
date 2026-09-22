@@ -1,0 +1,410 @@
+{
+  "number": 2,
+  "slug": "typescript",
+  "title": "TypeScript — Make Invalid States Harder to Represent",
+  "audience": "Foundation",
+  "description": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+  "lessons": [
+    {
+      "slug": "why-typescript",
+      "title": "Why TypeScript Exists and What It Cannot Do",
+      "why": "Use types to catch mistakes before runtime without confusing types with validation.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Why TypeScript Exists and What It Cannot Do using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Why TypeScript Exists and What It Cannot Do using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Why TypeScript Exists and What It Cannot Do” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Cast \"urgent\" as Priority and explain why a type assertion can hide a real bug.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "type Priority = \"LOW\" | \"MEDIUM\" | \"HIGH\";\n\nfunction createTask(title: string, priority: Priority) {\n  return { title, priority };\n}\n\ncreateTask(\"Learn TS\", \"HIGH\");",
+        "expected": "The call type-checks; createTask(\"Learn TS\", \"urgent\") does not."
+      },
+      "breakIt": "Cast \"urgent\" as Priority and explain why a type assertion can hide a real bug.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Why TypeScript Exists and What It Cannot Do to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Why TypeScript Exists and What It Cannot Do exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "objects-unions",
+      "title": "Object Types, Unions, Optional Fields, and Narrowing",
+      "why": "Describe domain shapes precisely and narrow before accessing variant-specific data.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Object Types, Unions, Optional Fields, and Narrowing using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Object Types, Unions, Optional Fields, and Narrowing using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Object Types, Unions, Optional Fields, and Narrowing” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Remove the discriminant and observe how much harder safe narrowing becomes.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "type ApiResult =\n  | { ok: true; data: string[] }\n  | { ok: false; error: string };\n\nfunction message(result: ApiResult) {\n  return result.ok ? `${result.data.length} tasks` : result.error;\n}",
+        "expected": "TypeScript narrows result based on result.ok."
+      },
+      "breakIt": "Remove the discriminant and observe how much harder safe narrowing becomes.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Object Types, Unions, Optional Fields, and Narrowing to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Object Types, Unions, Optional Fields, and Narrowing exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "generics",
+      "title": "Generics Without Mystery",
+      "why": "Express relationships between input and output types instead of replacing everything with any.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Generics Without Mystery using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Generics Without Mystery using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Generics Without Mystery” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Rewrite with any, then list what information the compiler loses.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "function first<T>(items: T[]): T | undefined {\n  return items[0];\n}\n\nconst firstId = first([\"a\", \"b\"]);",
+        "expected": "firstId is inferred as string | undefined."
+      },
+      "breakIt": "Rewrite with any, then list what information the compiler loses.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Generics Without Mystery to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Generics Without Mystery exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "unknown-never",
+      "title": "unknown, never, and Exhaustiveness",
+      "why": "Use unknown at untrusted boundaries and never to prove all domain cases are handled.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain unknown, never, and Exhaustiveness using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to unknown, never, and Exhaustiveness using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “unknown, never, and Exhaustiveness” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Add BLOCKED to Status and read the compiler error before fixing it.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "type Status = \"OPEN\" | \"DONE\";\n\nfunction label(status: Status) {\n  switch (status) {\n    case \"OPEN\": return \"Open\";\n    case \"DONE\": return \"Done\";\n    default: { const impossible: never = status; return impossible; }\n  }\n}",
+        "expected": "Adding a new Status value forces this switch to be revisited."
+      },
+      "breakIt": "Add BLOCKED to Status and read the compiler error before fixing it.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply unknown, never, and Exhaustiveness to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why unknown, never, and Exhaustiveness exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "utility-types",
+      "title": "Utility Types and Domain Boundaries",
+      "why": "Use Pick/Omit/Partial deliberately instead of making domain entities loosely optional.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Utility Types and Domain Boundaries using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Utility Types and Domain Boundaries using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Utility Types and Domain Boundaries” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Use Partial<Task> for updates and identify which server-owned fields become accidentally writable.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "type Task = { id: string; title: string; done: boolean; createdAt: Date };\ntype CreateTaskInput = Pick<Task, \"title\">;\ntype UpdateTaskInput = Partial<Pick<Task, \"title\" | \"done\">>;",
+        "expected": "Creation cannot provide id/createdAt, updates can provide only mutable fields."
+      },
+      "breakIt": "Use Partial<Task> for updates and identify which server-owned fields become accidentally writable.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Utility Types and Domain Boundaries to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Utility Types and Domain Boundaries exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "modules-config",
+      "title": "Modules, tsconfig, Path Aliases, and Monorepo Type Boundaries",
+      "why": "Understand how the compiler finds files and why shared types can create coupling.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Modules, tsconfig, Path Aliases, and Monorepo Type Boundaries using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Modules, tsconfig, Path Aliases, and Monorepo Type Boundaries using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Modules, tsconfig, Path Aliases, and Monorepo Type Boundaries” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Import a backend service class into the frontend and explain why the architecture boundary is now wrong even if TypeScript can resolve it.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "// packages/contracts/src/task.ts\nexport type TaskDto = { id: string; title: string; done: boolean };\n\n// apps/web\nimport type { TaskDto } from \"@taskflow/contracts/task\";",
+        "expected": "The frontend consumes a transport contract, not the backend entity implementation."
+      },
+      "breakIt": "Import a backend service class into the frontend and explain why the architecture boundary is now wrong even if TypeScript can resolve it.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Modules, tsconfig, Path Aliases, and Monorepo Type Boundaries to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Modules, tsconfig, Path Aliases, and Monorepo Type Boundaries exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "runtime-validation",
+      "title": "TypeScript vs Runtime Validation with Zod",
+      "why": "Accept that network JSON is unknown until checked at runtime.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain TypeScript vs Runtime Validation with Zod using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to TypeScript vs Runtime Validation with Zod using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “TypeScript vs Runtime Validation with Zod” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Replace parse with a type assertion and describe what invalid payload can now slip through.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "import { z } from \"zod\";\n\nconst TaskSchema = z.object({\n  id: z.string().uuid(),\n  title: z.string().min(1),\n  done: z.boolean(),\n});\n\nconst task = TaskSchema.parse(await response.json());",
+        "expected": "task becomes trusted only after schema validation succeeds."
+      },
+      "breakIt": "Replace parse with a type assertion and describe what invalid payload can now slip through.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply TypeScript vs Runtime Validation with Zod to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why TypeScript vs Runtime Validation with Zod exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    },
+    {
+      "slug": "ts-capstone",
+      "title": "Capstone: Type TaskFlow End-to-End",
+      "why": "Apply types across UI state, HTTP contracts, and domain rules without duplicating truths unnecessarily.",
+      "audience": "Foundation",
+      "objectives": [
+        "Explain Capstone: Type TaskFlow End-to-End using a concrete runtime/data-flow model.",
+        "Implement the smallest working example and predict its behavior before execution.",
+        "Diagnose a controlled failure related to Capstone: Type TaskFlow End-to-End using evidence rather than random edits.",
+        "Transfer the concept into the TaskFlow project without copying the finished example."
+      ],
+      "mentalModel": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "beforeYouCode": [
+        "Open a scratch file or the relevant TaskFlow package.",
+        "Run the existing project/tests once so you know the baseline is healthy.",
+        "State what evidence will prove success before changing code."
+      ],
+      "steps": [
+        "Write the goal in observable terms before coding: by the end of this lesson you should be able to demonstrate “Capstone: Type TaskFlow End-to-End” in a running TaskFlow-oriented example.",
+        "Read the example once without running it. Predict the exact output, state change, request, or compiler behavior and write that prediction down.",
+        "Type the example yourself rather than pasting it. Run the narrowest command that exercises only this concept, then compare observed evidence with your prediction.",
+        "Change one assumption at a time. Keep the change small enough that you can explain why the result changed.",
+        "Perform the intentional failure lab: Introduce a server response that violates TaskDto and prove why compile-time types alone cannot detect it.",
+        "Read the resulting compiler error, stack trace, HTTP response, browser evidence, database state, or CI log from the first line that is actually relevant to your code.",
+        "Repair only the root cause. Re-run the same verification so you can prove the repair changed the observed evidence.",
+        "Close the reference and rebuild the important part from memory. If you cannot explain why each boundary exists, revisit the smallest missing concept rather than memorizing the final code."
+      ],
+      "example": {
+        "language": "text",
+        "code": "type TaskId = string;\ntype TaskStatus = \"OPEN\" | \"DONE\";\ntype TaskDto = { id: TaskId; title: string; status: TaskStatus };\n\nasync function getTask(id: TaskId): Promise<TaskDto> {\n  const r = await fetch(`/api/tasks/${id}`);\n  if (!r.ok) throw new Error(`HTTP ${r.status}`);\n  return r.json();\n}",
+        "expected": "The compiler checks your local contract; runtime validation is still needed at the boundary."
+      },
+      "breakIt": "Introduce a server response that violates TaskDto and prove why compile-time types alone cannot detect it.",
+      "debugChecklist": [
+        "What did you predict?",
+        "What actually happened?",
+        "At what boundary do those first differ?",
+        "What is the smallest piece of evidence that proves the failure lives there?",
+        "Can you fix the cause without changing unrelated layers?",
+        "Can you add a regression test or repeatable verification?"
+      ],
+      "challenge": "Apply Capstone: Type TaskFlow End-to-End to one new TaskFlow requirement. Do not reopen the example until you have a failing attempt, an explanation of the failure, and a specific question you cannot answer.",
+      "exitTicket": [
+        "I can explain why Capstone: Type TaskFlow End-to-End exists.",
+        "I can predict the example before running it.",
+        "I can reproduce the core behavior from memory.",
+        "I can create and diagnose the intentional failure.",
+        "I can name what would change in a production system."
+      ]
+    }
+  ],
+  "lessonCount": 8
+}

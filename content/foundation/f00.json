@@ -1,0 +1,582 @@
+{
+  "number": 0,
+  "slug": "f00",
+  "title": "How the Web and Development Environment Work",
+  "description": "Build the mental model that makes every later tool less mysterious.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "computer-terminal-process",
+      "title": "Files, Programs, Processes, and the Terminal",
+      "summary": "A source file is data; a program is executable instructions; a process is a running instance with memory and operating-system resources.",
+      "body": "Files, Programs, Processes, and the Terminal\n\nWhy this matters\nA source file is data; a program is executable instructions; a process is a running instance with memory and operating-system resources. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A source file is data; a program is executable instructions; a process is a running instance with memory and operating-system resources.\n• The terminal is a text interface to the operating system. The shell parses commands, resolves executables through PATH, sets environment variables, and starts processes.\n• The working directory changes how relative paths resolve. Many 'file not found' errors are simply the right command from the wrong directory.\n• Ports identify network endpoints owned by processes. localhost means the current machine, not 'the frontend'.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, how the web and development environment work stops being an isolated topic and becomes infrastructure for real features. When you encounter files, programs, processes, and the terminal again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 522,
+      "objectives": [
+        "A source file is data; a program is executable instructions; a process is a running instance with memory and operating-system resources.",
+        "The terminal is a text interface to the operating system. The shell parses commands, resolves executables through PATH, sets environment variables, and starts processes.",
+        "The working directory changes how relative paths resolve. Many 'file not found' errors are simply the right command from the wrong directory."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Files, Programs, Processes, and the Terminal in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Launch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Files, Programs, Processes, and the Terminal”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Files, Programs, Processes, and the Terminal?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Files, Programs, Processes, and the Terminal” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "computer-terminal-process-lab",
+      "title": "Lab — Files, Programs, Processes, and the Terminal",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Files, Programs, Processes, and the Terminal\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nLaunch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 193,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Files, Programs, Processes, and the Terminal in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Launch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Files, Programs, Processes, and the Terminal”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Files, Programs, Processes, and the Terminal?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Files, Programs, Processes, and the Terminal” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "browser-server-request",
+      "title": "Browser, Server, HTTP Request, and Response",
+      "summary": "A browser renders documents and executes client-side JavaScript; a server process listens for network requests and produces responses.",
+      "body": "Browser, Server, HTTP Request, and Response\n\nWhy this matters\nA browser renders documents and executes client-side JavaScript; a server process listens for network requests and produces responses. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• A browser renders documents and executes client-side JavaScript; a server process listens for network requests and produces responses.\n• HTTP is a message protocol. A request has method, URL, headers, and sometimes a body; a response has status, headers, and a body.\n• DNS, TCP/TLS, HTTP, application routing, business logic, and database access are different layers even when a framework hides them.\n• DevTools Network is evidence of what the browser actually sent and received.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, how the web and development environment work stops being an isolated topic and becomes infrastructure for real features. When you encounter browser, server, http request, and response again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 510,
+      "objectives": [
+        "A browser renders documents and executes client-side JavaScript; a server process listens for network requests and produces responses.",
+        "HTTP is a message protocol. A request has method, URL, headers, and sometimes a body; a response has status, headers, and a body.",
+        "DNS, TCP/TLS, HTTP, application routing, business logic, and database access are different layers even when a framework hides them."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Browser, Server, HTTP Request, and Response in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Browser, Server, HTTP Request, and Response”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Browser, Server, HTTP Request, and Response”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Browser, Server, HTTP Request, and Response?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Browser, Server, HTTP Request, and Response” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "browser-server-request-lab",
+      "title": "Lab — Browser, Server, HTTP Request, and Response",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Browser, Server, HTTP Request, and Response\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Browser, Server, HTTP Request, and Response”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 198,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Browser, Server, HTTP Request, and Response in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Browser, Server, HTTP Request, and Response”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Browser, Server, HTTP Request, and Response”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Browser, Server, HTTP Request, and Response?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Browser, Server, HTTP Request, and Response” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "runtime-node-browser",
+      "title": "JavaScript Runtime: Browser vs Node.js",
+      "summary": "JavaScript is a language; browser and Node.js are runtimes that provide different host APIs.",
+      "body": "JavaScript Runtime: Browser vs Node.js\n\nWhy this matters\nJavaScript is a language; browser and Node.js are runtimes that provide different host APIs. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• JavaScript is a language; browser and Node.js are runtimes that provide different host APIs.\n• window/document exist in browsers, while filesystem/process APIs are Node concerns.\n• Frameworks such as Next.js execute JavaScript in more than one environment, so code location does not automatically tell you execution location.\n• Understanding runtime boundaries prevents secret leakage and 'window is not defined' mistakes.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, how the web and development environment work stops being an isolated topic and becomes infrastructure for real features. When you encounter javascript runtime: browser vs node.js again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 495,
+      "objectives": [
+        "JavaScript is a language; browser and Node.js are runtimes that provide different host APIs.",
+        "window/document exist in browsers, while filesystem/process APIs are Node concerns.",
+        "Frameworks such as Next.js execute JavaScript in more than one environment, so code location does not automatically tell you execution location."
+      ],
+      "practice": {
+        "objectives": [
+          "Use JavaScript Runtime: Browser vs Node.js in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “JavaScript Runtime: Browser vs Node.js”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “JavaScript Runtime: Browser vs Node.js”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of JavaScript Runtime: Browser vs Node.js?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “JavaScript Runtime: Browser vs Node.js” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "runtime-node-browser-lab",
+      "title": "Lab — JavaScript Runtime: Browser vs Node.js",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: JavaScript Runtime: Browser vs Node.js\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “JavaScript Runtime: Browser vs Node.js”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 198,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use JavaScript Runtime: Browser vs Node.js in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “JavaScript Runtime: Browser vs Node.js”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “JavaScript Runtime: Browser vs Node.js”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of JavaScript Runtime: Browser vs Node.js?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “JavaScript Runtime: Browser vs Node.js” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "paths-env-ports",
+      "title": "Paths, Environment Variables, PATH, and Ports",
+      "summary": "PATH is a list of directories the shell searches for executable names; it is not the same as a project file path.",
+      "body": "Paths, Environment Variables, PATH, and Ports\n\nWhy this matters\nPATH is a list of directories the shell searches for executable names; it is not the same as a project file path. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• PATH is a list of directories the shell searches for executable names; it is not the same as a project file path.\n• Environment variables configure a process at startup/runtime and should not be confused with committed source constants.\n• Relative and absolute paths solve different navigation problems.\n• A port conflict is an operating-system/process problem, not a framework bug.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, how the web and development environment work stops being an isolated topic and becomes infrastructure for real features. When you encounter paths, environment variables, path, and ports again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 500,
+      "objectives": [
+        "PATH is a list of directories the shell searches for executable names; it is not the same as a project file path.",
+        "Environment variables configure a process at startup/runtime and should not be confused with committed source constants.",
+        "Relative and absolute paths solve different navigation problems."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Paths, Environment Variables, PATH, and Ports in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Launch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Paths, Environment Variables, PATH, and Ports”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Paths, Environment Variables, PATH, and Ports?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Paths, Environment Variables, PATH, and Ports” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "paths-env-ports-lab",
+      "title": "Lab — Paths, Environment Variables, PATH, and Ports",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Paths, Environment Variables, PATH, and Ports\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nLaunch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 193,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Paths, Environment Variables, PATH, and Ports in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Launch a small local server, discover its PID/port from another terminal, stop it cleanly, then reproduce an address-in-use error.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Paths, Environment Variables, PATH, and Ports”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Paths, Environment Variables, PATH, and Ports?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Paths, Environment Variables, PATH, and Ports” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "debugging-method",
+      "title": "A Professional Debugging Method",
+      "summary": "Reproduce first; do not modify code while the symptom is still vague.",
+      "body": "A Professional Debugging Method\n\nWhy this matters\nReproduce first; do not modify code while the symptom is still vague. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Reproduce first; do not modify code while the symptom is still vague.\n• Observe exact evidence: command output, stack trace, request/response, logs, state, or database rows.\n• Form one hypothesis and change one variable so cause and effect remain visible.\n• Write the root cause in plain language after the fix; the explanation proves more learning than memorizing the command.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, how the web and development environment work stops being an isolated topic and becomes infrastructure for real features. When you encounter a professional debugging method again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 485,
+      "objectives": [
+        "Reproduce first; do not modify code while the symptom is still vague.",
+        "Observe exact evidence: command output, stack trace, request/response, logs, state, or database rows.",
+        "Form one hypothesis and change one variable so cause and effect remain visible."
+      ],
+      "practice": {
+        "objectives": [
+          "Use A Professional Debugging Method in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “A Professional Debugging Method”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Guided practice: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “A Professional Debugging Method”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of A Professional Debugging Method?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “A Professional Debugging Method” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "debugging-method-lab",
+      "title": "Lab — A Professional Debugging Method",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: A Professional Debugging Method\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “A Professional Debugging Method”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use A Professional Debugging Method in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “A Professional Debugging Method”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "powershell",
+          "caption": "Independent lab: Observe a real process and port",
+          "code": "# Terminal A\nnode -e \"require('http').createServer((_,res)=>res.end('hello')).listen(4100)\"\n\n# Terminal B\nGet-NetTCPConnection -LocalPort 4100\nInvoke-WebRequest http://localhost:4100"
+        },
+        "expected": [
+          "The example runs from a documented command or browser action.",
+          "Observed output matches a prediction you wrote before execution.",
+          "The controlled failure produces a specific, explainable symptom.",
+          "After the fix, the original reproduction passes again."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “A Professional Debugging Method”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of A Professional Debugging Method?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “A Professional Debugging Method” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3488,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Files, Programs, Processes, and the Terminal'?",
+      "options": [
+        "A source file is data; a program is executable instructions; a process is a running instance with memory and operating-system resources.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "A source file is data; a program is executable instructions; a process is a running instance with memory and operating-system resources."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Browser, Server, HTTP Request, and Response'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "A browser renders documents and executes client-side JavaScript; a server process listens for network requests and produces responses."
+      ],
+      "answer": 3,
+      "explanation": "A browser renders documents and executes client-side JavaScript; a server process listens for network requests and produces responses."
+    },
+    {
+      "question": "Which statement best captures the lesson 'JavaScript Runtime: Browser vs Node.js'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "JavaScript is a language; browser and Node.js are runtimes that provide different host APIs.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "JavaScript is a language; browser and Node.js are runtimes that provide different host APIs."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Paths, Environment Variables, PATH, and Ports'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "PATH is a list of directories the shell searches for executable names; it is not the same as a project file path.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "PATH is a list of directories the shell searches for executable names; it is not the same as a project file path."
+    },
+    {
+      "question": "Which statement best captures the lesson 'A Professional Debugging Method'?",
+      "options": [
+        "Reproduce first; do not modify code while the symptom is still vague.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "Reproduce first; do not modify code while the symptom is still vague."
+    }
+  ]
+}

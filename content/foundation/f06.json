@@ -1,0 +1,572 @@
+{
+  "number": 6,
+  "slug": "f06",
+  "title": "React Foundations II",
+  "description": "Understand effects, refs, context, reducer patterns, and component lifecycle decisions without overusing them.",
+  "lessons": [
+    {
+      "number": 1,
+      "slug": "effects",
+      "title": "Effects and External Synchronization",
+      "summary": "Effects synchronize React with systems outside React: subscriptions, browser APIs, imperative widgets, manual network work.",
+      "body": "Effects and External Synchronization\n\nWhy this matters\nEffects synchronize React with systems outside React: subscriptions, browser APIs, imperative widgets, manual network work. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Effects synchronize React with systems outside React: subscriptions, browser APIs, imperative widgets, manual network work.\n• An effect is not needed to calculate a value from props/state.\n• Dependencies describe values used by the effect; suppressing dependency warnings can hide stale closures.\n• Cleanup should undo subscriptions/timers/imperative resources from the previous effect instance.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations ii stops being an isolated topic and becomes infrastructure for real features. When you encounter effects and external synchronization again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 479,
+      "objectives": [
+        "Effects synchronize React with systems outside React: subscriptions, browser APIs, imperative widgets, manual network work.",
+        "An effect is not needed to calculate a value from props/state.",
+        "Dependencies describe values used by the effect; suppressing dependency warnings can hide stale closures."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Effects and External Synchronization in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Implement one legitimate external synchronization effect, then remove an unnecessary effect by deriving the value during render.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Effects and External Synchronization”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Effects and External Synchronization?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Effects and External Synchronization” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 2,
+      "slug": "effects-lab",
+      "title": "Lab — Effects and External Synchronization",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Effects and External Synchronization\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nImplement one legitimate external synchronization effect, then remove an unnecessary effect by deriving the value during render.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 188,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Effects and External Synchronization in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Implement one legitimate external synchronization effect, then remove an unnecessary effect by deriving the value during render.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Effects and External Synchronization”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Effects and External Synchronization?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Effects and External Synchronization” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 3,
+      "slug": "refs",
+      "title": "Refs and Imperative Escape Hatches",
+      "summary": "Refs hold mutable values that do not trigger rendering and can reference DOM nodes.",
+      "body": "Refs and Imperative Escape Hatches\n\nWhy this matters\nRefs hold mutable values that do not trigger rendering and can reference DOM nodes. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Refs hold mutable values that do not trigger rendering and can reference DOM nodes.\n• Use refs for focus, measurement, integration with imperative libraries, or instance-like values.\n• Do not put render-critical state in refs merely to avoid re-renders.\n• Prefer declarative UI until an external API genuinely requires imperative access.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations ii stops being an isolated topic and becomes infrastructure for real features. When you encounter refs and imperative escape hatches again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 475,
+      "objectives": [
+        "Refs hold mutable values that do not trigger rendering and can reference DOM nodes.",
+        "Use refs for focus, measurement, integration with imperative libraries, or instance-like values.",
+        "Do not put render-critical state in refs merely to avoid re-renders."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Refs and Imperative Escape Hatches in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Refs and Imperative Escape Hatches”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Refs and Imperative Escape Hatches”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Refs and Imperative Escape Hatches?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Refs and Imperative Escape Hatches” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 4,
+      "slug": "refs-lab",
+      "title": "Lab — Refs and Imperative Escape Hatches",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Refs and Imperative Escape Hatches\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Refs and Imperative Escape Hatches”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Refs and Imperative Escape Hatches in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Refs and Imperative Escape Hatches”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Refs and Imperative Escape Hatches”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Refs and Imperative Escape Hatches?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Refs and Imperative Escape Hatches” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 5,
+      "slug": "context",
+      "title": "Context and Provider Boundaries",
+      "summary": "Context passes a value through a subtree without threading props through every intermediate component.",
+      "body": "Context and Provider Boundaries\n\nWhy this matters\nContext passes a value through a subtree without threading props through every intermediate component. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• Context passes a value through a subtree without threading props through every intermediate component.\n• It does not automatically make state global, performant, or suitable for server data.\n• Provider placement controls which subtree re-renders when the context value identity changes.\n• Use context for stable cross-cutting dependencies/state when it fits, not as the default state container.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations ii stops being an isolated topic and becomes infrastructure for real features. When you encounter context and provider boundaries again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 480,
+      "objectives": [
+        "Context passes a value through a subtree without threading props through every intermediate component.",
+        "It does not automatically make state global, performant, or suitable for server data.",
+        "Provider placement controls which subtree re-renders when the context value identity changes."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Context and Provider Boundaries in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Context and Provider Boundaries”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Context and Provider Boundaries”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Context and Provider Boundaries?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Context and Provider Boundaries” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 6,
+      "slug": "context-lab",
+      "title": "Lab — Context and Provider Boundaries",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Context and Provider Boundaries\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “Context and Provider Boundaries”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 194,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Context and Provider Boundaries in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “Context and Provider Boundaries”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Context and Provider Boundaries”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Context and Provider Boundaries?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Context and Provider Boundaries” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 7,
+      "slug": "reducers",
+      "title": "Reducers for Explicit State Transitions",
+      "summary": "useReducer is useful when local state has several related transitions and named events improve clarity.",
+      "body": "Reducers for Explicit State Transitions\n\nWhy this matters\nuseReducer is useful when local state has several related transitions and named events improve clarity. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• useReducer is useful when local state has several related transitions and named events improve clarity.\n• A reducer receives current state + action and returns next state without side effects.\n• Reducers model transitions; server calls still belong outside the reducer.\n• Do not introduce a reducer when two simple state variables are clearer.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations ii stops being an isolated topic and becomes infrastructure for real features. When you encounter reducers for explicit state transitions again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 478,
+      "objectives": [
+        "useReducer is useful when local state has several related transitions and named events improve clarity.",
+        "A reducer receives current state + action and returns next state without side effects.",
+        "Reducers model transitions; server calls still belong outside the reducer."
+      ],
+      "practice": {
+        "objectives": [
+          "Use Reducers for Explicit State Transitions in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Represent task-editing transitions as reducer actions. Feed the same action sequence twice and verify deterministic output.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Reducers for Explicit State Transitions”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Reducers for Explicit State Transitions?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Reducers for Explicit State Transitions” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 8,
+      "slug": "reducers-lab",
+      "title": "Lab — Reducers for Explicit State Transitions",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: Reducers for Explicit State Transitions\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nRepresent task-editing transitions as reducer actions. Feed the same action sequence twice and verify deterministic output.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 188,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use Reducers for Explicit State Transitions in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Represent task-editing transitions as reducer actions. Feed the same action sequence twice and verify deterministic output.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “Reducers for Explicit State Transitions”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of Reducers for Explicit State Transitions?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “Reducers for Explicit State Transitions” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 9,
+      "slug": "react-debugging",
+      "title": "React Debugging and Render Reasoning",
+      "summary": "When UI is wrong, identify the source of truth and inspect props/state at the render where the problem occurs.",
+      "body": "React Debugging and Render Reasoning\n\nWhy this matters\nWhen UI is wrong, identify the source of truth and inspect props/state at the render where the problem occurs. This lesson is intentionally framework-light. You are building a mental model that will be reused when Next.js, NestJS, Prisma, TanStack Query, and deployment tooling add more vocabulary. The goal is not to memorize definitions. The goal is to predict what the computer will do and know where to look when reality differs from that prediction.\n\nMental model\n• When UI is wrong, identify the source of truth and inspect props/state at the render where the problem occurs.\n• React DevTools can show component tree and values, but first reason about ownership and identity.\n• Unexpected repeated effects often indicate unstable dependencies or development Strict Mode behavior, not necessarily a framework bug.\n• Reduce the component to a minimal reproduction when state ownership is unclear.\n\nStep-by-step walkthrough\n1. Write the concept in your own words before using a tool. If your explanation depends on framework jargon, simplify it one level.\n2. Create the smallest runnable example that demonstrates only this concept. Keep it outside the main TaskFlow repository if experimentation could create noise.\n3. Predict the result before running the command or clicking the UI. Prediction makes the output evidence instead of entertainment.\n4. Run it and capture what actually happened: terminal output, browser state, request details, or file changes.\n5. Change one assumption and repeat. Try an invalid input, wrong path, missing field, reordered data, or other safe failure relevant to the topic.\n6. Explain the difference between the successful and failing runs. That explanation is the transferable skill.\n\nTaskFlow connection\nLater in the course, react foundations ii stops being an isolated topic and becomes infrastructure for real features. When you encounter react debugging and render reasoning again, ask which layer owns it, what its inputs are, what output proves success, and what failure evidence is available. That prevents you from copying framework snippets without understanding the underlying browser, runtime, operating-system, or language behavior.\n\nGuided exercise\nCreate a tiny example from scratch without copying the final code from a tutorial. Keep the example under about 30–50 lines where possible. After it works, deliberately break one assumption. Write the exact symptom and the smallest fix. Then delete the experiment or commit it in a dedicated practice folder so it does not pollute production project structure.\n\nCheck your understanding\n• Can you describe the concept without naming a framework?\n• Can you point to the exact input and output?\n• Can you name one common incorrect assumption?\n• Can you reproduce the idea in a tiny example?\n• Can you diagnose one intentional failure using evidence rather than guesses?\n\nInstructor note\nDo not rush because the syntax looks easy. Most difficult full-stack bugs are not caused by forgetting syntax; they come from an incorrect model of ownership, execution environment, identity, time, or data flow. The foundation track exists so later lessons can move quickly without becoming mysterious.",
+      "wordCount": 497,
+      "objectives": [
+        "When UI is wrong, identify the source of truth and inspect props/state at the render where the problem occurs.",
+        "React DevTools can show component tree and values, but first reason about ownership and identity.",
+        "Unexpected repeated effects often indicate unstable dependencies or development Strict Mode behavior, not necessarily a framework bug."
+      ],
+      "practice": {
+        "objectives": [
+          "Use React Debugging and Render Reasoning in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “React Debugging and Render Reasoning”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Guided practice: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “React Debugging and Render Reasoning”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of React Debugging and Render Reasoning?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “React Debugging and Render Reasoning” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    },
+    {
+      "number": 10,
+      "slug": "react-debugging-lab",
+      "title": "Lab — React Debugging and Render Reasoning",
+      "summary": "Hands-on transfer lab for the preceding concept.",
+      "body": "Lab: React Debugging and Render Reasoning\n\nPurpose\nThis lab converts the previous explanation into a small piece of evidence you created yourself. Do not begin by copying the finished example. Start with the behavior you expect, then make the computer prove or disprove your model.\n\nYour task\nBuild the smallest runnable example for “React Debugging and Render Reasoning”, predict its output, change one assumption, and explain the difference using concrete evidence.\n\nWorking method\n1. Create the smallest clean starting point.\n2. Predict the first result in writing.\n3. Implement only enough to test that prediction.\n4. Run it and capture the result.\n5. Add one intentional failure or changed assumption.\n6. Diagnose from evidence before editing randomly.\n7. Restore the correct behavior.\n8. Close the reference and reproduce the important part from memory.\n\nWhy this is separate from the concept lesson\nReading can create familiarity without recall. The separate lab forces retrieval, execution, and debugging. Those three abilities are what later framework lessons assume when the codebase becomes larger.\n\nDefinition of done\nYou have a runnable example, one recorded prediction, one successful result, one controlled failure with diagnosis, and a short explain-back in your own words.",
+      "wordCount": 196,
+      "objectives": [
+        "Implement the concept without copying a full solution.",
+        "Compare prediction with actual runtime evidence.",
+        "Diagnose one intentionally introduced failure."
+      ],
+      "generatedLab": true,
+      "practice": {
+        "objectives": [
+          "Use React Debugging and Render Reasoning in a runnable example rather than only describing it.",
+          "Predict a result before execution and compare prediction with evidence.",
+          "Introduce one safe failure and diagnose the cause systematically."
+        ],
+        "setup": [
+          "Create or reuse a disposable practice folder so experiments do not pollute the production TaskFlow tree.",
+          "Open the terminal and editor side-by-side. Keep browser DevTools visible for browser work.",
+          "Write the expected behavior in one sentence before adding code."
+        ],
+        "steps": [
+          "Build the smallest runnable example for “React Debugging and Render Reasoning”, predict its output, change one assumption, and explain the difference using concrete evidence.",
+          "Run the smallest version first. Capture exact terminal/browser/database output before adding a second concept.",
+          "Change one input, ordering, state transition, or configuration assumption. Predict the new output, then run it.",
+          "Explain the result in terms of runtime behavior, data flow, identity, or ownership—not “the framework did it”.",
+          "Rebuild the example once without looking at the completed version."
+        ],
+        "example": {
+          "language": "tsx",
+          "caption": "Independent lab: Synchronize only with an external system",
+          "code": "function PageTitle({ openCount }: { openCount: number }) {\n  useEffect(() => {\n    document.title = `${openCount} open tasks`;\n  }, [openCount]);\n\n  return null;\n}"
+        },
+        "expected": [
+          "The UI state changes only from the intended event or external synchronization.",
+          "React DevTools/console evidence matches your state-ownership prediction.",
+          "A deliberately introduced state bug can be reproduced and repaired."
+        ],
+        "breakIt": "Deliberately violate one assumption relevant to “React Debugging and Render Reasoning”. Keep the failure small enough that you can identify a single causal change.",
+        "explainBack": [
+          "What is the simplest accurate explanation of React Debugging and Render Reasoning?",
+          "Which input/state is the source of truth?",
+          "What exact evidence distinguishes success from accidental success?",
+          "What failure did you reproduce and how did you isolate it?"
+        ],
+        "checkpoint": "You can continue when you can reproduce the core behavior of “React Debugging and Render Reasoning” from a blank file or clean state and explain one failure without reopening the finished solution."
+      }
+    }
+  ],
+  "lessonCount": 10,
+  "wordCount": 3371,
+  "quiz": [
+    {
+      "question": "Which statement best captures the lesson 'Effects and External Synchronization'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "Effects synchronize React with systems outside React: subscriptions, browser APIs, imperative widgets, manual network work.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "Effects synchronize React with systems outside React: subscriptions, browser APIs, imperative widgets, manual network work."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Refs and Imperative Escape Hatches'?",
+      "options": [
+        "If the UI looks correct once, no further verification is useful.",
+        "Refs hold mutable values that do not trigger rendering and can reference DOM nodes.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers."
+      ],
+      "answer": 1,
+      "explanation": "Refs hold mutable values that do not trigger rendering and can reference DOM nodes."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Context and Provider Boundaries'?",
+      "options": [
+        "Context passes a value through a subtree without threading props through every intermediate component.",
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful."
+      ],
+      "answer": 0,
+      "explanation": "Context passes a value through a subtree without threading props through every intermediate component."
+    },
+    {
+      "question": "Which statement best captures the lesson 'Reducers for Explicit State Transitions'?",
+      "options": [
+        "The framework automatically handles this, so the underlying concept can be ignored.",
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "useReducer is useful when local state has several related transitions and named events improve clarity."
+      ],
+      "answer": 3,
+      "explanation": "useReducer is useful when local state has several related transitions and named events improve clarity."
+    },
+    {
+      "question": "Which statement best captures the lesson 'React Debugging and Render Reasoning'?",
+      "options": [
+        "The safest default is to duplicate the value or responsibility in several layers.",
+        "If the UI looks correct once, no further verification is useful.",
+        "When UI is wrong, identify the source of truth and inspect props/state at the render where the problem occurs.",
+        "The framework automatically handles this, so the underlying concept can be ignored."
+      ],
+      "answer": 2,
+      "explanation": "When UI is wrong, identify the source of truth and inspect props/state at the render where the problem occurs."
+    }
+  ]
+}

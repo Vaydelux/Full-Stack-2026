@@ -1,0 +1,102 @@
+{
+  "title": "Beginner Foundation",
+  "subtitle": "Zero-to-framework prerequisites for the main TaskFlow course",
+  "modules": [
+    {
+      "number": 0,
+      "slug": "f00",
+      "title": "How the Web and Development Environment Work",
+      "description": "Build the mental model that makes every later tool less mysterious.",
+      "lessonCount": 10,
+      "wordCount": 3488
+    },
+    {
+      "number": 1,
+      "slug": "f01",
+      "title": "HTML, CSS, Accessibility, and Responsive Layout",
+      "description": "Learn enough web platform fundamentals to understand what React and Tailwind eventually produce.",
+      "lessonCount": 10,
+      "wordCount": 3419
+    },
+    {
+      "number": 2,
+      "slug": "f02",
+      "title": "JavaScript Foundations I",
+      "description": "Build confidence with values, control flow, functions, and modules before frameworks add abstractions.",
+      "lessonCount": 10,
+      "wordCount": 3384
+    },
+    {
+      "number": 3,
+      "slug": "f03",
+      "title": "JavaScript Foundations II: Async and HTTP",
+      "description": "Understand asynchronous control flow before data fetching libraries hide the mechanics.",
+      "lessonCount": 10,
+      "wordCount": 3398
+    },
+    {
+      "number": 4,
+      "slug": "f04",
+      "title": "TypeScript Foundations",
+      "description": "Use TypeScript to express contracts and catch mistakes without confusing compile-time types with runtime validation.",
+      "lessonCount": 10,
+      "wordCount": 3342
+    },
+    {
+      "number": 5,
+      "slug": "f05",
+      "title": "React Foundations I",
+      "description": "Learn components, props, rendering, events, and state before Next.js adds server rendering and routing.",
+      "lessonCount": 10,
+      "wordCount": 3378
+    },
+    {
+      "number": 6,
+      "slug": "f06",
+      "title": "React Foundations II",
+      "description": "Understand effects, refs, context, reducer patterns, and component lifecycle decisions without overusing them.",
+      "lessonCount": 10,
+      "wordCount": 3371
+    },
+    {
+      "number": 7,
+      "slug": "f07",
+      "title": "Git and GitHub Foundations",
+      "description": "Use version control as a daily engineering tool instead of a backup button.",
+      "lessonCount": 10,
+      "wordCount": 3415
+    },
+    {
+      "number": 8,
+      "slug": "f08",
+      "title": "Command Line and Developer Tooling",
+      "description": "Become comfortable navigating and diagnosing a project from the terminal instead of depending entirely on IDE buttons.",
+      "lessonCount": 10,
+      "wordCount": 3384
+    },
+    {
+      "number": 9,
+      "slug": "f09",
+      "title": "Databases and SQL Primer",
+      "description": "Prepare for PostgreSQL and Prisma by understanding tables, keys, relationships, constraints, and basic SQL.",
+      "lessonCount": 10,
+      "wordCount": 3344
+    },
+    {
+      "number": 10,
+      "slug": "f10",
+      "title": "API and Security Primer",
+      "description": "Learn trust boundaries, validation, identity, permission, and safe data handling before authentication phases.",
+      "lessonCount": 10,
+      "wordCount": 3368
+    },
+    {
+      "number": 11,
+      "slug": "f11",
+      "title": "Framework Readiness and TaskFlow Preview",
+      "description": "Connect foundations into the architecture you are about to build and choose the right entry point.",
+      "lessonCount": 10,
+      "wordCount": 3428
+    }
+  ]
+}

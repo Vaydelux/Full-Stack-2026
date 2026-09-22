@@ -1,0 +1,86 @@
+{
+  "title": "Full-Stack Developer 2026 — Deep Dives",
+  "subtitle": "Hand-authored, code-first masterclasses that supplement the 37-phase source curriculum with slower executable teaching.",
+  "tracks": [
+    {
+      "number": 1,
+      "slug": "javascript",
+      "title": "JavaScript Core — From Syntax to Runtime Reasoning",
+      "audience": "Foundation",
+      "description": "Learn JavaScript by predicting behavior, running small programs, debugging incorrect assumptions, and gradually building TaskFlow Lite.",
+      "lessonCount": 8
+    },
+    {
+      "number": 2,
+      "slug": "typescript",
+      "title": "TypeScript — Make Invalid States Harder to Represent",
+      "audience": "Foundation",
+      "description": "Move from working JavaScript to explicit compile-time contracts, then learn where runtime validation must take over.",
+      "lessonCount": 8
+    },
+    {
+      "number": 3,
+      "slug": "react",
+      "title": "React — State, Rendering, and Component Design",
+      "audience": "Foundation",
+      "description": "Build TaskFlow Lite in React while learning state ownership, derived data, forms, effects, and composition.",
+      "lessonCount": 8
+    },
+    {
+      "number": 4,
+      "slug": "nextjs",
+      "title": "Next.js — App Router, Server/Client Boundaries, and Production Rendering",
+      "audience": "Phase 03",
+      "description": "Build the actual TaskFlow web shell and reason precisely about what runs on the server, what ships to the browser, and how routing affects data flow.",
+      "lessonCount": 8
+    },
+    {
+      "number": 5,
+      "slug": "nestjs",
+      "title": "NestJS + Fastify — Request Lifecycle and Backend Architecture",
+      "audience": "Phase 04",
+      "description": "Trace an HTTP request through Fastify and NestJS, then build modules/controllers/services with clear ownership.",
+      "lessonCount": 8
+    },
+    {
+      "number": 6,
+      "slug": "data",
+      "title": "PostgreSQL + Prisma — Data Modeling, SQL, and Migrations",
+      "audience": "Phases 07–11",
+      "description": "Learn the database independently, then use Prisma without surrendering understanding of SQL and migration risk.",
+      "lessonCount": 8
+    },
+    {
+      "number": 7,
+      "slug": "auth",
+      "title": "Authentication + Authorization — Identity, Trust, and Permissions",
+      "audience": "Phases 16–19",
+      "description": "Separate proving identity from deciding permission, then attack your own assumptions.",
+      "lessonCount": 8
+    },
+    {
+      "number": 8,
+      "slug": "frontend-data",
+      "title": "Forms + TanStack Query — Professional Frontend Data Flow",
+      "audience": "Phases 21–25",
+      "description": "Build reliable forms, cache server state, handle mutations, and reason about optimistic concurrency.",
+      "lessonCount": 8
+    },
+    {
+      "number": 9,
+      "slug": "quality",
+      "title": "Testing + Security + Observability + Performance",
+      "audience": "Phases 28–31",
+      "description": "Turn production quality into observable, testable engineering rather than a checklist.",
+      "lessonCount": 8
+    },
+    {
+      "number": 10,
+      "slug": "delivery",
+      "title": "Docker + GitHub Actions + Production Deployment",
+      "audience": "Phases 32–35",
+      "description": "Package, verify, release, deploy, smoke-test, and roll back TaskFlow with explicit evidence at every stage.",
+      "lessonCount": 8
+    }
+  ]
+}
